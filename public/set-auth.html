@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Set Auth Bypass</title>
+</head>
+
+<body>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const perms = urlParams.get('perms') || '{}';
+        const user = {
+            id: "mock_" + Date.now(),
+            fullName: "Test Admin",
+            email: "admin@domain.com",
+            username: "testadmin",
+            permissions: JSON.parse(perms)
+        };
+        const sessionData = {
+            user: user,
+            loginTime: new Date().getTime()
+        };
+        localStorage.setItem('currentUser', JSON.stringify(sessionData));
+        window.location.href = '/dashboard/users';
+    </script>
+</body>
+
+</html>

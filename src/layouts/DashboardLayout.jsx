@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Activity, Settings, LogOut, Hexagon, Users, Building, Shield, FileText, Menu, X, Clock } from 'lucide-react';
+import { LayoutDashboard, Activity, Settings, LogOut, Hexagon, Users, Building, Shield, FileText, Menu, X, Clock, ShoppingCart } from 'lucide-react';
 import { userService } from '../services/userService';
 import { usePermissions } from '../hooks/usePermissions';
 import '../styles/DashboardLayout.css';
@@ -13,7 +13,7 @@ const DashboardLayout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
 
-    useState(() => {
+    useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
@@ -51,15 +51,24 @@ const DashboardLayout = () => {
                 </div>
 
                 <nav className="sidebar-nav">
-                    <NavLink to="/dashboard" end onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                        <LayoutDashboard size={20} />
-                        <span>ภาพรวม</span>
-                    </NavLink>
+                    {hasPermission('overview', 'view') && (
+                        <NavLink to="/dashboard" end onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                            <LayoutDashboard size={20} />
+                            <span>ภาพรวม</span>
+                        </NavLink>
+                    )}
 
                     {hasPermission('customers', 'view') && (
                         <NavLink to="/dashboard/customers" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                             <Users size={20} />
                             <span>ลูกค้า</span>
+                        </NavLink>
+                    )}
+
+                    {(hasPermission('purchase_orders', 'view') || hasPermission('invoices', 'view')) && (
+                        <NavLink to="/dashboard/purchase-orders" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                            <ShoppingCart size={20} />
+                            <span>ใบสั่งซื้อ (PO)</span>
                         </NavLink>
                     )}
 
@@ -117,10 +126,12 @@ const DashboardLayout = () => {
                         </>
                     )}
 
-                    <NavLink to="/dashboard/settings" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                        <Settings size={20} />
-                        <span>ตั้งค่า</span>
-                    </NavLink>
+                    {hasPermission('settings', 'view') && (
+                        <NavLink to="/dashboard/settings" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                            <Settings size={20} />
+                            <span>ตั้งค่า</span>
+                        </NavLink>
+                    )}
                 </nav>
 
                 <div className="sidebar-footer">
@@ -161,7 +172,7 @@ const DashboardLayout = () => {
                     <Outlet />
                 </div>
             </main>
-        </div>
+        </div >
     );
 };
 

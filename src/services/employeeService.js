@@ -37,9 +37,27 @@ export const employeeService = {
     // Create employee
     createEmployee: async (employeeData) => {
         try {
+            // Whitelist allowed fields
+            const dbData = {
+                code: employeeData.code,
+                full_name: employeeData.full_name,
+                nickname: employeeData.nickname,
+                phone: employeeData.phone,
+                position: employeeData.position,
+                employment_type: employeeData.employment_type || 'Full-time',
+                daily_wage: employeeData.daily_wage || 0,
+                diligence_allowance: employeeData.diligence_allowance || 0,
+                start_date: employeeData.start_date,
+                status: employeeData.status || 'Active',
+                emergency_contact_name: employeeData.emergency_contact_name,
+                emergency_contact_phone: employeeData.emergency_contact_phone,
+                emergency_contact_relation: employeeData.emergency_contact_relation,
+                date_of_birth: employeeData.date_of_birth
+            };
+
             const { data, error } = await supabase
                 .from('employees')
-                .insert([employeeData])
+                .insert([dbData])
                 .select()
                 .single();
 
@@ -54,9 +72,32 @@ export const employeeService = {
     // Update employee
     updateEmployee: async (id, employeeData) => {
         try {
+            // Whitelist allowed fields
+            const dbData = {
+                code: employeeData.code,
+                full_name: employeeData.full_name,
+                nickname: employeeData.nickname,
+                phone: employeeData.phone,
+                position: employeeData.position,
+                employment_type: employeeData.employment_type,
+                daily_wage: employeeData.daily_wage,
+                diligence_allowance: employeeData.diligence_allowance,
+                start_date: employeeData.start_date,
+                status: employeeData.status,
+                emergency_contact_name: employeeData.emergency_contact_name,
+                emergency_contact_phone: employeeData.emergency_contact_phone,
+                emergency_contact_relation: employeeData.emergency_contact_relation,
+                date_of_birth: employeeData.date_of_birth
+            };
+
+            // Remove undefined values so we don't accidentally null out fields
+            Object.keys(dbData).forEach(key => {
+                if (dbData[key] === undefined) delete dbData[key];
+            });
+
             const { data, error } = await supabase
                 .from('employees')
-                .update(employeeData)
+                .update(dbData)
                 .eq('id', id)
                 .select()
                 .single();

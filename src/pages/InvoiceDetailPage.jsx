@@ -259,7 +259,7 @@ const InvoiceDetailPage = () => {
                                 <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                                     <td style={{ padding: '1rem', color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>{idx + 1}</td>
                                     <td style={{ padding: '1rem', color: 'var(--text-main)', fontWeight: '500', borderRight: '1px solid var(--border-color)' }}>{item.productName}</td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-muted)', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>{item.quantity.toLocaleString()} {item.unit}</td>
+                                    <td style={{ padding: '1rem', color: 'var(--text-muted)', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>{item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2 })} {item.unit}</td>
                                     <td style={{ padding: '1rem', color: 'var(--text-muted)', textAlign: 'right', borderRight: '1px solid var(--border-color)' }}>฿{item.pricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                     <td style={{ padding: '1rem', color: 'var(--text-main)', textAlign: 'right', fontWeight: '500' }}>฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                 </tr>

@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { settingService } from './settingService';
+import { purchaseOrderService } from './purchaseOrderService';
 import { documentNumberHelper } from '../utils/documentNumbering';
 
 export const invoiceService = {
@@ -24,6 +25,7 @@ export const invoiceService = {
                 customerName: inv.customer?.name || inv.customer_snapshot?.name || 'Unknown',
                 customerSnapshot: inv.customer_snapshot,
                 referenceNo: inv.reference_no,
+                purchaseOrderId: inv.purchase_order_id,
                 creditDays: inv.credit_days,
                 dueDate: inv.due_date,
                 subtotal: Number(inv.subtotal),
@@ -81,6 +83,7 @@ export const invoiceService = {
                 } : inv.customer_snapshot,
                 customerSnapshot: inv.customer_snapshot,
                 referenceNo: inv.reference_no,
+                purchaseOrderId: inv.purchase_order_id,
                 creditDays: inv.credit_days,
                 dueDate: inv.due_date,
                 subtotal: Number(inv.subtotal),
@@ -116,6 +119,7 @@ export const invoiceService = {
                 date: invoiceData.date,
                 customer_id: invoiceData.customerId || null,
                 reference_no: invoiceData.referenceNo,
+                purchase_order_id: invoiceData.purchaseOrderId || null,
                 credit_days: invoiceData.creditDays,
                 due_date: invoiceData.dueDate,
                 subtotal: invoiceData.subtotal,
@@ -155,6 +159,11 @@ export const invoiceService = {
 
             if (itemsError) throw itemsError;
 
+            // 3. Update PO status if linked
+            if (inv.purchase_order_id) {
+                await purchaseOrderService.updatePurchaseOrderStatus(inv.purchase_order_id);
+            }
+
             return inv;
         } catch (error) {
             console.error('Error creating invoice:', error);
@@ -165,12 +174,20 @@ export const invoiceService = {
     // Update Invoice
     updateInvoice: async (id, invoiceData, items) => {
         try {
+            // 0. Get old invoice to check for PO changes
+            const { data: oldInv } = await supabase
+                .from('invoices')
+                .select('purchase_order_id')
+                .eq('id', id)
+                .single();
+
             // 1. Update Invoice
             const dbInv = {
                 invoice_no: invoiceData.invoiceNo,
                 date: invoiceData.date,
                 customer_id: invoiceData.customerId || null,
                 reference_no: invoiceData.referenceNo,
+                purchase_order_id: invoiceData.purchaseOrderId || null,
                 credit_days: invoiceData.creditDays,
                 due_date: invoiceData.dueDate,
                 subtotal: invoiceData.subtotal,
@@ -217,6 +234,16 @@ export const invoiceService = {
 
             if (itemsError) throw itemsError;
 
+            // 3. Update PO statuses
+            if (oldInv && oldInv.purchase_order_id && oldInv.purchase_order_id !== invoiceData.purchaseOrderId) {
+                // Update old PO if it changed
+                await purchaseOrderService.updatePurchaseOrderStatus(oldInv.purchase_order_id);
+            }
+            if (invoiceData.purchaseOrderId) {
+                // Update new/current PO
+                await purchaseOrderService.updatePurchaseOrderStatus(invoiceData.purchaseOrderId);
+            }
+
             return true;
         } catch (error) {
             console.error('Error updating invoice:', error);
@@ -227,12 +254,25 @@ export const invoiceService = {
     // Delete Invoice
     deleteInvoice: async (id) => {
         try {
+            // Get invoice to know which PO to update
+            const { data: inv } = await supabase
+                .from('invoices')
+                .select('purchase_order_id')
+                .eq('id', id)
+                .single();
+
             const { error } = await supabase
                 .from('invoices')
                 .delete()
                 .eq('id', id);
 
             if (error) throw error;
+
+            // Update PO status
+            if (inv && inv.purchase_order_id) {
+                await purchaseOrderService.updatePurchaseOrderStatus(inv.purchase_order_id);
+            }
+
             return true;
         } catch (error) {
             console.error('Error deleting invoice:', error);

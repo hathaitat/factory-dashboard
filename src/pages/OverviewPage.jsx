@@ -4,6 +4,7 @@ import { Users, DollarSign, FileText, Clock, ExternalLink } from 'lucide-react';
 import { customerService } from '../services/customerService';
 import { invoiceService } from '../services/invoiceService';
 import { billingNoteService } from '../services/billingNoteService';
+import { purchaseOrderService } from '../services/purchaseOrderService';
 import '../styles/OverviewPage.css';
 
 const OverviewPage = () => {
@@ -17,15 +18,17 @@ const OverviewPage = () => {
     });
     const [recentInvoices, setRecentInvoices] = useState([]);
     const [recentBillingNotes, setRecentBillingNotes] = useState([]);
+    const [duePurchaseOrders, setDuePurchaseOrders] = useState([]);
 
     useEffect(() => {
         const loadDashboardData = async () => {
             setIsLoading(true);
             try {
-                const [customers, invoices, billingNotes] = await Promise.all([
+                const [customers, invoices, billingNotes, purchaseOrders] = await Promise.all([
                     customerService.getCustomers(),
                     invoiceService.getInvoices(),
-                    billingNoteService.getBillingNotes()
+                    billingNoteService.getBillingNotes(),
+                    purchaseOrderService.getPurchaseOrders()
                 ]);
 
                 const now = new Date();
@@ -64,6 +67,24 @@ const OverviewPage = () => {
                 // Recent data (Last 5)
                 setRecentInvoices((invoices || []).slice(0, 5));
                 setRecentBillingNotes((billingNotes || []).slice(0, 5));
+
+                // Due Purchase Orders
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const threeDaysFromNow = new Date(today);
+                threeDaysFromNow.setDate(today.getDate() + 3);
+
+                const upcomingPOs = (purchaseOrders || [])
+                    .filter(po => {
+                        if (po.status === 'Completed' || po.status === 'Cancelled') return false;
+                        if (!po.dueDate) return false;
+                        const dueDate = new Date(po.dueDate);
+                        dueDate.setHours(0, 0, 0, 0);
+                        return dueDate <= threeDaysFromNow;
+                    })
+                    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+                    .slice(0, 5);
+                setDuePurchaseOrders(upcomingPOs);
 
             } catch (error) {
                 console.error("Error loading dashboard data:", error);
@@ -212,6 +233,64 @@ const OverviewPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* PO Due Deliveries */}
+            <div className="glass-panel" style={{ marginTop: '1.5rem', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div className="panel-header" style={{ padding: '1.2rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Clock size={18} /> ใบสั่งซื้อ (PO) กำหนดส่งสินค้า
+                    </h3>
+                    <button onClick={() => navigate('/dashboard/purchase-orders')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem' }}>
+                        ดูทั้งหมด <ExternalLink size={14} />
+                    </button>
+                </div>
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ background: 'var(--bg-main)', textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
+                                <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ PO</th>
+                                <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ลูกค้า</th>
+                                <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>กำหนดส่ง</th>
+                                <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {duePurchaseOrders.map(po => {
+                                const dueDate = new Date(po.dueDate);
+                                const isOverdue = dueDate < new Date(new Date().setHours(0, 0, 0, 0));
+                                const isToday = dueDate.getTime() === new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+
+                                return (
+                                    <tr key={po.id} style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => navigate(`/dashboard/purchase-orders/${po.id}/edit`)} className="hover-row">
+                                        <td style={{ padding: '1rem 1.5rem', fontWeight: '500', color: '#3b82f6' }}>{po.poNumber}</td>
+                                        <td style={{ padding: '1rem 1.5rem', color: 'var(--text-main)' }}>{po.customer?.name}</td>
+                                        <td style={{ padding: '1rem 1.5rem', textAlign: 'center', fontWeight: '500', color: isOverdue ? 'var(--error)' : isToday ? 'var(--warning)' : 'var(--text-main)' }}>
+                                            {isOverdue ? 'เลยกำหนดส่ง' : isToday ? 'กำหนดส่งวันนี้' : dueDate.toLocaleDateString('th-TH')}
+                                        </td>
+                                        <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
+                                            <span style={{
+                                                padding: '0.2rem 0.6rem',
+                                                borderRadius: '12px',
+                                                fontSize: '0.8rem',
+                                                background: po.status === 'Pending' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                                                color: po.status === 'Pending' ? '#f59e0b' : 'var(--primary)'
+                                            }}>
+                                                {po.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                )
+                            })}
+                            {duePurchaseOrders.length === 0 && (
+                                <tr>
+                                    <td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>ไม่มีรายการ PO กำหนดส่งสินค้าเร็วๆ นี้</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             {/* Adding a small inline style for hover effect since we can't easily edit the CSS file right now */}
             <style>{`
                 .hover-row:hover {

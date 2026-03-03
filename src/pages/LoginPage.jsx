@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, Hexagon, Eye, EyeOff } from 'lucide-react';
 import { userService } from '../services/userService';
@@ -18,7 +18,7 @@ const LoginPage = () => {
     const [lockoutUntil, setLockoutUntil] = useState(null);
 
     // Check for existing lockout on mount
-    useState(() => {
+    useEffect(() => {
         const storedLockout = localStorage.getItem('loginLockoutUntil');
         if (storedLockout) {
             const lockoutTime = parseInt(storedLockout, 10);
@@ -29,29 +29,15 @@ const LoginPage = () => {
                 localStorage.removeItem('loginAttempts');
             }
         }
-    });
+    }, []);
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
 
-        // 1. Check Lockout
-        if (lockoutUntil) {
-            if (lockoutUntil > Date.now()) {
-                const remaining = Math.ceil((lockoutUntil - Date.now()) / 60000);
-                setError(`ระบบถูกระงับชั่วคราวเนื่องจากใส่รหัสผิดเกินกำหนด กรุณาลองใหม่ในอีก ${remaining} นาที`);
-                return;
-            } else {
-                setLockoutUntil(null);
-                localStorage.removeItem('loginLockoutUntil');
-                localStorage.removeItem('loginAttempts');
-            }
-        }
-
-        // 2. Check Honeypot (Bot Detection)
+        // Check Honeypot (Bot Detection)
         if (honeypot) {
             console.warn("Bot detected via honeypot");
-            // Fake delay and error
             setTimeout(() => {
                 setError('ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง');
                 setIsLoading(false);
@@ -64,21 +50,14 @@ const LoginPage = () => {
         try {
             const result = await userService.login(email, password);
             if (result.success) {
-                // Clear attempts logic
-                localStorage.removeItem('loginAttempts');
                 navigate('/dashboard');
             } else {
-                // Brute Force Counting
-                const currentAttempts = parseInt(localStorage.getItem('loginAttempts') || '0', 10) + 1;
-                localStorage.setItem('loginAttempts', currentAttempts.toString());
+                // Server handles brute-force counting and lockout
+                setError(result.message);
 
-                if (currentAttempts >= 3) {
-                    const lockoutTime = Date.now() + (5 * 60 * 1000); // 5 minutes
-                    localStorage.setItem('loginLockoutUntil', lockoutTime.toString());
-                    setLockoutUntil(lockoutTime);
-                    setError('ใส่รหัสผิดเกิน 3 ครั้ง ระบบจะระงับการใช้งาน 5 นาที');
-                } else {
-                    setError(`ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง (เหลือโอกาส ${3 - currentAttempts} ครั้ง)`);
+                // If server says account is locked
+                if (result.remainingAttempts !== undefined && result.remainingAttempts <= 0) {
+                    setLockoutUntil(Date.now() + (5 * 60 * 1000));
                 }
             }
         } catch (err) {

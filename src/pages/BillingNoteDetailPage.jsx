@@ -150,6 +150,7 @@ const BillingNoteDetailPage = () => {
                                 <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
                                     <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500' }}>ลำดับ</th>
                                     <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500' }}>บิลเลขที่</th>
+                                    <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500' }}>อ้างอิง(PO)</th>
                                     <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500' }}>ลงวันที่</th>
                                     <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', textAlign: 'right' }}>จำนวนเงิน</th>
                                 </tr>
@@ -163,6 +164,23 @@ const BillingNoteDetailPage = () => {
                                                 {inv.invoiceNo}
                                             </Link>
                                         </td>
+                                        <td style={{ padding: '1rem 1.5rem' }}>
+                                            {inv.poNumber ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    {inv.poNumber}
+                                                    <span style={{
+                                                        padding: '0.1rem 0.5rem',
+                                                        borderRadius: '12px',
+                                                        fontSize: '0.75rem',
+                                                        background: inv.poStatus === 'Completed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                                                        color: inv.poStatus === 'Completed' ? 'var(--success)' : 'var(--primary)',
+                                                        whiteSpace: 'nowrap'
+                                                    }} title="สถานะ PO">
+                                                        {inv.poStatus}
+                                                    </span>
+                                                </div>
+                                            ) : <span style={{ color: '#888' }}>-</span>}
+                                        </td>
                                         <td style={{ padding: '1rem 1.5rem' }}>{new Date(inv.date).toLocaleDateString('th-TH')}</td>
                                         <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
                                             ฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -170,7 +188,7 @@ const BillingNoteDetailPage = () => {
                                     </tr>
                                 ))}
                                 <tr style={{ background: 'rgba(16, 185, 129, 0.02)' }}>
-                                    <td colSpan="3" style={{ padding: '1.5rem', textAlign: 'right', fontWeight: '700', fontSize: '1.1rem' }}>ยอดรวมสุทธิ</td>
+                                    <td colSpan="4" style={{ padding: '1.5rem', textAlign: 'right', fontWeight: '700', fontSize: '1.1rem' }}>ยอดรวมสุทธิ</td>
                                     <td style={{ padding: '1.5rem', textAlign: 'right', fontWeight: '800', fontSize: '1.3rem', color: 'var(--success)' }}>
                                         ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                     </td>

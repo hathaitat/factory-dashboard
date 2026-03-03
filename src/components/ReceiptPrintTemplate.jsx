@@ -161,7 +161,7 @@ const ReceiptPrintTemplate = () => {
                                 <th style={{ textAlign: 'center' }}>จำนวนเงินเรียกเก็บ</th>
                             </tr>
                         </thead>
-                        <tbody style={{ fontSize: '1rem', lineHeight: '1.8' }}>
+                        <tbody style={{ lineHeight: '1.8' }}>
                             {bn.invoices.map((inv, index) => (
                                 <tr key={inv.id} style={{ height: '24px' }}>
                                     <td style={{ borderRight: '1px solid #000', textAlign: 'center' }}>{index + 1}</td>
@@ -188,7 +188,7 @@ const ReceiptPrintTemplate = () => {
                                 </tr>
                             ))}
                         </tbody>
-                        <tfoot style={{ fontSize: '1rem', lineHeight: '1.8' }}>
+                        <tfoot style={{ lineHeight: '1.8' }}>
                             <tr style={{ borderTop: '1px solid #000', height: '30px' }}>
                                 <td colSpan="4" style={{ borderRight: '1px solid #000', textAlign: 'center', background: '#f5f5f5' }}>
                                     {bn.bahtText || '-'}

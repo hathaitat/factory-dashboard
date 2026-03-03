@@ -51,7 +51,10 @@ export const billingNoteService = {
                 .from('billing_note_items')
                 .select(`
                     *,
-                    invoice:invoices(*)
+                    invoice:invoices(
+                        *,
+                        po:purchase_orders(po_number, status)
+                    )
                 `)
                 .eq('billing_note_id', id)
                 .order('sort_order', { ascending: true });
@@ -81,12 +84,11 @@ export const billingNoteService = {
                     id: item.invoice.id,
                     invoiceNo: item.invoice.invoice_no,
                     date: item.invoice.date,
-                    id: item.invoice.id,
-                    invoiceNo: item.invoice.invoice_no,
-                    date: item.invoice.date,
                     dueDate: item.invoice.due_date,
                     creditDays: item.invoice.credit_days,
-                    grandTotal: Number(item.invoice.grand_total)
+                    grandTotal: Number(item.invoice.grand_total),
+                    poNumber: item.invoice.po?.po_number,
+                    poStatus: item.invoice.po?.status
                 }))
             };
         } catch (error) {
@@ -254,7 +256,10 @@ export const billingNoteService = {
 
             let query = supabase
                 .from('invoices')
-                .select('*')
+                .select(`
+                    *,
+                    po:purchase_orders(po_number, status)
+                `)
                 .or(`customer_id.eq.${customerId},customer_snapshot->>id.eq.${customerId}`)
                 .gte('date', startDate)
                 .lte('date', endDate);
@@ -275,7 +280,9 @@ export const billingNoteService = {
                 id: inv.id,
                 invoiceNo: inv.invoice_no,
                 date: inv.date,
-                grandTotal: Number(inv.grand_total)
+                grandTotal: Number(inv.grand_total),
+                poNumber: inv.po?.po_number,
+                poStatus: inv.po?.status
             }));
         } catch (error) {
             console.error('Error fetching available invoices:', error);

@@ -5,12 +5,14 @@ import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
 
 const MODULES = [
+    { id: 'overview', label: 'ภาพรวม (Dashboard)' },
     { id: 'customers', label: 'ข้อมูลลูกค้า' },
     { id: 'invoices', label: 'ใบกำกับภาษี' },
     { id: 'billing', label: 'ใบวางบิล' },
     { id: 'employees', label: 'พนักงาน' },
     { id: 'company', label: 'ข้อมูลบริษัท' },
     { id: 'users', label: 'สิทธิ์การใช้งาน' },
+    { id: 'settings', label: 'ตั้งค่าระบบ' },
     { id: 'production', label: 'ข้อมูลการผลิต' }
 ];
 

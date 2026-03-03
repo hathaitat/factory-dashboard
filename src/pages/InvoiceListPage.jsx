@@ -145,6 +145,7 @@ const InvoiceListPage = () => {
                         <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ใบกำกับ</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อลูกค้า</th>
+                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>อ้างอิง(PO)</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>เครดิต (วัน)</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>วันที่</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวนเงินสุทธิ</th>
@@ -155,13 +156,13 @@ const InvoiceListPage = () => {
                     <tbody>
                         {isLoading ? (
                             <tr>
-                                <td colSpan="7" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>กำลังโหลดข้อมูล...</td>
+                                <td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>กำลังโหลดข้อมูล...</td>
                             </tr>
                         ) : filteredInvoices.length > 0 ? (
                             monthYearGroups.map((group) => (
                                 <React.Fragment key={group}>
                                     <tr style={{ background: 'var(--bg-main)' }}>
-                                        <td colSpan="7" style={{ padding: '0.8rem 1.5rem', fontWeight: '600', color: 'var(--text-main)', borderBottom: '1px solid var(--border-color)', borderTop: 'none' }}>
+                                        <td colSpan="8" style={{ padding: '0.8rem 1.5rem', fontWeight: '600', color: 'var(--text-main)', borderBottom: '1px solid var(--border-color)', borderTop: 'none' }}>
                                             เดือน {group}
                                         </td>
                                     </tr>
@@ -173,6 +174,7 @@ const InvoiceListPage = () => {
                                                 </Link>
                                             </td>
                                             <td style={{ padding: '1.2rem 1.5rem' }}>{inv.customerName}</td>
+                                            <td style={{ padding: '1.2rem 1.5rem', color: '#888' }}>{inv.referenceNo || '-'}</td>
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>{parseInt(inv.creditDays) === 0 ? 'เงินสด' : `${inv.creditDays} วัน`}</td>
                                             <td style={{ padding: '1.2rem 1.5rem' }}>{new Date(inv.date).toLocaleDateString('th-TH')}</td>
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>

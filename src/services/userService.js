@@ -127,43 +127,64 @@ export const userService = {
         }
     },
 
-    // Login logic (Verify Hash)
+    // Login logic — Server-side verification via RPC (Fix #2, #3, #5)
+    // Falls back to client-side bcrypt if RPC is not yet available
     login: async (username, password) => {
         try {
-            // 1. Fetch user by username
-            const { data, error } = await supabase
+            // Try server-side RPC first (preferred, secure method)
+            const { data, error } = await supabase.rpc('verify_login', {
+                p_username: username,
+                p_password: password
+            });
+
+            if (!error && data) {
+                if (data.success) {
+                    const userData = data.user;
+                    const sessionData = {
+                        user: userData,
+                        loginTime: new Date().getTime()
+                    };
+                    localStorage.setItem('currentUser', JSON.stringify(sessionData));
+                    return { success: true, user: userData };
+                } else {
+                    return {
+                        success: false,
+                        message: data.message,
+                        remainingAttempts: data.remaining_attempts
+                    };
+                }
+            }
+
+            // Fallback: Client-side bcrypt (legacy, for when RPC is not deployed)
+            console.warn('RPC verify_login unavailable, using fallback auth');
+            const { data: userData, error: fetchError } = await supabase
                 .from('staff_members')
                 .select('*')
                 .eq('username', username)
                 .single();
 
-            if (error || !data) {
+            if (fetchError || !userData) {
                 return { success: false, message: 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง' };
             }
 
-            // 2. Compare password with hash
-            const isMatch = await bcrypt.compare(password, data.password);
-
+            const isMatch = await bcrypt.compare(password, userData.password);
             if (!isMatch) {
                 return { success: false, message: 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง' };
             }
 
-            const userData = {
-                id: data.id,
-                fullName: data.full_name,
-                email: data.email,
-                username: data.username,
-                permissions: data.permissions || {}
+            const user = {
+                id: userData.id,
+                fullName: userData.full_name,
+                email: userData.email,
+                username: userData.username,
+                permissions: userData.permissions || {}
             };
-
-            // Session persistence
             const sessionData = {
-                user: userData,
+                user,
                 loginTime: new Date().getTime()
             };
             localStorage.setItem('currentUser', JSON.stringify(sessionData));
-
-            return { success: true, user: userData };
+            return { success: true, user };
         } catch (error) {
             console.error('Login error:', error);
             return { success: false, message: 'เกิดข้อผิดพลาดในการเชื่อมต่อระบบ' };

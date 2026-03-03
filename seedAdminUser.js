@@ -20,12 +20,14 @@ async function main() {
     const password = await bcrypt.hash('admin1234', 10);
 
     const permissions = {
+        overview: { view: true },
         customers: { view: true, create: true, edit: true, delete: true },
         invoices: { view: true, create: true, edit: true, delete: true },
         billing: { view: true, create: true, edit: true, delete: true },
         employees: { view: true, create: true, edit: true, delete: true },
         company: { view: true, create: true, edit: true, delete: true },
         users: { view: true, create: true, edit: true, delete: true },
+        settings: { view: true },
         production: { view: true, create: true, edit: true, delete: true }
     };
 

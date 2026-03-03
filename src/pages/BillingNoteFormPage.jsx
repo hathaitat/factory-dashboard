@@ -48,12 +48,13 @@ const BillingNoteFormPage = () => {
                 customerSnapshot: inv.customerSnapshot || inv.customer || null
             }));
 
-            // Add the invoice to selected list
             const formattedInv = {
                 id: inv.id,
                 invoiceNo: inv.invoiceNo,
                 date: inv.date,
-                grandTotal: inv.grandTotal
+                grandTotal: inv.grandTotal,
+                poNumber: inv.poNumber || inv.po?.po_number,
+                poStatus: inv.poStatus || inv.po?.status
             };
             setSelectedInvoices([formattedInv]);
 
@@ -360,9 +361,16 @@ const BillingNoteFormPage = () => {
                                     {availableInvoices.map(inv => (
                                         <div key={inv.id} className="glass-panel" style={{ padding: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
                                             <div>
-                                                <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>{inv.invoiceNo}</div>
-                                                <div style={{ fontSize: '0.85rem', color: '#888' }}>วันที่: {new Date(inv.date).toLocaleDateString('th-TH')}</div>
-                                                <div style={{ fontWeight: '500', color: 'var(--success)', marginTop: '0.2rem' }}>฿{inv.grandTotal.toLocaleString()}</div>
+                                                <div style={{ fontWeight: '600', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    {inv.invoiceNo}
+                                                    {inv.poNumber && (
+                                                        <span style={{ fontSize: '0.75rem', padding: '0.1rem 0.4rem', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', borderRadius: '4px', fontWeight: 'normal' }}>
+                                                            PO: {inv.poNumber} {inv.poStatus === 'Completed' ? '(ครบ)' : ''}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div style={{ fontSize: '0.85rem', color: '#888', marginTop: '0.2rem' }}>วันที่: {new Date(inv.date).toLocaleDateString('th-TH')}</div>
+                                                <div style={{ fontWeight: '500', color: 'var(--success)', marginTop: '0.2rem' }}>฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                                             </div>
                                             <button
                                                 type="button"
@@ -398,9 +406,12 @@ const BillingNoteFormPage = () => {
                                 <tbody>
                                     {selectedInvoices.map(inv => (
                                         <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                            <td style={{ padding: '0.8rem 1rem', color: 'var(--text-main)', fontSize: '0.9rem' }}>{inv.invoiceNo}</td>
+                                            <td style={{ padding: '0.8rem 1rem', color: 'var(--text-main)', fontSize: '0.9rem' }}>
+                                                {inv.invoiceNo}
+                                                {inv.poNumber && <div style={{ fontSize: '0.75rem', color: 'var(--primary)', marginTop: '0.2rem' }}>PO: {inv.poNumber} {inv.poStatus === 'Completed' ? '(ครบ)' : ''}</div>}
+                                            </td>
                                             <td style={{ padding: '0.8rem 1rem', color: '#888', fontSize: '0.85rem' }}>{new Date(inv.date).toLocaleDateString('th-TH')}</td>
-                                            <td style={{ padding: '0.8rem 1rem', textAlign: 'right', fontWeight: '500', color: 'var(--success)' }}>฿{inv.grandTotal.toLocaleString()}</td>
+                                            <td style={{ padding: '0.8rem 1rem', textAlign: 'right', fontWeight: '500', color: 'var(--success)' }}>฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                             <td style={{ padding: '0.8rem' }}>
                                                 <button
                                                     type="button"

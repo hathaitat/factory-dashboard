@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Save, Plus, Trash2, ArrowLeft, Search, CheckCircle, FileText, Printer, X } from 'lucide-react';
 import { invoiceService } from '../services/invoiceService';
+import { purchaseOrderService } from '../services/purchaseOrderService';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
 import { useDialog } from '../contexts/DialogContext';
@@ -9,8 +10,10 @@ import { useDialog } from '../contexts/DialogContext';
 const InvoiceFormPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { showAlert, showConfirm } = useDialog();
     const isEdit = !!id;
+    const referencePoId = location.state?.referencePoId;
 
     const [isLoading, setIsLoading] = useState(false);
     const [customers, setCustomers] = useState([]);
@@ -20,11 +23,14 @@ const InvoiceFormPage = () => {
     const [customerSearch, setCustomerSearch] = useState('');
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
+    const [customerPOs, setCustomerPOs] = useState([]);
+
     const [formData, setFormData] = useState({
         invoiceNo: '',
         date: new Date().toISOString().split('T')[0],
         customerId: '',
         referenceNo: '',
+        purchaseOrderId: '',
         creditDays: 0,
         dueDate: '',
         notes: '',
@@ -90,13 +96,54 @@ const InvoiceFormPage = () => {
                     });
                     setItems(inv.items);
                     if (inv.customerId) {
-                        const customerProducts = await productService.getProductsByCustomerId(inv.customerId);
+                        const [customerProducts, pos] = await Promise.all([
+                            productService.getProductsByCustomerId(inv.customerId),
+                            purchaseOrderService.getPurchaseOrdersByCustomer(inv.customerId)
+                        ]);
                         setAllProducts(customerProducts || []);
+                        setCustomerPOs(pos || []);
                     }
                 }
             } else {
                 const nextNo = await invoiceService.getNextInvoiceNo();
-                setFormData(prev => ({ ...prev, invoiceNo: nextNo }));
+                let initialPoData = null;
+
+                if (referencePoId) {
+                    initialPoData = await purchaseOrderService.getPurchaseOrderById(referencePoId);
+                }
+
+                setFormData(prev => ({
+                    ...prev,
+                    invoiceNo: nextNo,
+                    customerId: initialPoData ? initialPoData.customer_id : '',
+                    referenceNo: initialPoData ? initialPoData.po_number : '',
+                    purchaseOrderId: referencePoId || ''
+                }));
+
+                if (initialPoData && initialPoData.customer_id) {
+                    const selectedCustomer = customerData.find(c => String(c.id) === String(initialPoData.customer_id));
+                    if (selectedCustomer) {
+                        setFormData(prev => ({ ...prev, creditDays: selectedCustomer.creditTerm || 0 }));
+                        setCustomerSearch(`${selectedCustomer.name} (${selectedCustomer.code})`);
+                    }
+                    const [customerProducts, pos] = await Promise.all([
+                        productService.getProductsByCustomerId(initialPoData.customer_id),
+                        purchaseOrderService.getPurchaseOrdersByCustomer(initialPoData.customer_id)
+                    ]);
+                    setAllProducts(customerProducts || []);
+                    setCustomerPOs(pos || []);
+
+                    if (initialPoData.purchase_order_items && initialPoData.purchase_order_items.length > 0) {
+                        const mappedItems = initialPoData.purchase_order_items.map(item => ({
+                            productName: item.product_name,
+                            quantity: item.quantity,
+                            unit: item.unit,
+                            pricePerUnit: item.price_per_unit,
+                            amount: item.amount
+                        }));
+                        setItems(mappedItems);
+                    }
+                }
             }
         } catch (error) {
             console.error('Error loading data:', error);
@@ -116,12 +163,18 @@ const InvoiceFormPage = () => {
         setFormData(prev => ({
             ...prev,
             customerId,
+            purchaseOrderId: '',
+            referenceNo: '',
             creditDays: selectedCustomer?.creditTerm || 0
         }));
 
-        // Load products for this customer
-        const customerProducts = await productService.getProductsByCustomerId(customerId);
+        // Load products and POs for this customer
+        const [customerProducts, pos] = await Promise.all([
+            productService.getProductsByCustomerId(customerId),
+            purchaseOrderService.getPurchaseOrdersByCustomer(customerId)
+        ]);
         setAllProducts(customerProducts || []);
+        setCustomerPOs(pos || []);
     };
 
     const handleAddItem = () => {
@@ -422,17 +475,54 @@ const InvoiceFormPage = () => {
                                 style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
                             />
                         </div>
-                        <div>
+                        <div style={{ position: 'relative' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>
-                                เลขอ้างอิง (PO No.) <span style={{ color: '#f87171' }}>*</span>
+                                เลขอ้างอิง (PO No.)
                             </label>
+                            <select
+                                value={formData.purchaseOrderId || ''}
+                                onChange={async (e) => {
+                                    const poId = e.target.value;
+                                    if (!poId) {
+                                        setFormData(prev => ({ ...prev, purchaseOrderId: '', referenceNo: '' }));
+                                        return;
+                                    }
+                                    const selectedPO = customerPOs.find(p => p.id === poId);
+                                    setFormData(prev => ({ ...prev, purchaseOrderId: poId, referenceNo: selectedPO?.po_number || '' }));
+
+                                    if (selectedPO) {
+                                        const confirmed = await showConfirm('คุณต้องการโหลดรายการสินค้าจากใบสั่งซื้อนี้อัตโนมัติหรือไม่? (รายการปัจจุบันจะถูกแทนที่)');
+                                        if (confirmed) {
+                                            const fullPo = await purchaseOrderService.getPurchaseOrderById(poId);
+                                            if (fullPo && fullPo.purchase_order_items && fullPo.purchase_order_items.length > 0) {
+                                                const mappedItems = fullPo.purchase_order_items.map(item => ({
+                                                    productName: item.product_name,
+                                                    quantity: item.quantity,
+                                                    unit: item.unit,
+                                                    pricePerUnit: item.price_per_unit,
+                                                    amount: item.amount
+                                                }));
+                                                setItems(mappedItems);
+                                                calculateTotals();
+                                            }
+                                        }
+                                    }
+                                }}
+                                className="glass-input"
+                                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)', marginBottom: '0.5rem' }}
+                                disabled={!formData.customerId}
+                            >
+                                <option value="">-- ไม่ระบุ / พิมพ์เลขเอกสารเอง --</option>
+                                {customerPOs.map(po => (
+                                    <option key={po.id} value={po.id}>{po.po_number}</option>
+                                ))}
+                            </select>
                             <input
                                 type="text"
                                 value={formData.referenceNo}
                                 onChange={e => setFormData({ ...formData, referenceNo: e.target.value })}
-                                required
                                 className="glass-panel"
-                                placeholder="ต้องระบุเลข PO"
+                                placeholder="พิมพ์อ้างอิง PO หรืออื่นๆ"
                                 style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
                             />
                         </div>
@@ -569,6 +659,9 @@ const InvoiceFormPage = () => {
                                             />
                                         </td>
                                         <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right', fontWeight: '500' }}>
+                                            <div style={{ marginBottom: '0.2rem', fontSize: '0.9rem', color: '#888' }}>
+                                                {item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2 })} {item.unit}
+                                            </div>
                                             ฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                         </td>
                                         <td style={{ padding: '0.8rem' }}>

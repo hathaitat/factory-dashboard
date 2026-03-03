@@ -125,7 +125,7 @@ const InvoicePrintTemplate = () => {
                             <tr key={item.id}>
                                 <td style={{ textAlign: 'center' }}>{index + 1}</td>
                                 <td>{item.productName}</td>
-                                <td style={{ textAlign: 'right' }}>{item.quantity.toLocaleString()} {item.unit}</td>
+                                <td style={{ textAlign: 'right' }}>{item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2 })} {item.unit}</td>
                                 <td style={{ textAlign: 'right' }}>{item.pricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                 <td style={{ textAlign: 'right' }}>{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                             </tr>

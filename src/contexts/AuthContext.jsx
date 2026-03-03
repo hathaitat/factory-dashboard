@@ -1,46 +1,18 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { createContext, useContext } from 'react';
 
 const AuthContext = createContext({});
 
 export const useAuth = () => useContext(AuthContext);
 
+// Note: This app uses custom auth via userService (not Supabase Auth).
+// This context is kept as a lightweight wrapper in case we migrate to
+// Supabase Auth in the future.
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        // Check active session
-        const getSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            setUser(session?.user ?? null);
-            setLoading(false);
-        };
-
-        getSession();
-
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (_event, session) => {
-                setUser(session?.user ?? null);
-                setLoading(false);
-            }
-        );
-
-        return () => subscription.unsubscribe();
-    }, []);
-
-    const value = {
-        signUp: (data) => supabase.auth.signUp(data),
-        signIn: (data) => supabase.auth.signInWithPassword(data),
-        signOut: () => supabase.auth.signOut(),
-        user,
-        loading
-    };
+    const value = {};
 
     return (
         <AuthContext.Provider value={value}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 };

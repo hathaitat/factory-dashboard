@@ -1,0 +1,7 @@
+-- Add tax and total columns to purchase_orders
+ALTER TABLE public.purchase_orders
+ADD COLUMN IF NOT EXISTS subtotal NUMERIC(15, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS discount NUMERIC(15, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS vat_rate NUMERIC(5, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS vat_amount NUMERIC(15, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS grand_total NUMERIC(15, 2) DEFAULT 0;

@@ -6,11 +6,12 @@ import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
 import { usePermissions } from '../hooks/usePermissions';
 import { useDialog } from '../contexts/DialogContext';
+import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 
 const CustomerListPage = () => {
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
-    const { showConfirm, showAlert } = useDialog();
+    const { showConfirm, showAlert, showError } = useDialog();
 
     const [customers, setCustomers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -27,6 +28,7 @@ const CustomerListPage = () => {
             setCustomers(data || []);
         } catch (error) {
             console.error('Failed to load customers:', error);
+            showError(error.message || 'ไม่สามารถโหลดข้อมูลลูกค้าได้');
             setCustomers([]);
         } finally {
             setIsLoading(false);
@@ -89,7 +91,7 @@ const CustomerListPage = () => {
             XLSX.writeFile(wb, 'Customers_Products_Export.xlsx');
         } catch (error) {
             console.error('Error exporting data:', error);
-            await showAlert('เกิดข้อผิดพลาดในการ Export ข้อมูล');
+            await showError(error.message || 'เกิดข้อผิดพลาดในการ Export ข้อมูล');
         }
     };
 
@@ -101,52 +103,50 @@ const CustomerListPage = () => {
 
     return (
         <div style={{ padding: '0 1rem 2rem 1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div>
-                    <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>ข้อมูลลูกค้า</h1>
-                    <p style={{ margin: '0.5rem 0 0 0', color: 'var(--text-muted)' }}>จัดการฐานข้อมูลลูกค้าของคุณ</p>
-                </div>
-                <div style={{ display: 'flex', gap: '0.8rem' }}>
+            <PageHeader
+                title="ข้อมูลลูกค้า"
+                subtitle="จัดการฐานข้อมูลลูกค้าของคุณ"
+                helpContent={HELP_CONTENT.customers}
+            >
+                <button
+                    onClick={exportToExcel}
+                    className="glass-panel"
+                    style={{
+                        padding: '0.8rem 1.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        background: 'rgba(16, 185, 129, 0.05)',
+                        border: '1px solid rgba(16, 185, 129, 0.1)',
+                        color: 'var(--success)',
+                        cursor: 'pointer',
+                        borderRadius: '8px',
+                        fontWeight: '500'
+                    }}
+                >
+                    <FileSpreadsheet size={20} /> Export Excel
+                </button>
+                {hasPermission('customers', 'create') && (
                     <button
-                        onClick={exportToExcel}
-                        className="glass-panel"
+                        onClick={() => navigate('/dashboard/customers/new')}
                         style={{
                             padding: '0.8rem 1.5rem',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: '#3b82f6',
+                            color: 'white',
+                            cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem',
-                            background: 'rgba(16, 185, 129, 0.05)',
-                            border: '1px solid rgba(16, 185, 129, 0.1)',
-                            color: 'var(--success)',
-                            cursor: 'pointer',
-                            borderRadius: '8px',
                             fontWeight: '500'
                         }}
                     >
-                        <FileSpreadsheet size={20} /> Export Excel
+                        <Plus size={20} />
+                        เพิ่มลูกค้า
                     </button>
-                    {hasPermission('customers', 'create') && (
-                        <button
-                            onClick={() => navigate('/dashboard/customers/new')}
-                            style={{
-                                padding: '0.8rem 1.5rem',
-                                borderRadius: '8px',
-                                border: 'none',
-                                background: '#3b82f6',
-                                color: 'white',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                fontWeight: '500'
-                            }}
-                        >
-                            <Plus size={20} />
-                            เพิ่มลูกค้า
-                        </button>
-                    )}
-                </div>
-            </div>
+                )}
+            </PageHeader>
 
             <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -262,7 +262,7 @@ const CustomerListPage = () => {
                     </table>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

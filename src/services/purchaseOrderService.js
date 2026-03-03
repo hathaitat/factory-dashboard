@@ -157,11 +157,15 @@ export const purchaseOrderService = {
 
             // Insert new items
             if (items.length > 0) {
-                const itemsToInsert = items.map((item, index) => ({
-                    ...item,
-                    po_id: id,
-                    sort_order: index
-                }));
+                const itemsToInsert = items.map((item, index) => {
+                    // Remove id and created_at so Supabase generates new ones for re-inserted items
+                    const { id: _itemId, created_at: _createdAt, ...cleanItem } = item;
+                    return {
+                        ...cleanItem,
+                        po_id: id,
+                        sort_order: index
+                    };
+                });
 
                 const { error: itemsError } = await supabase
                     .from('purchase_order_items')

@@ -5,11 +5,12 @@ import { purchaseOrderService } from '../services/purchaseOrderService';
 import { usePermissions } from '../hooks/usePermissions';
 import * as XLSX from 'xlsx';
 import { useDialog } from '../contexts/DialogContext';
+import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 
 const PurchaseOrderListPage = () => {
     const navigate = useNavigate();
     const { hasPermission } = usePermissions(); // We might use 'invoices' permission or a dedicated 'purchase_orders' one
-    const { showConfirm, showAlert } = useDialog();
+    const { showConfirm, showAlert, showError } = useDialog();
     const [purchaseOrders, setPurchaseOrders] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -25,7 +26,7 @@ const PurchaseOrderListPage = () => {
             setPurchaseOrders(data || []);
         } catch (error) {
             console.error('Error loading POs:', error);
-            showAlert('ไม่สามารถโหลดข้อมูลใบสั่งซื้อได้');
+            showError(error.message || 'ไม่สามารถโหลดข้อมูลใบสั่งซื้อได้');
         } finally {
             setIsLoading(false);
         }
@@ -91,47 +92,47 @@ const PurchaseOrderListPage = () => {
 
     return (
         <div style={{ padding: '0 1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>รายการใบสั่งซื้อ (Purchase Orders)</h1>
-                <div style={{ display: 'flex', gap: '0.8rem' }}>
+            <PageHeader
+                title="รายการใบสั่งซื้อ (Purchase Orders)"
+                helpContent={HELP_CONTENT.purchaseOrders}
+            >
+                <button
+                    onClick={exportToExcel}
+                    className="glass-panel"
+                    style={{
+                        padding: '0.6rem 1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        background: 'rgba(16, 185, 129, 0.05)',
+                        border: '1px solid rgba(16, 185, 129, 0.1)',
+                        color: 'var(--success)',
+                        cursor: 'pointer',
+                        borderRadius: '8px'
+                    }}
+                >
+                    <FileSpreadsheet size={18} /> Export Excel
+                </button>
+                {hasPermission('invoices', 'create') && (
                     <button
-                        onClick={exportToExcel}
-                        className="glass-panel"
+                        onClick={() => navigate('/dashboard/purchase-orders/new')}
                         style={{
-                            padding: '0.6rem 1rem',
+                            padding: '0.6rem 1.2rem',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem',
-                            background: 'rgba(16, 185, 129, 0.05)',
-                            border: '1px solid rgba(16, 185, 129, 0.1)',
-                            color: 'var(--success)',
+                            background: '#3b82f6',
+                            border: 'none',
+                            color: 'white',
                             cursor: 'pointer',
-                            borderRadius: '8px'
+                            borderRadius: '8px',
+                            fontWeight: '500'
                         }}
                     >
-                        <FileSpreadsheet size={18} /> Export Excel
+                        <Plus size={20} /> เพิ่มใบสั่งซื้อ
                     </button>
-                    {hasPermission('invoices', 'create') && (
-                        <button
-                            onClick={() => navigate('/dashboard/purchase-orders/new')}
-                            style={{
-                                padding: '0.6rem 1.2rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                background: '#3b82f6',
-                                border: 'none',
-                                color: 'white',
-                                cursor: 'pointer',
-                                borderRadius: '8px',
-                                fontWeight: '500'
-                            }}
-                        >
-                            <Plus size={20} /> เพิ่มใบสั่งซื้อ
-                        </button>
-                    )}
-                </div>
-            </div>
+                )}
+            </PageHeader>
 
             <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
                 <Search size={20} style={{ color: 'var(--text-muted)' }} />

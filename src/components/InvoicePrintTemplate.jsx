@@ -114,8 +114,8 @@ const InvoicePrintTemplate = () => {
                     <thead>
                         <tr>
                             <th style={{ width: '8%' }}>ลำดับ</th>
-                            <th style={{ width: '52%' }}>รหัสสินค้า / รายละเอียด</th>
-                            <th style={{ width: '12%' }}>จำนวน</th>
+                            <th style={{ width: '44%' }}>รหัสสินค้า / รายละเอียด</th>
+                            <th style={{ width: '20%' }}>จำนวน</th>
                             <th style={{ width: '13%' }}>ราคา / หน่วย</th>
                             <th style={{ width: '15%' }}>จำนวนเงิน</th>
                         </tr>

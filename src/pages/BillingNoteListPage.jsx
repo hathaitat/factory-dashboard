@@ -5,11 +5,12 @@ import { Plus, Search, FileText, Edit, Trash2, Printer, Eye, FileSpreadsheet } f
 import { billingNoteService } from '../services/billingNoteService';
 import { usePermissions } from '../hooks/usePermissions';
 import { useDialog } from '../contexts/DialogContext';
+import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 
 const BillingNoteListPage = () => {
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
-    const { showConfirm, showAlert } = useDialog();
+    const { showConfirm, showAlert, showError } = useDialog();
     const [billingNotes, setBillingNotes] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -32,7 +33,7 @@ const BillingNoteListPage = () => {
             if (success) {
                 setBillingNotes(billingNotes.filter(bn => bn.id !== id));
             } else {
-                await showAlert('ไม่สามารถลบใบวางบิลได้');
+                await showError('ไม่สามารถลบใบวางบิลได้');
             }
         }
     };
@@ -83,47 +84,36 @@ const BillingNoteListPage = () => {
 
     return (
         <div style={{ padding: '0 1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>รายการใบวางบิล (Billing Notes)</h1>
-                <div style={{ display: 'flex', gap: '0.8rem' }}>
+            <PageHeader
+                title="รายการใบวางบิล (Billing Notes)"
+                helpContent={HELP_CONTENT.billingNotes}
+            >
+                <button
+                    onClick={exportToExcel}
+                    className="glass-panel"
+                    style={{
+                        padding: '0.6rem 1rem',
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        background: 'rgba(16, 185, 129, 0.05)',
+                        border: '1px solid rgba(16, 185, 129, 0.1)',
+                        color: 'var(--success)', cursor: 'pointer', borderRadius: '8px'
+                    }}
+                >
+                    <FileSpreadsheet size={18} /> Export Excel
+                </button>
+                {hasPermission('billing', 'create') && (
                     <button
-                        onClick={exportToExcel}
-                        className="glass-panel"
+                        onClick={() => navigate('/dashboard/billing-notes/new')}
                         style={{
-                            padding: '0.6rem 1rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            background: 'rgba(16, 185, 129, 0.05)',
-                            border: '1px solid rgba(16, 185, 129, 0.1)',
-                            color: 'var(--success)',
-                            cursor: 'pointer',
-                            borderRadius: '8px'
+                            padding: '0.6rem 1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            background: '#3b82f6', border: 'none', color: 'white',
+                            cursor: 'pointer', borderRadius: '8px', fontWeight: '500'
                         }}
                     >
-                        <FileSpreadsheet size={18} /> Export Excel
+                        <Plus size={20} /> ออกใบวางบิล
                     </button>
-                    {hasPermission('billing', 'create') && (
-                        <button
-                            onClick={() => navigate('/dashboard/billing-notes/new')}
-                            style={{
-                                padding: '0.6rem 1.2rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                background: '#3b82f6',
-                                border: 'none',
-                                color: 'white',
-                                cursor: 'pointer',
-                                borderRadius: '8px',
-                                fontWeight: '500'
-                            }}
-                        >
-                            <Plus size={20} /> ออกใบวางบิล
-                        </button>
-                    )}
-                </div>
-            </div>
+                )}
+            </PageHeader>
 
             <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
                 <Search size={20} style={{ color: 'var(--text-muted)' }} />

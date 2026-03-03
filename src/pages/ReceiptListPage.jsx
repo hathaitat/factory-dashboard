@@ -5,6 +5,7 @@ import { Search, Printer, Eye, FileSpreadsheet } from 'lucide-react';
 import { billingNoteService } from '../services/billingNoteService';
 import { settingService } from '../services/settingService';
 import { documentNumberHelper } from '../utils/documentNumbering';
+import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 
 const ReceiptListPage = () => {
     const navigate = useNavigate();
@@ -95,29 +96,24 @@ const ReceiptListPage = () => {
 
     return (
         <div style={{ padding: '0 1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>รายการใบเสร็จรับเงิน (Receipts)</h1>
-                <div style={{ display: 'flex', gap: '0.8rem' }}>
-                    <button
-                        onClick={exportToExcel}
-                        className="glass-panel"
-                        style={{
-                            padding: '0.6rem 1rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            background: 'rgba(16, 185, 129, 0.05)',
-                            border: '1px solid rgba(16, 185, 129, 0.1)',
-                            color: 'var(--success)',
-                            cursor: 'pointer',
-                            borderRadius: '8px'
-                        }}
-                    >
-                        <FileSpreadsheet size={18} /> Export Excel
-                    </button>
-                    {/* No create button since it is derived from Billing Note */}
-                </div>
-            </div>
+            <PageHeader
+                title="รายการใบเสร็จรับเงิน (Receipts)"
+                helpContent={HELP_CONTENT.receipts}
+            >
+                <button
+                    onClick={exportToExcel}
+                    className="glass-panel"
+                    style={{
+                        padding: '0.6rem 1rem',
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        background: 'rgba(16, 185, 129, 0.05)',
+                        border: '1px solid rgba(16, 185, 129, 0.1)',
+                        color: 'var(--success)', cursor: 'pointer', borderRadius: '8px'
+                    }}
+                >
+                    <FileSpreadsheet size={18} /> Export Excel
+                </button>
+            </PageHeader>
 
             <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
                 <Search size={20} style={{ color: 'var(--text-muted)' }} />

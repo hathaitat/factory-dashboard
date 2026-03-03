@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { userService } from '../services/userService';
 import { usePermissions } from '../hooks/usePermissions';
 import { useDialog } from '../contexts/DialogContext';
+import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 
 const UserListPage = () => {
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
-    const { showConfirm, showAlert } = useDialog();
+    const { showConfirm, showAlert, showError } = useDialog();
     const [users, setUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -37,7 +38,7 @@ const UserListPage = () => {
             if (success) {
                 loadUsers();
             } else {
-                await showAlert('เกิดข้อผิดพลาดในการลบผู้ใช้งาน');
+                await showError('เกิดข้อผิดพลาดในการลบผู้ใช้งาน');
             }
         }
     };
@@ -69,32 +70,24 @@ const UserListPage = () => {
 
     return (
         <div style={{ padding: '0 1rem 2rem 1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div>
-                    <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>จัดการสิทธิ์ผู้ใช้งาน</h1>
-                    <p style={{ margin: '0.5rem 0 0 0', color: '#888' }}>เพิ่ม ลบ แก้ไข และกำหนดสิทธิ์การเข้าถึง</p>
-                </div>
+            <PageHeader
+                title="จัดการสิทธิ์ผู้ใช้งาน"
+                subtitle="เพิ่ม ลบ แก้ไข และกำหนดสิทธิ์การเข้าถึง"
+                helpContent={HELP_CONTENT.users}
+            >
                 {hasPermission('users', 'create') && (
                     <button
                         onClick={() => navigate('/dashboard/users/new')}
                         style={{
-                            padding: '0.8rem 1.5rem',
-                            borderRadius: '8px',
-                            border: 'none',
-                            background: '#8b5cf6', // Violet for permissions
-                            color: 'white',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            fontWeight: '500'
+                            padding: '0.8rem 1.5rem', borderRadius: '8px', border: 'none',
+                            background: '#8b5cf6', color: 'white', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500'
                         }}
                     >
-                        <Plus size={20} />
-                        เพิ่มผู้ใช้งาน
+                        <Plus size={20} /> เพิ่มผู้ใช้งาน
                     </button>
                 )}
-            </div>
+            </PageHeader>
 
             <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
                 <div style={{ position: 'relative' }}>

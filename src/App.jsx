@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { DialogProvider } from './contexts/DialogContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import PermissionRoute from './components/PermissionRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy-loaded pages (Code Splitting — reduces initial bundle from ~1.2MB to ~300KB)
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
@@ -48,122 +49,124 @@ const PageLoader = () => (
 
 function App() {
   return (
-    <AuthProvider>
-      <DialogProvider>
-        <Router>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/" element={<Navigate to="/login" replace />} />
+    <ErrorBoundary>
+      <AuthProvider>
+        <DialogProvider>
+          <Router>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/" element={<Navigate to="/login" replace />} />
 
-              {/* Protected Routes */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/dashboard" element={<DashboardLayout />}>
-                  <Route element={<PermissionRoute module="overview" action="view" />}>
-                    <Route index element={<OverviewPage />} />
-                  </Route>
-                  <Route element={<PermissionRoute module="settings" action="view" />}>
-                    <Route path="settings" element={<SettingsPage />} />
+                {/* Protected Routes */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/dashboard" element={<DashboardLayout />}>
+                    <Route element={<PermissionRoute module="overview" action="view" />}>
+                      <Route index element={<OverviewPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="settings" action="view" />}>
+                      <Route path="settings" element={<SettingsPage />} />
+                    </Route>
+
+                    {/* Customers Module */}
+                    <Route element={<PermissionRoute module="customers" action="view" />}>
+                      <Route path="customers" element={<CustomerListPage />} />
+                      <Route path="customers/:id" element={<CustomerDetailPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="customers" action="create" />}>
+                      <Route path="customers/new" element={<CustomerCreatePage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="customers" action="edit" />}>
+                      <Route path="customers/:id/edit" element={<CustomerEditPage />} />
+                    </Route>
+
+                    {/* Purchase Orders Module */}
+                    <Route element={<PermissionRoute module="purchase_orders" action="view" fallbackModule="invoices" />}>
+                      <Route path="purchase-orders" element={<PurchaseOrderListPage />} />
+                      <Route path="purchase-orders/new" element={<PurchaseOrderFormPage />} />
+                      <Route path="purchase-orders/:id/edit" element={<PurchaseOrderFormPage />} />
+                    </Route>
+
+                    {/* Invoices Module */}
+                    <Route element={<PermissionRoute module="invoices" action="view" />}>
+                      <Route path="invoices" element={<InvoiceListPage />} />
+                      <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="invoices" action="create" />}>
+                      <Route path="invoices/new" element={<InvoiceFormPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="invoices" action="edit" />}>
+                      <Route path="invoices/:id/edit" element={<InvoiceFormPage />} />
+                    </Route>
+
+                    {/* Billing Notes Module */}
+                    <Route element={<PermissionRoute module="billing" action="view" />}>
+                      <Route path="billing-notes" element={<BillingNoteListPage />} />
+                      <Route path="billing-notes/:id" element={<BillingNoteDetailPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="billing" action="create" />}>
+                      <Route path="billing-notes/new" element={<BillingNoteFormPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="billing" action="edit" />}>
+                      <Route path="billing-notes/:id/edit" element={<BillingNoteFormPage />} />
+                    </Route>
+
+                    {/* Receipts Module (Derived from Billing Notes, hence using billing view permission) */}
+                    <Route element={<PermissionRoute module="billing" action="view" />}>
+                      <Route path="receipts" element={<ReceiptListPage />} />
+                      <Route path="receipts/:id" element={<ReceiptDetailPage />} />
+                    </Route>
+
+                    {/* Users/Permissions Module */}
+                    <Route element={<PermissionRoute module="users" action="view" />}>
+                      <Route path="users" element={<UserListPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="users" action="create" />}>
+                      <Route path="users/new" element={<UserFormPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="users" action="edit" />}>
+                      <Route path="users/:id/edit" element={<UserFormPage />} />
+                    </Route>
+
+                    {/* Company Info Module */}
+                    <Route element={<PermissionRoute module="company" action="view" />}>
+                      <Route path="company-info" element={<CompanyInfoPage />} />
+                    </Route>
+
+                    {/* Employee Management Module */}
+                    <Route element={<PermissionRoute module="employees" action="view" />}>
+                      <Route path="employees" element={<EmployeeListPage />} />
+                      <Route path="employees/dashboard" element={<EmployeeDashboardPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="employees" action="create" />}>
+                      <Route path="employees/new" element={<EmployeeFormPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="employees" action="edit" />}>
+                      <Route path="employees/:id/edit" element={<EmployeeFormPage />} />
+                    </Route>
+
+                    {/* Production Module */}
+                    <Route element={<PermissionRoute module="production" action="view" />}>
+                      <Route path="production" element={<div style={{ padding: '2rem' }}><h2>ข้อมูลการผลิต (เร็วๆ นี้)</h2></div>} />
+                    </Route>
                   </Route>
 
-                  {/* Customers Module */}
-                  <Route element={<PermissionRoute module="customers" action="view" />}>
-                    <Route path="customers" element={<CustomerListPage />} />
-                    <Route path="customers/:id" element={<CustomerDetailPage />} />
-                  </Route>
-                  <Route element={<PermissionRoute module="customers" action="create" />}>
-                    <Route path="customers/new" element={<CustomerCreatePage />} />
-                  </Route>
-                  <Route element={<PermissionRoute module="customers" action="edit" />}>
-                    <Route path="customers/:id/edit" element={<CustomerEditPage />} />
-                  </Route>
-
-                  {/* Purchase Orders Module */}
-                  <Route element={<PermissionRoute module="purchase_orders" action="view" fallbackModule="invoices" />}>
-                    <Route path="purchase-orders" element={<PurchaseOrderListPage />} />
-                    <Route path="purchase-orders/new" element={<PurchaseOrderFormPage />} />
-                    <Route path="purchase-orders/:id/edit" element={<PurchaseOrderFormPage />} />
-                  </Route>
-
-                  {/* Invoices Module */}
+                  {/* Print Routes (Protected + Permission Check) */}
                   <Route element={<PermissionRoute module="invoices" action="view" />}>
-                    <Route path="invoices" element={<InvoiceListPage />} />
-                    <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+                    <Route path="/dashboard/invoices/:id/print" element={<InvoicePrintTemplate />} />
                   </Route>
-                  <Route element={<PermissionRoute module="invoices" action="create" />}>
-                    <Route path="invoices/new" element={<InvoiceFormPage />} />
-                  </Route>
-                  <Route element={<PermissionRoute module="invoices" action="edit" />}>
-                    <Route path="invoices/:id/edit" element={<InvoiceFormPage />} />
-                  </Route>
-
-                  {/* Billing Notes Module */}
                   <Route element={<PermissionRoute module="billing" action="view" />}>
-                    <Route path="billing-notes" element={<BillingNoteListPage />} />
-                    <Route path="billing-notes/:id" element={<BillingNoteDetailPage />} />
-                  </Route>
-                  <Route element={<PermissionRoute module="billing" action="create" />}>
-                    <Route path="billing-notes/new" element={<BillingNoteFormPage />} />
-                  </Route>
-                  <Route element={<PermissionRoute module="billing" action="edit" />}>
-                    <Route path="billing-notes/:id/edit" element={<BillingNoteFormPage />} />
-                  </Route>
-
-                  {/* Receipts Module (Derived from Billing Notes, hence using billing view permission) */}
-                  <Route element={<PermissionRoute module="billing" action="view" />}>
-                    <Route path="receipts" element={<ReceiptListPage />} />
-                    <Route path="receipts/:id" element={<ReceiptDetailPage />} />
-                  </Route>
-
-                  {/* Users/Permissions Module */}
-                  <Route element={<PermissionRoute module="users" action="view" />}>
-                    <Route path="users" element={<UserListPage />} />
-                  </Route>
-                  <Route element={<PermissionRoute module="users" action="create" />}>
-                    <Route path="users/new" element={<UserFormPage />} />
-                  </Route>
-                  <Route element={<PermissionRoute module="users" action="edit" />}>
-                    <Route path="users/:id/edit" element={<UserFormPage />} />
-                  </Route>
-
-                  {/* Company Info Module */}
-                  <Route element={<PermissionRoute module="company" action="view" />}>
-                    <Route path="company-info" element={<CompanyInfoPage />} />
-                  </Route>
-
-                  {/* Employee Management Module */}
-                  <Route element={<PermissionRoute module="employees" action="view" />}>
-                    <Route path="employees" element={<EmployeeListPage />} />
-                    <Route path="employees/dashboard" element={<EmployeeDashboardPage />} />
-                  </Route>
-                  <Route element={<PermissionRoute module="employees" action="create" />}>
-                    <Route path="employees/new" element={<EmployeeFormPage />} />
-                  </Route>
-                  <Route element={<PermissionRoute module="employees" action="edit" />}>
-                    <Route path="employees/:id/edit" element={<EmployeeFormPage />} />
-                  </Route>
-
-                  {/* Production Module */}
-                  <Route element={<PermissionRoute module="production" action="view" />}>
-                    <Route path="production" element={<div style={{ padding: '2rem' }}><h2>ข้อมูลการผลิต (เร็วๆ นี้)</h2></div>} />
+                    <Route path="/dashboard/billing-notes/:id/print" element={<BillingNotePrintTemplate />} />
+                    <Route path="/dashboard/billing-notes/:id/print-receipt" element={<ReceiptPrintTemplate />} />
                   </Route>
                 </Route>
 
-                {/* Print Routes (Protected + Permission Check) */}
-                <Route element={<PermissionRoute module="invoices" action="view" />}>
-                  <Route path="/dashboard/invoices/:id/print" element={<InvoicePrintTemplate />} />
-                </Route>
-                <Route element={<PermissionRoute module="billing" action="view" />}>
-                  <Route path="/dashboard/billing-notes/:id/print" element={<BillingNotePrintTemplate />} />
-                  <Route path="/dashboard/billing-notes/:id/print-receipt" element={<ReceiptPrintTemplate />} />
-                </Route>
-              </Route>
-
-            </Routes>
-          </Suspense>
-        </Router>
-      </DialogProvider>
-    </AuthProvider>
+              </Routes>
+            </Suspense>
+          </Router>
+        </DialogProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

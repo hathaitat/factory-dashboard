@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Save, Clock, Settings, Briefcase, FileText } from 'lucide-react';
 import { settingService } from '../services/settingService';
 import { documentNumberHelper } from '../utils/documentNumbering';
+import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 
 const SettingsPage = () => {
     const [workSchedule, setWorkSchedule] = useState({
@@ -99,15 +100,11 @@ const SettingsPage = () => {
 
     return (
         <div style={{ padding: '0 1rem 2rem 1rem', maxWidth: '800px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                <div style={{ padding: '1rem', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '12px', color: '#8b5cf6' }}>
-                    <Settings size={32} />
-                </div>
-                <div>
-                    <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>ตั้งค่าระบบ</h1>
-                    <p style={{ margin: '0.5rem 0 0 0', color: 'var(--text-muted)' }}>จัดการการตั้งค่าต่างๆ ของระบบ</p>
-                </div>
-            </div>
+            <PageHeader
+                title="ตั้งค่าระบบ"
+                subtitle="จัดการการตั้งค่าต่างๆ ของระบบ"
+                helpContent={HELP_CONTENT.settings}
+            />
 
             {message && (
                 <div style={{

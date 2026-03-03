@@ -10,6 +10,7 @@ import FullTimesheetModal from '../components/FullTimesheetModal';
 import AddPeriodModal from '../components/AddPeriodModal';
 import * as XLSX from 'xlsx';
 import { useDialog } from '../contexts/DialogContext';
+import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 
 import { settingService } from '../services/settingService';
 import { periodService } from '../services/periodService';
@@ -882,14 +883,11 @@ const EmployeeListPage = () => {
 
     return (
         <div style={{ padding: '0 1rem 2rem 1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <div>
-                    <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>รายชื่อพนักงาน</h1>
-                    <p style={{ margin: '0.5rem 0 0 0', color: '#888' }}>
-                        {viewMode === 'timesheet' ? 'จัดการเวลาทำงานและการเข้างาน' : 'จัดการข้อมูลพนักงานและค่าแรง'}
-                    </p>
-                </div>
-
+            <PageHeader
+                title="รายชื่อพนักงาน"
+                subtitle={viewMode === 'timesheet' ? 'จัดการเวลาทำงานและการเข้างาน' : 'จัดการข้อมูลพนักงานและค่าแรง'}
+                helpContent={HELP_CONTENT.employees}
+            >
                 {viewMode === 'info' && hasPermission('employees', 'create') && (
                     <button
                         onClick={() => navigate('/dashboard/employees/new')}
@@ -904,24 +902,21 @@ const EmployeeListPage = () => {
                 )}
 
                 {viewMode === 'timesheet' && selectedPeriod && hasPermission('employees', 'edit') && (
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                        <label
-                            style={{
-                                padding: '0.8rem 1.5rem', borderRadius: '8px', border: 'none', background: '#10b981', color: 'white',
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500', fontSize: '1rem'
-                            }}>
-                            <FileSpreadsheet size={20} /> Import Time From Excel
-                            <input
-                                type="file"
-                                accept=".xlsx, .xls, .csv"
-                                onClick={(e) => { e.target.value = null; }}
-                                onChange={handleImport}
-
-                            />
-                        </label>
-                    </div>
+                    <label
+                        style={{
+                            padding: '0.8rem 1.5rem', borderRadius: '8px', border: 'none', background: '#10b981', color: 'white',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500', fontSize: '1rem'
+                        }}>
+                        <FileSpreadsheet size={20} /> Import Time From Excel
+                        <input
+                            type="file"
+                            accept=".xlsx, .xls, .csv"
+                            onClick={(e) => { e.target.value = null; }}
+                            onChange={handleImport}
+                        />
+                    </label>
                 )}
-            </div>
+            </PageHeader>
 
             {/* Controls: View Mode Toggle */}
             <div style={{ marginBottom: '2rem' }}>
@@ -1258,7 +1253,7 @@ const EmployeeListPage = () => {
                         loadPeriodData();
                     } catch (error) {
                         console.error('Failed to update diligence override', error);
-                        await showAlert('บันทึกไม่สำเร็จ');
+                        await showError('บันทึกไม่สำเร็จ');
                     }
                 }}
                 onUpdateLog={async (empId, dateStr, startTime, endTime) => {

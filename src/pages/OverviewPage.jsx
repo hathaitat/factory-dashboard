@@ -6,6 +6,7 @@ import { invoiceService } from '../services/invoiceService';
 import { billingNoteService } from '../services/billingNoteService';
 import { purchaseOrderService } from '../services/purchaseOrderService';
 import '../styles/OverviewPage.css';
+import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 
 const OverviewPage = () => {
     const navigate = useNavigate();
@@ -102,13 +103,15 @@ const OverviewPage = () => {
 
     return (
         <div className="overview-container">
-            <div className="overview-header">
-                <h2 className="page-title">ภาพรวมระบบ (Dashboard)</h2>
+            <PageHeader
+                title="ภาพรวมระบบ (Dashboard)"
+                helpContent={HELP_CONTENT.overview}
+            >
                 <div className="status-badge live">
                     <span className="pulse-dot"></span>
                     ข้อมูลอัพเดทล่าสุด
                 </div>
-            </div>
+            </PageHeader>
 
             <div className="kpi-grid">
                 <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/customers')} style={{ cursor: 'pointer' }}>

@@ -69,21 +69,19 @@ const OverviewPage = () => {
                 setRecentInvoices((invoices || []).slice(0, 5));
                 setRecentBillingNotes((billingNotes || []).slice(0, 5));
 
-                // Due Purchase Orders
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const threeDaysFromNow = new Date(today);
-                threeDaysFromNow.setDate(today.getDate() + 3);
-
+                // Due Purchase Orders — show all active POs sorted by dueDate
                 const upcomingPOs = (purchaseOrders || [])
                     .filter(po => {
                         if (po.status === 'Completed' || po.status === 'Cancelled') return false;
-                        if (!po.dueDate) return false;
-                        const dueDate = new Date(po.dueDate);
-                        dueDate.setHours(0, 0, 0, 0);
-                        return dueDate <= threeDaysFromNow;
+                        return true;
                     })
-                    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+                    .sort((a, b) => {
+                        // POs with dueDate first, sorted ascending
+                        if (!a.dueDate && !b.dueDate) return 0;
+                        if (!a.dueDate) return 1;
+                        if (!b.dueDate) return -1;
+                        return new Date(a.dueDate) - new Date(b.dueDate);
+                    })
                     .slice(0, 5);
                 setDuePurchaseOrders(upcomingPOs);
 
@@ -169,42 +167,42 @@ const OverviewPage = () => {
                     </div>
                     <div style={{ overflowX: 'auto', flex: 1 }}>
                         <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ background: 'var(--bg-main)', textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ลูกค้า</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวนเงิน</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {recentInvoices.map(inv => (
-                                    <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer', transition: 'background 0.2s' }} onClick={() => navigate(`/dashboard/invoices/${inv.id}`)} className="hover-row">
-                                        <td style={{ padding: '1rem 1.5rem', fontWeight: '500', color: '#10b981' }}>{inv.invoiceNo}</td>
-                                        <td style={{ padding: '1rem 1.5rem', color: 'var(--text-main)' }}>{inv.customerName}</td>
-                                        <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: '500', color: 'var(--text-main)' }}>฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                        <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
-                                            <span style={{
-                                                padding: '0.2rem 0.6rem',
-                                                borderRadius: '12px',
-                                                fontSize: '0.8rem',
-                                                background: inv.status === 'Draft' ? 'var(--card-hover)' : 'rgba(16, 185, 129, 0.1)',
-                                                color: inv.status === 'Draft' ? 'var(--text-muted)' : 'var(--success)'
-                                            }}>
-                                                {inv.status}
-                                            </span>
-                                        </td>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ background: 'var(--bg-main)', textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
+                                        <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่</th>
+                                        <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ลูกค้า</th>
+                                        <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวนเงิน</th>
+                                        <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
                                     </tr>
-                                ))}
-                                {recentInvoices.length === 0 && (
-                                    <tr>
-                                        <td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>ยังไม่มีข้อมูลใบกำกับภาษี</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-</div>
+                                </thead>
+                                <tbody>
+                                    {recentInvoices.map(inv => (
+                                        <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer', transition: 'background 0.2s' }} onClick={() => navigate(`/dashboard/invoices/${inv.id}`)} className="hover-row">
+                                            <td style={{ padding: '1rem 1.5rem', fontWeight: '500', color: '#10b981' }}>{inv.invoiceNo}</td>
+                                            <td style={{ padding: '1rem 1.5rem', color: 'var(--text-main)' }}>{inv.customerName}</td>
+                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: '500', color: 'var(--text-main)' }}>฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
+                                                <span style={{
+                                                    padding: '0.2rem 0.6rem',
+                                                    borderRadius: '12px',
+                                                    fontSize: '0.8rem',
+                                                    background: inv.status === 'Draft' ? 'var(--card-hover)' : 'rgba(16, 185, 129, 0.1)',
+                                                    color: inv.status === 'Draft' ? 'var(--text-muted)' : 'var(--success)'
+                                                }}>
+                                                    {inv.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {recentInvoices.length === 0 && (
+                                        <tr>
+                                            <td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>ยังไม่มีข้อมูลใบกำกับภาษี</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -250,7 +248,7 @@ const OverviewPage = () => {
                     </button>
                 </div>
                 <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ background: 'var(--bg-main)', textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
                                 <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ PO</th>
@@ -261,16 +259,17 @@ const OverviewPage = () => {
                         </thead>
                         <tbody>
                             {duePurchaseOrders.map(po => {
-                                const dueDate = new Date(po.dueDate);
-                                const isOverdue = dueDate < new Date(new Date().setHours(0, 0, 0, 0));
-                                const isToday = dueDate.getTime() === new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+                                const dueDate = po.dueDate ? new Date(po.dueDate) : null;
+                                const today = new Date(new Date().setHours(0, 0, 0, 0));
+                                const isOverdue = dueDate && dueDate < today;
+                                const isToday = dueDate && dueDate.toDateString() === today.toDateString();
 
                                 return (
                                     <tr key={po.id} style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => navigate(`/dashboard/purchase-orders/${po.id}/edit`)} className="hover-row">
                                         <td style={{ padding: '1rem 1.5rem', fontWeight: '500', color: '#3b82f6' }}>{po.poNumber}</td>
                                         <td style={{ padding: '1rem 1.5rem', color: 'var(--text-main)' }}>{po.customer?.name}</td>
                                         <td style={{ padding: '1rem 1.5rem', textAlign: 'center', fontWeight: '500', color: isOverdue ? 'var(--error)' : isToday ? 'var(--warning)' : 'var(--text-main)' }}>
-                                            {isOverdue ? 'เลยกำหนดส่ง' : isToday ? 'กำหนดส่งวันนี้' : dueDate.toLocaleDateString('th-TH')}
+                                            {!dueDate ? 'ไม่ระบุ' : isOverdue ? 'เลยกำหนดส่ง' : isToday ? 'กำหนดส่งวันนี้' : dueDate.toLocaleDateString('th-TH')}
                                         </td>
                                         <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
                                             <span style={{
@@ -293,7 +292,7 @@ const OverviewPage = () => {
                             )}
                         </tbody>
                     </table>
-</div>
+                </div>
             </div>
 
             {/* Adding a small inline style for hover effect since we can't easily edit the CSS file right now */}

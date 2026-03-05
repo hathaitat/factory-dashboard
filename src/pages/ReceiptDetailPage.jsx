@@ -96,7 +96,7 @@ const ReceiptDetailPage = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
                 <div className="glass-panel" style={{ padding: '1.5rem' }}>
                     <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
                         <Building size={18} className="text-primary" /> ข้อมูลลูกค้า
@@ -134,8 +134,8 @@ const ReceiptDetailPage = () => {
                         <FileText size={18} /> รายการใบกำกับภาษี ({bn.invoices?.length || 0})
                     </h3>
                 </div>
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ background: 'var(--card-hover)', textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
                                 <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ลำดับ</th>
@@ -169,7 +169,7 @@ const ReceiptDetailPage = () => {
                             )}
                         </tbody>
                     </table>
-                </div>
+</div>
                 <div style={{ padding: '1.5rem', borderTop: '2px solid var(--border-color)', background: 'var(--bg-main)' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '2rem' }}>
                         <div style={{ color: 'var(--text-muted)' }}>{bn.bahtText}</div>

@@ -238,7 +238,7 @@ const BillingNoteFormPage = () => {
                 </div>
 
                 <div className="glass-panel" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
+                    <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
                         <div style={{ position: 'relative' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>เลือกลูกค้า</label>
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -343,7 +343,7 @@ const BillingNoteFormPage = () => {
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                     {/* Left side: Available invoices for the month */}
                     <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
                         <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', background: 'rgba(59, 130, 246, 0.05)' }}>
@@ -394,7 +394,8 @@ const BillingNoteFormPage = () => {
                             </h3>
                         </div>
                         <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead>
                                     <tr style={{ background: 'var(--card-hover)', textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
                                         <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: '#888' }}>เลขที่บิล</th>
@@ -430,6 +431,7 @@ const BillingNoteFormPage = () => {
                                     )}
                                 </tbody>
                             </table>
+</div>
                         </div>
                         <div style={{ padding: '1.2rem 1.5rem', borderTop: '2px solid var(--border-color)', background: 'var(--bg-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontWeight: '600', color: '#888' }}>รวมทั้งสิ้น</span>

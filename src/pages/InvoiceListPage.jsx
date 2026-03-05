@@ -141,7 +141,8 @@ const InvoiceListPage = () => {
             </div>
 
             <div className="glass-panel" style={{ padding: '0', overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ใบกำกับ</th>
@@ -248,6 +249,7 @@ const InvoiceListPage = () => {
                         )}
                     </tbody>
                 </table>
+</div>
             </div>
         </div>
     );

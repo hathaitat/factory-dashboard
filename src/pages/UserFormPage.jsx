@@ -137,7 +137,7 @@ const UserFormPage = () => {
                     <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8b5cf6' }}>
                         <User size={20} /> ข้อมูลทั่วไป
                     </h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                    <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                         <div className="form-group">
                             <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ชื่อ - นามสกุล <span style={{ color: '#ef4444' }}>*</span></label>
                             <input
@@ -223,8 +223,8 @@ const UserFormPage = () => {
                         </h3>
                     </div>
 
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: 'var(--card-hover)' }}>
                                     <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>เมนูการใช้งาน</th>
@@ -270,7 +270,7 @@ const UserFormPage = () => {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+</div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>

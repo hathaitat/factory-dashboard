@@ -111,8 +111,8 @@ const UserListPage = () => {
             </div>
 
             <div className="glass-panel" style={{ padding: '0' }}>
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                                 <th style={{ padding: '1.2rem', color: '#888', fontWeight: '500' }}>ชื่อ - นามสกุล</th>
@@ -210,7 +210,7 @@ const UserListPage = () => {
                             )}
                         </tbody>
                     </table>
-                </div>
+</div>
             </div>
         </div>
     );

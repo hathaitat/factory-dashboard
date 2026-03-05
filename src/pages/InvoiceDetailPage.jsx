@@ -211,7 +211,7 @@ const InvoiceDetailPage = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '1.5rem', alignItems: 'start' }}>
+            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '1.5rem', alignItems: 'start' }}>
                 <div className="glass-panel" style={{ padding: '2rem' }}>
                     {/* Simplified Preview matching Dashboard Theme */}
                     <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between' }}>
@@ -226,7 +226,7 @@ const InvoiceDetailPage = () => {
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem', padding: '1.5rem', background: 'var(--bg-main)', borderRadius: '12px' }}>
+                    <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem', padding: '1.5rem', background: 'var(--bg-main)', borderRadius: '12px' }}>
                         <div>
                             <h4 style={{ margin: '0 0 0.8rem 0', color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>ข้อมูลลูกค้า</h4>
                             <div style={{ fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.3rem' }}>{invoice.customer?.name}</div>
@@ -236,7 +236,7 @@ const InvoiceDetailPage = () => {
                         </div>
                         <div>
                             <h4 style={{ margin: '0 0 0.8rem 0', color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>ข้อมูลการชำระเงิน</h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '0.5rem', fontSize: '0.9rem' }}>
+                            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '0.5rem', fontSize: '0.9rem' }}>
                                 <span style={{ color: 'var(--text-muted)' }}>PO อ้างอิง:</span> <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>{invoice.referenceNo || '-'}</span>
                                 <span style={{ color: 'var(--text-muted)' }}>เงื่อนไขเครดิต:</span> <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>{parseInt(invoice.creditDays) === 0 ? 'เงินสด' : `${invoice.creditDays} วัน`}</span>
                                 <span style={{ color: 'var(--text-muted)' }}>วันครบกำหนด:</span> <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>{new Date(invoice.dueDate).toLocaleDateString('th-TH')}</span>
@@ -244,7 +244,8 @@ const InvoiceDetailPage = () => {
                         </div>
                     </div>
 
-                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem' }}>
+                    <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
                                 <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '500' }}>#</th>
@@ -276,6 +277,7 @@ const InvoiceDetailPage = () => {
                             ))}
                         </tbody>
                     </table>
+</div>
 
                     {invoice.notes && (
                         <div style={{ marginBottom: '2rem' }}>

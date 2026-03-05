@@ -172,8 +172,8 @@ const CustomerListPage = () => {
             </div>
 
             <div className="glass-panel" style={{ padding: '0' }}>
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                                 <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>รหัส</th>
@@ -260,7 +260,7 @@ const CustomerListPage = () => {
                             )}
                         </tbody>
                     </table>
-                </div>
+</div>
             </div>
         </div >
     );

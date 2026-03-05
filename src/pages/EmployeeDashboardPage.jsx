@@ -109,8 +109,8 @@ const EmployeeDashboardPage = () => {
                             </div>
                         </div>
                     </div>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border-color)' }}>
                                     <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--text-muted)' }}>รหัส</th>
@@ -160,7 +160,7 @@ const EmployeeDashboardPage = () => {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+</div>
                 </div>
             )}
         </div>

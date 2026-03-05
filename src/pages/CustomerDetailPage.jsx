@@ -197,14 +197,14 @@ const CustomerDetailPage = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     {/* General Info */}
                     <div className="glass-panel" style={{ padding: '1.5rem' }}>
                         <h3 style={{ marginTop: 0, marginBottom: '1.5rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <Building size={20} /> ข้อมูลทั่วไป
                         </h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.85rem', color: '#888', marginBottom: '0.3rem' }}>เลขประจำตัวผู้เสียภาษี</label>
                                 <div>{customer.taxId || '-'}</div>
@@ -321,8 +321,8 @@ const CustomerDetailPage = () => {
                             </div>
                         )}
 
-                        <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                                         <th style={{ padding: '0.8rem 1.5rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: '500', fontSize: '0.9rem' }}>สินค้า</th>
@@ -388,7 +388,7 @@ const CustomerDetailPage = () => {
                                     )}
                                 </tbody>
                             </table>
-                        </div>
+</div>
                     </div>
 
                 </div>

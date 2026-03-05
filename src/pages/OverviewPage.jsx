@@ -168,7 +168,8 @@ const OverviewPage = () => {
                         </button>
                     </div>
                     <div style={{ overflowX: 'auto', flex: 1 }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: 'var(--bg-main)', textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
                                     <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่</th>
@@ -203,6 +204,7 @@ const OverviewPage = () => {
                                 )}
                             </tbody>
                         </table>
+</div>
                     </div>
                 </div>
 
@@ -247,8 +249,8 @@ const OverviewPage = () => {
                         ดูทั้งหมด <ExternalLink size={14} />
                     </button>
                 </div>
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ background: 'var(--bg-main)', textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
                                 <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ PO</th>
@@ -291,7 +293,7 @@ const OverviewPage = () => {
                             )}
                         </tbody>
                     </table>
-                </div>
+</div>
             </div>
 
             {/* Adding a small inline style for hover effect since we can't easily edit the CSS file right now */}

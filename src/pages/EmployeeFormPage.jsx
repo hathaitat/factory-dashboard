@@ -296,7 +296,7 @@ const EmployeeFormPage = () => {
                             <User size={20} /> ข้อมูลทั่วไป
                         </h3>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
                             <div className="form-group">
                                 <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>รหัสพนักงาน</label>
                                 <input
@@ -324,7 +324,7 @@ const EmployeeFormPage = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
                             <div className="form-group">
                                 <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>
                                     <Calendar size={14} style={{ display: 'inline', marginRight: '4px' }} />
@@ -381,7 +381,7 @@ const EmployeeFormPage = () => {
                             <Heart size={20} /> ผู้ติดต่อฉุกเฉิน
                         </h3>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
                             <div className="form-group">
                                 <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ชื่อผู้ติดต่อ</label>
                                 <input
@@ -425,7 +425,7 @@ const EmployeeFormPage = () => {
                             <DollarSign size={20} /> ข้อมูลการทำงาน
                         </h3>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
                             <div className="form-group">
                                 <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ตำแหน่ง</label>
                                 <input
@@ -455,7 +455,7 @@ const EmployeeFormPage = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
                             {/* <div className="form-group">
                                 <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ค่าแรงรายวัน (บาท)</label>
                                 <input
@@ -482,7 +482,7 @@ const EmployeeFormPage = () => {
                             </div> */}
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                             <div className="form-group">
                                 <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>
                                     <Calendar size={14} style={{ display: 'inline', marginRight: '4px' }} />
@@ -647,7 +647,8 @@ const EmployeeFormPage = () => {
                                                 รวม: <b style={{ color: '#10b981' }}>{calculateTotal(groupedLogs[monthKey].second).days} วัน</b> | OT: <b>{calculateTotal(groupedLogs[monthKey].second).ot} ชม.</b>
                                             </div>
                                         </div>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                        <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                                             <thead>
                                                 <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                                                     <th style={{ padding: '0.8rem', textAlign: 'left', color: '#888', fontWeight: '500' }}>วันที่</th>
@@ -708,6 +709,7 @@ const EmployeeFormPage = () => {
                                                 ))}
                                             </tbody>
                                         </table>
+</div>
                                     </div>
                                 )}
 
@@ -720,7 +722,8 @@ const EmployeeFormPage = () => {
                                                 รวม: <b style={{ color: '#10b981' }}>{calculateTotal(groupedLogs[monthKey].first).days} วัน</b> | OT: <b>{calculateTotal(groupedLogs[monthKey].first).ot} ชม.</b>
                                             </div>
                                         </div>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                        <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                                             <thead>
                                                 <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                                                     <th style={{ padding: '0.8rem', textAlign: 'left', color: '#888', fontWeight: '500' }}>วันที่</th>
@@ -781,6 +784,7 @@ const EmployeeFormPage = () => {
                                                 ))}
                                             </tbody>
                                         </table>
+</div>
                                     </div>
                                 )}
                             </div>

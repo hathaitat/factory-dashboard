@@ -126,7 +126,7 @@ const SettingsPage = () => {
                         <Briefcase size={20} /> เวลาทำงาน
                     </h3>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                    <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
                         <div className="form-group">
                             <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>
                                 <Clock size={16} style={{ display: 'inline', marginRight: '4px' }} />
@@ -168,7 +168,7 @@ const SettingsPage = () => {
                         <Clock size={20} /> กฎการมาสาย (Late Penalty)
                     </h3>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                    <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                         <div className="form-group">
                             <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>
                                 ห้ามสายเกิน (นาที)
@@ -208,7 +208,7 @@ const SettingsPage = () => {
                         <FileText size={20} /> รูปแบบเลขที่เอกสาร
                     </h3>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                    <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
                         <div className="form-group" style={{ gridColumn: '1 / -1', background: 'rgba(59, 130, 246, 0.05)', padding: '1rem', borderRadius: '8px' }}>
                             <h4 style={{ margin: '0 0 0.5rem 0', color: '#1d4ed8', fontSize: '0.9rem' }}>ตัวแปรที่ใช้ได้ (Variables)</h4>
                             <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>

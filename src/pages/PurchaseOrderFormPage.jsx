@@ -241,7 +241,7 @@ const PurchaseOrderFormPage = () => {
                     <h3 style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.1rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <FileText size={18} /> ข้อมูลทั่วไป
                     </h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
+                    <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>เลขที่ใบสั่งซื้อ (PO Number) <span style={{ color: '#f87171' }}>*</span></label>
                             <input
@@ -361,8 +361,8 @@ const PurchaseOrderFormPage = () => {
                             <Plus size={16} /> เพิ่มรายการ
                         </button>
                     </div>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
                                     <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '40%' }}>รายละเอียดสินค้า</th>
@@ -463,10 +463,10 @@ const PurchaseOrderFormPage = () => {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+</div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                     <div className="glass-panel" style={{ padding: '1.5rem' }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>รายละเอียดเพิ่มเติม / หมายเหตุ</label>
                         <textarea

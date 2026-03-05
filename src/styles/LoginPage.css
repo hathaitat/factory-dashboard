@@ -154,3 +154,16 @@
     align-items: center;
     gap: 5px;
 }
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+    .login-card {
+        padding: 2rem 1.5rem;
+        margin: 0 1rem;
+        width: auto;
+    }
+
+    .login-header h1 {
+        font-size: 2rem;
+    }
+}

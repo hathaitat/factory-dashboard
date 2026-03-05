@@ -384,7 +384,7 @@ const InvoiceFormPage = () => {
                 </div>
 
                 <div className="glass-panel" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
+                    <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
                         <div style={{ position: 'relative' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>เลือกลูกค้า</label>
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -560,8 +560,8 @@ const InvoiceFormPage = () => {
                             <Plus size={16} /> เพิ่มรายการ
                         </button>
                     </div>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
                                     <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '40%' }}>รายละเอียดสินค้า</th>
@@ -677,10 +677,10 @@ const InvoiceFormPage = () => {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+</div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                     <div className="glass-panel" style={{ padding: '1.5rem' }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>หมายเหตุ</label>
                         <textarea

@@ -82,7 +82,7 @@ const BillingNoteDetailPage = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     {/* Header Info */}
                     <div className="glass-panel" style={{ padding: '2rem' }}>
@@ -116,7 +116,7 @@ const BillingNoteDetailPage = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', padding: '1.5rem', background: 'var(--bg-main)', borderRadius: '12px' }}>
+                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', padding: '1.5rem', background: 'var(--bg-main)', borderRadius: '12px' }}>
                             <div>
                                 <h4 style={{ margin: '0 0 1rem 0', color: '#888', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                     <User size={14} style={{ display: 'inline', marginRight: '0.4rem' }} /> ข้อมูลลูกค้า
@@ -145,7 +145,8 @@ const BillingNoteDetailPage = () => {
                         <div style={{ padding: '1.2rem 1.5rem', borderBottom: '1px solid var(--border-color)', background: 'var(--card-hover)' }}>
                             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600' }}>รายการใบกำกับภาษีที่แนบ</h3>
                         </div>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
                                     <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500' }}>ลำดับ</th>
@@ -195,6 +196,7 @@ const BillingNoteDetailPage = () => {
                                 </tr>
                             </tbody>
                         </table>
+</div>
                     </div>
                 </div>
 

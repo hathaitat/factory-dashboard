@@ -1094,8 +1094,8 @@ const EmployeeListPage = () => {
 
                     {/* Employee Table */}
                     <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-                        <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+<table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                                         <th style={{ padding: '1.2rem', color: '#6b7280', fontWeight: '500' }}>รหัส</th>
@@ -1191,7 +1191,7 @@ const EmployeeListPage = () => {
                                     )}
                                 </tbody>
                             </table>
-                        </div>
+</div>
                     </div>
                 </>
             )

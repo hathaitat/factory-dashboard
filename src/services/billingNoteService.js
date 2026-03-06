@@ -133,11 +133,12 @@ export const billingNoteService = {
 
             if (itemsError) throw itemsError;
 
-            // 3. Update Invoice Status to 'Pending'
+            // 3. Update Invoice Status based on BN status
             if (invoiceIds.length > 0) {
+                const invoiceStatus = (bnData.status || 'Draft') === 'Paid' ? 'Paid' : 'Pending';
                 const { error: updateInvError } = await supabase
                     .from('invoices')
-                    .update({ status: 'Pending' })
+                    .update({ status: invoiceStatus })
                     .in('id', invoiceIds);
                 if (updateInvError) throw updateInvError;
             }
@@ -152,6 +153,13 @@ export const billingNoteService = {
     // Update Billing Note
     updateBillingNote: async (id, bnData, invoiceIds) => {
         try {
+            // 0. Get old linked invoice IDs before syncing
+            const { data: oldItems } = await supabase
+                .from('billing_note_items')
+                .select('invoice_id')
+                .eq('billing_note_id', id);
+            const oldInvoiceIds = oldItems?.map(item => item.invoice_id) || [];
+
             // 1. Update Billing Note
             const dbBN = {
                 billing_note_no: bnData.billingNoteNo,
@@ -192,13 +200,24 @@ export const billingNoteService = {
 
             if (itemsError) throw itemsError;
 
-            // 3. Update Invoice Status to 'Pending'
+            // 3. Update new Invoice Status based on BN status
             if (invoiceIds.length > 0) {
+                const invoiceStatus = bnData.status === 'Paid' ? 'Paid' : 'Pending';
                 const { error: updateInvError } = await supabase
                     .from('invoices')
-                    .update({ status: 'Pending' })
+                    .update({ status: invoiceStatus })
                     .in('id', invoiceIds);
                 if (updateInvError) throw updateInvError;
+            }
+
+            // 4. Revert removed invoices back to 'Draft'
+            const removedInvoiceIds = oldInvoiceIds.filter(id => !invoiceIds.includes(id));
+            if (removedInvoiceIds.length > 0) {
+                const { error: revertError } = await supabase
+                    .from('invoices')
+                    .update({ status: 'Draft' })
+                    .in('id', removedInvoiceIds);
+                if (revertError) console.error('Error reverting removed invoice status:', revertError);
             }
 
             return true;

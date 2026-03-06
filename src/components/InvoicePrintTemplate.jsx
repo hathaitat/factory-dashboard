@@ -186,7 +186,7 @@ const InvoicePrintTemplate = () => {
                                 <span>ผู้รับสินค้า__________________________________________</span>
                             </div>
                             <br />
-                            <div>
+                            <div style={{ marginTop: '20px' }}>
                                 <span>วันที่_____________/_____________/_____________</span>
                             </div>
                             <br />

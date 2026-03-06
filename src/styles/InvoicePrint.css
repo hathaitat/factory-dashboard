@@ -85,6 +85,7 @@ body {
 .title-section {
     text-align: right;
     padding: 2.5rem 0;
+    margin-top: 21px;
 }
 
 .doc-status {

@@ -110,9 +110,10 @@ export const purchaseOrderService = {
 
     // Create a new purchase order
     async createPurchaseOrder(poData, items) {
+        const { discount, subtotal, vat_amount, grand_total, vat_rate, ...cleanPoData } = poData;
         const { data: po, error: poError } = await supabase
             .from('purchase_orders')
-            .insert([poData])
+            .insert([cleanPoData])
             .select()
             .single();
 
@@ -137,9 +138,10 @@ export const purchaseOrderService = {
 
     // Update existing purchase order
     async updatePurchaseOrder(id, poData, items) {
+        const { discount, subtotal, vat_amount, grand_total, vat_rate, status, ...cleanPoData } = poData;
         const { data: po, error: poError } = await supabase
             .from('purchase_orders')
-            .update(poData)
+            .update(cleanPoData)
             .eq('id', id)
             .select()
             .single();
@@ -175,11 +177,36 @@ export const purchaseOrderService = {
             }
         }
 
+        // Recalculate PO status based on delivered quantities
+        if (status === 'Cancelled') {
+            // If user manually set to Cancelled, respect that
+            await supabase
+                .from('purchase_orders')
+                .update({ status: 'Cancelled' })
+                .eq('id', id);
+        } else {
+            const newStatus = await purchaseOrderService.updatePurchaseOrderStatus(id);
+            console.log('[PO Update] Recalculated status:', newStatus, 'for PO id:', id);
+        }
+
         return po;
     },
 
     // Delete purchase order
     async deletePurchaseOrder(id) {
+        // Check for linked invoices before deleting
+        const { data: linkedInvoices, error: checkError } = await supabase
+            .from('invoices')
+            .select('id, invoice_no')
+            .eq('purchase_order_id', id);
+
+        if (checkError) throw checkError;
+
+        if (linkedInvoices && linkedInvoices.length > 0) {
+            const invoiceNos = linkedInvoices.map(inv => inv.invoice_no).join(', ');
+            throw new Error(`ไม่สามารถลบได้ เนื่องจากมีใบกำกับภาษีเชื่อมอยู่: ${invoiceNos}\nกรุณาลบใบกำกับภาษีที่เชื่อมก่อน`);
+        }
+
         const { error } = await supabase
             .from('purchase_orders')
             .delete()

@@ -159,7 +159,7 @@ body {
 
 .empty-row td {
     /* Set specific minimal height to push the table block to be longer depending on context */
-    height: 45px;
+    height: 85px;
 }
 
 .items-table-print tfoot td {

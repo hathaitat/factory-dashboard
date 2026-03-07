@@ -77,7 +77,7 @@ const BillingNoteFormPage = () => {
     // Recalculate total when selected invoices change
     useEffect(() => {
         const total = selectedInvoices.reduce((sum, inv) => sum + (inv.grandTotal || 0), 0);
-        setFormData(prev => ({ ...prev, totalAmount: total }));
+        setFormData(prev => ({ ...prev, totalAmount: Math.round((total + Number.EPSILON) * 100) / 100 }));
     }, [selectedInvoices]);
 
     // Sync search text when customerId changes (e.g. on edit load or clear)

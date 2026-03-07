@@ -131,7 +131,8 @@ const PurchaseOrderFormPage = () => {
         newItems[index][field] = value;
 
         if (field === 'quantity' || field === 'price_per_unit') {
-            newItems[index].amount = Number(newItems[index].quantity || 0) * Number(newItems[index].price_per_unit || 0);
+            const calculatedAmt = Number(newItems[index].quantity || 0) * Number(newItems[index].price_per_unit || 0);
+            newItems[index].amount = Math.round((calculatedAmt + Number.EPSILON) * 100) / 100;
         }
 
         setItems(newItems);
@@ -140,8 +141,9 @@ const PurchaseOrderFormPage = () => {
     const calculateTotals = () => {
         const subtotal = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
         const afterDiscount = subtotal - Number(formData.discount || 0);
-        const vatAmount = afterDiscount * (Number(formData.vat_rate || 0) / 100);
-        const grandTotal = afterDiscount + vatAmount;
+        const calculatedVat = afterDiscount * (Number(formData.vat_rate || 0) / 100);
+        const vatAmount = Math.round((calculatedVat + Number.EPSILON) * 100) / 100;
+        const grandTotal = Math.round((afterDiscount + vatAmount + Number.EPSILON) * 100) / 100;
 
         setFormData(prev => ({
             ...prev,

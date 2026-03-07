@@ -111,7 +111,7 @@ const BillingNoteDetailPage = () => {
                             <div style={{ textAlign: 'right' }}>
                                 <div style={{ fontSize: '0.9rem', color: '#888' }}>จำนวนเงินรวมทั้งสิ้น</div>
                                 <div style={{ fontSize: '2.5rem', fontWeight: '800', color: 'var(--success)', marginTop: '0.2rem' }}>
-                                    ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
                             </div>
                         </div>
@@ -184,14 +184,14 @@ const BillingNoteDetailPage = () => {
                                         </td>
                                         <td style={{ padding: '1rem 1.5rem' }}>{new Date(inv.date).toLocaleDateString('th-TH')}</td>
                                         <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
-                                            ฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                            ฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
                                     </tr>
                                 ))}
                                 <tr style={{ background: 'rgba(16, 185, 129, 0.02)' }}>
                                     <td colSpan="4" style={{ padding: '1.5rem', textAlign: 'right', fontWeight: '700', fontSize: '1.1rem' }}>ยอดรวมสุทธิ</td>
                                     <td style={{ padding: '1.5rem', textAlign: 'right', fontWeight: '800', fontSize: '1.3rem', color: 'var(--success)' }}>
-                                        ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </td>
                                 </tr>
                             </tbody>

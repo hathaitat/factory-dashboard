@@ -181,7 +181,7 @@ const OverviewPage = () => {
                                         <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer', transition: 'background 0.2s' }} onClick={() => navigate(`/dashboard/invoices/${inv.id}`)} className="hover-row">
                                             <td style={{ padding: '1rem 1.5rem', fontWeight: '500', color: '#10b981' }}>{inv.invoiceNo}</td>
                                             <td style={{ padding: '1rem 1.5rem', color: 'var(--text-main)' }}>{inv.customerName}</td>
-                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: '500', color: 'var(--text-main)' }}>฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: '500', color: 'var(--text-main)' }}>฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
                                                 <span style={{
                                                     padding: '0.2rem 0.6rem',
@@ -220,7 +220,7 @@ const OverviewPage = () => {
                             <div key={bn.id} onClick={() => navigate(`/dashboard/billing-notes/${bn.id}`)} style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.4rem', cursor: 'pointer', transition: 'background 0.2s' }} className="hover-row">
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontWeight: '600', color: '#3b82f6' }}>{bn.billingNoteNo}</span>
-                                    <span style={{ fontWeight: '500', color: 'var(--success)' }}>฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                    <span style={{ fontWeight: '500', color: 'var(--success)' }}>฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem' }}>
                                     <span style={{ color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>{bn.customerName}</span>

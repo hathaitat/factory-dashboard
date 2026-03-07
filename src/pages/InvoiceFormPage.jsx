@@ -660,9 +660,9 @@ const InvoiceFormPage = () => {
                                         </td>
                                         <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right', fontWeight: '500' }}>
                                             <div style={{ marginBottom: '0.2rem', fontSize: '0.9rem', color: '#888' }}>
-                                                {item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2 })} {item.unit}
+                                                {item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}
                                             </div>
-                                            ฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                            ฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
                                         <td style={{ padding: '0.8rem' }}>
                                             <button
@@ -700,7 +700,7 @@ const InvoiceFormPage = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ color: '#888' }}>รวมเป็นเงิน (Subtotal)</span>
-                                <span style={{ fontSize: '1.1rem' }}>฿{formData.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                <span style={{ fontSize: '1.1rem' }}>฿{formData.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ color: '#888' }}>หักส่วนลด</span>
@@ -724,7 +724,7 @@ const InvoiceFormPage = () => {
                                     />
                                     <span style={{ color: '#888' }}>%</span>
                                 </div>
-                                <span>฿{formData.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                <span>฿{formData.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
 
@@ -759,7 +759,7 @@ const InvoiceFormPage = () => {
                         <div style={{ padding: '1rem 0', borderTop: '1px solid var(--border-color)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: '1.2rem', fontWeight: '600', color: 'var(--text-main)' }}>จำนวนเงินรวมทั้งสิ้น</span>
                             <span style={{ fontSize: '1.8rem', fontWeight: '700', color: 'var(--success)' }}>
-                                ฿{formData.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                ฿{formData.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                         </div>
                     </div>

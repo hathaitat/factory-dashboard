@@ -180,7 +180,7 @@ const InvoiceListPage = () => {
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>{parseInt(inv.creditDays) === 0 ? 'เงินสด' : `${inv.creditDays} วัน`}</td>
                                             <td style={{ padding: '1.2rem 1.5rem' }}>{new Date(inv.date).toLocaleDateString('th-TH')}</td>
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
-                                                ฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                ฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </td>
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
                                                 <span style={{

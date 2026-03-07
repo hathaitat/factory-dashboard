@@ -158,7 +158,7 @@ const ReceiptDetailPage = () => {
                                         }
                                     </td>
                                     <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: '500', color: 'var(--text-main)' }}>
-                                        ฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        ฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </td>
                                 </tr>
                             ))}
@@ -176,7 +176,7 @@ const ReceiptDetailPage = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                             <span style={{ fontSize: '1.1rem', fontWeight: '600', color: 'var(--text-muted)' }}>รวมทั้งสิ้น</span>
                             <span style={{ fontSize: '1.8rem', fontWeight: '700', color: 'var(--success)', display: 'flex', alignItems: 'center' }}>
-                                <DollarSign size={24} style={{ marginRight: '-4px' }} /> {bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                <DollarSign size={24} style={{ marginRight: '-4px' }} /> {bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                         </div>
                     </div>

@@ -118,7 +118,7 @@ const BillingNotePrintTemplate = () => {
                                 <td style={{ textAlign: 'center', color: 'black' }}>{index + 1}</td>
                                 <td style={{ textAlign: 'center', color: 'black' }}>{inv.invoiceNo}</td>
                                 <td style={{ textAlign: 'center', color: 'black' }}>{new Date(inv.date).toLocaleDateString('th-TH')}</td>
-                                <td style={{ textAlign: 'right', color: 'black' }}>{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                <td style={{ textAlign: 'right', color: 'black' }}>{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
                         ))}
                         {/* Fill empty rows */}
@@ -137,7 +137,7 @@ const BillingNotePrintTemplate = () => {
                                 ({bn.bahtText || '-'})
                             </td>
                             <td className="summary-label-bold" style={{ color: 'black' }}>รวมทั้งสิ้น</td>
-                            <td className="summary-value-bold" style={{ color: 'black' }}>{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="summary-value-bold" style={{ color: 'black' }}>{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                     </tfoot>
                 </table>

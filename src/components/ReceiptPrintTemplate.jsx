@@ -173,7 +173,7 @@ const ReceiptPrintTemplate = () => {
                                             : calculateDueDate(inv.date, inv.creditDays)}
                                     </td>
                                     <td style={{ textAlign: 'right', paddingRight: '5px' }}>
-                                        {inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        {inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </td>
                                 </tr>
                             ))}
@@ -194,7 +194,7 @@ const ReceiptPrintTemplate = () => {
                                     {bn.bahtText || '-'}
                                 </td>
                                 <td style={{ textAlign: 'right', paddingRight: '5px', fontWeight: 'bold' }}>
-                                    {bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    {bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </td>
                             </tr>
                         </tfoot>

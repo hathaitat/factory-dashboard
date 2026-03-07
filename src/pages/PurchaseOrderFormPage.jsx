@@ -448,7 +448,7 @@ const PurchaseOrderFormPage = () => {
                                             />
                                         </td>
                                         <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right', fontWeight: '500' }}>
-                                            ฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                            ฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
                                         <td style={{ padding: '0.8rem' }}>
                                             <button
@@ -482,7 +482,7 @@ const PurchaseOrderFormPage = () => {
                     <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ color: 'var(--text-muted)' }}>รวมเป็นเงิน (Sub Total)</span>
-                            <span style={{ fontWeight: '500' }}>฿{formData.subtotal?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            <span style={{ fontWeight: '500' }}>฿{formData.subtotal?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -513,7 +513,7 @@ const PurchaseOrderFormPage = () => {
                                 />
                                 <span>%</span>
                             </div>
-                            <span style={{ fontWeight: '500' }}>฿{formData.vat_amount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            <span style={{ fontWeight: '500' }}>฿{formData.vat_amount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
 
                         <div style={{ borderTop: '1px dashed var(--border-color)', margin: '0.5rem 0' }}></div>
@@ -521,7 +521,7 @@ const PurchaseOrderFormPage = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: '1.2rem', fontWeight: '600', color: 'var(--text-main)' }}>จำนวนเงินรวมทั้งสิ้น</span>
                             <span style={{ fontSize: '1.8rem', fontWeight: '700', color: 'var(--success)' }}>
-                                ฿{formData.grand_total?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                ฿{formData.grand_total?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                         </div>
                     </div>

@@ -191,16 +191,16 @@ const PurchaseOrderListPage = () => {
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
                                                 <div style={{ fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
                                                     <span style={{ color: po.total_delivered_quantity >= po.total_po_quantity ? 'var(--success)' : '#3b82f6', fontWeight: '600' }}>
-                                                        {po.total_delivered_quantity?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
+                                                        {po.total_delivered_quantity?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                                                     </span>
                                                     <span style={{ color: 'var(--text-muted)' }}>/</span>
                                                     <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>
-                                                        {po.total_po_quantity?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
+                                                        {po.total_po_quantity?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                                                     </span>
                                                 </div>
                                             </td>
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '500', color: 'var(--text-main)' }}>
-                                                ฿{po.total_po_amount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                ฿{po.total_po_amount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </td>
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
                                                 <span style={{

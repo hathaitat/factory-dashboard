@@ -125,9 +125,9 @@ const InvoicePrintTemplate = () => {
                             <tr key={item.id}>
                                 <td style={{ textAlign: 'center' }}>{index + 1}</td>
                                 <td>{item.productName}</td>
-                                <td style={{ textAlign: 'right' }}>{item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2 })} {item.unit}</td>
-                                <td style={{ textAlign: 'right' }}>{item.pricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                <td style={{ textAlign: 'right' }}>{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                <td style={{ textAlign: 'right' }}>{item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}</td>
+                                <td style={{ textAlign: 'right' }}>{item.pricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td style={{ textAlign: 'right' }}>{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
                         ))}
                         {/* Fill empty rows to maintain height and show grid lines */}
@@ -147,32 +147,32 @@ const InvoicePrintTemplate = () => {
                                 <strong>หมายเหตุ:</strong> {invoice.notes}
                             </td>
                             <td colSpan="2" className="summary-label">รวมเป็นเงิน</td>
-                            <td className="summary-value">{invoice.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="summary-value">{invoice.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr>
                             <td colSpan="2" className="summary-label">หักส่วนลด</td>
-                            <td className="summary-value">{invoice.discount?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '-'}</td>
+                            <td className="summary-value">{invoice.discount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '-'}</td>
                         </tr>
                         <tr>
                             <td colSpan="2" className="summary-label">ยอดหลังหักส่วนลด</td>
-                            <td className="summary-value">{(invoice.subtotal - (invoice.discount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="summary-value">{(invoice.subtotal - (invoice.discount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr>
                             <td colSpan="2" className="summary-label">ภาษีมูลค่าเพิ่ม {invoice.vatRate}%</td>
-                            <td className="summary-value">{invoice.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="summary-value">{invoice.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
 
                         {(invoice.adjustments || []).map((adj, idx) => (
                             <tr key={`adj-${idx}`}>
                                 <td colSpan="2" className="summary-label">{adj.label}</td>
-                                <td className="summary-value">{Number(adj.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                <td className="summary-value">{Number(adj.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
                         ))}
 
                         <tr>
                             <td colSpan="2" className="baht-text-cell">({invoice.bahtText})</td>
                             <td colSpan="2" className="summary-label-bold">จำนวนเงินรวมทั้งสิ้น</td>
-                            <td className="summary-value-bold">{invoice.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="summary-value-bold">{invoice.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                     </tfoot>
                 </table>

@@ -370,7 +370,7 @@ const BillingNoteFormPage = () => {
                                                     )}
                                                 </div>
                                                 <div style={{ fontSize: '0.85rem', color: '#888', marginTop: '0.2rem' }}>วันที่: {new Date(inv.date).toLocaleDateString('th-TH')}</div>
-                                                <div style={{ fontWeight: '500', color: 'var(--success)', marginTop: '0.2rem' }}>฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                                <div style={{ fontWeight: '500', color: 'var(--success)', marginTop: '0.2rem' }}>฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                             </div>
                                             <button
                                                 type="button"
@@ -412,7 +412,7 @@ const BillingNoteFormPage = () => {
                                                 {inv.poNumber && <div style={{ fontSize: '0.75rem', color: 'var(--primary)', marginTop: '0.2rem' }}>PO: {inv.poNumber} {inv.poStatus === 'Completed' ? '(ครบ)' : ''}</div>}
                                             </td>
                                             <td style={{ padding: '0.8rem 1rem', color: '#888', fontSize: '0.85rem' }}>{new Date(inv.date).toLocaleDateString('th-TH')}</td>
-                                            <td style={{ padding: '0.8rem 1rem', textAlign: 'right', fontWeight: '500', color: 'var(--success)' }}>฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                            <td style={{ padding: '0.8rem 1rem', textAlign: 'right', fontWeight: '500', color: 'var(--success)' }}>฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td style={{ padding: '0.8rem' }}>
                                                 <button
                                                     type="button"
@@ -435,7 +435,7 @@ const BillingNoteFormPage = () => {
                         </div>
                         <div style={{ padding: '1.2rem 1.5rem', borderTop: '2px solid var(--border-color)', background: 'var(--bg-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontWeight: '600', color: '#888' }}>รวมทั้งสิ้น</span>
-                            <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--success)' }}>฿{formData.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--success)' }}>฿{formData.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                     </div>
                 </div>

@@ -260,9 +260,9 @@ const InvoiceDetailPage = () => {
                                 <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                                     <td style={{ padding: '1rem', color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>{idx + 1}</td>
                                     <td style={{ padding: '1rem', color: 'var(--text-main)', fontWeight: '500', borderRight: '1px solid var(--border-color)' }}>{item.productName}</td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-muted)', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>{item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2 })} {item.unit}</td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-muted)', textAlign: 'right', borderRight: '1px solid var(--border-color)' }}>฿{item.pricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-main)', textAlign: 'right', fontWeight: '500' }}>฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                    <td style={{ padding: '1rem', color: 'var(--text-muted)', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>{item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}</td>
+                                    <td style={{ padding: '1rem', color: 'var(--text-muted)', textAlign: 'right', borderRight: '1px solid var(--border-color)' }}>฿{item.pricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style={{ padding: '1rem', color: 'var(--text-main)', textAlign: 'right', fontWeight: '500' }}>฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                             ))}
                             {/* Fill empty rows to maintain consistency */}
@@ -292,31 +292,31 @@ const InvoiceDetailPage = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ color: 'var(--text-muted)' }}>รวมเป็นเงิน</span>
-                            <span style={{ color: 'var(--text-main)' }}>฿{invoice.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            <span style={{ color: 'var(--text-main)' }}>฿{invoice.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         {invoice.discount > 0 && (
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span style={{ color: '#aaa' }}>ส่วนลด</span>
-                                <span style={{ color: '#f87171' }}>- ฿{invoice.discount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                <span style={{ color: '#f87171' }}>- ฿{invoice.discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.8rem', borderBottom: '1px solid var(--border-color)' }}>
                             <span style={{ color: 'var(--text-muted)' }}>ภาษีมูลค่าเพิ่ม {invoice.vatRate}%</span>
-                            <span style={{ color: 'var(--text-main)' }}>฿{invoice.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            <span style={{ color: 'var(--text-main)' }}>฿{invoice.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
 
                         {(invoice.adjustments || []).map((adj, idx) => (
                             <div key={`adj-${idx}`} style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span style={{ color: 'var(--text-muted)' }}>{adj.label}</span>
                                 <span style={{ color: Number(adj.amount) >= 0 ? 'var(--success)' : 'var(--error)' }}>
-                                    {Number(adj.amount) >= 0 ? '+' : ''} ฿{Math.abs(Number(adj.amount)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    {Number(adj.amount) >= 0 ? '+' : ''} ฿{Math.abs(Number(adj.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
                         ))}
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', padding: '1rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '8px' }}>
                             <span style={{ color: 'var(--success)', fontWeight: '600' }}>จำนวนเงินสุทธิ</span>
-                            <span style={{ color: 'var(--success)', fontWeight: '700', fontSize: '1.2rem' }}>฿{invoice.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            <span style={{ color: 'var(--success)', fontWeight: '700', fontSize: '1.2rem' }}>฿{invoice.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
                             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>({invoice.bahtText})</span>

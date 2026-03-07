@@ -162,7 +162,7 @@ const BillingNoteListPage = () => {
                                             <td style={{ padding: '1.2rem 1.5rem' }}>{bn.customerName}</td>
                                             <td style={{ padding: '1.2rem 1.5rem' }}>{new Date(bn.date).toLocaleDateString('th-TH')}</td>
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
-                                                ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </td>
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
                                                 <span style={{

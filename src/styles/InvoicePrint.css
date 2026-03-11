@@ -18,6 +18,7 @@ body {
     min-height: 11in;
     margin: 20px auto;
     padding: 24mm 10mm;
+    padding-right: 0mm;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
     color: #000;
     position: relative;
@@ -161,7 +162,7 @@ body {
 
 .empty-row td {
     /* Set specific minimal height to push the table block to be longer depending on context */
-    height: 65px;
+    height: 55px;
 }
 
 .items-table-print tfoot td {

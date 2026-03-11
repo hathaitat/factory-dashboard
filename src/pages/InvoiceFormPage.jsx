@@ -109,7 +109,7 @@ const InvoiceFormPage = () => {
                 let initialPoData = null;
 
                 if (referencePoId) {
-                    initialPoData = await purchaseOrderService.getPurchaseOrderById(referencePoId);
+                    initialPoData = await purchaseOrderService.getPurchaseOrderWithRemainingQuantity(referencePoId);
                 }
 
                 setFormData(prev => ({
@@ -134,13 +134,17 @@ const InvoiceFormPage = () => {
                     setCustomerPOs(pos || []);
 
                     if (initialPoData.purchase_order_items && initialPoData.purchase_order_items.length > 0) {
-                        const mappedItems = initialPoData.purchase_order_items.map(item => ({
-                            productName: item.product_name,
-                            quantity: item.quantity,
-                            unit: item.unit,
-                            pricePerUnit: item.price_per_unit,
-                            amount: item.amount
-                        }));
+                        const itemsWithRemaining = initialPoData.purchase_order_items.filter(item => item.remaining_quantity > 0 || initialPoData.purchase_order_items.length === 1);
+                        const mappedItems = itemsWithRemaining.map(item => {
+                            const qty = item.remaining_quantity !== undefined && item.remaining_quantity >= 0 ? item.remaining_quantity : item.quantity;
+                            return {
+                                productName: item.product_name,
+                                quantity: qty,
+                                unit: item.unit,
+                                pricePerUnit: item.price_per_unit,
+                                amount: qty * item.price_per_unit
+                            };
+                        });
                         setItems(mappedItems);
                     }
                 }
@@ -495,15 +499,19 @@ const InvoiceFormPage = () => {
                                     if (selectedPO) {
                                         const confirmed = await showConfirm('คุณต้องการโหลดรายการสินค้าจากใบสั่งซื้อนี้อัตโนมัติหรือไม่? (รายการปัจจุบันจะถูกแทนที่)');
                                         if (confirmed) {
-                                            const fullPo = await purchaseOrderService.getPurchaseOrderById(poId);
+                                            const fullPo = await purchaseOrderService.getPurchaseOrderWithRemainingQuantity(poId);
                                             if (fullPo && fullPo.purchase_order_items && fullPo.purchase_order_items.length > 0) {
-                                                const mappedItems = fullPo.purchase_order_items.map(item => ({
-                                                    productName: item.product_name,
-                                                    quantity: item.quantity,
-                                                    unit: item.unit,
-                                                    pricePerUnit: item.price_per_unit,
-                                                    amount: item.amount
-                                                }));
+                                                const itemsWithRemaining = fullPo.purchase_order_items.filter(item => item.remaining_quantity > 0 || fullPo.purchase_order_items.length === 1);
+                                                const mappedItems = itemsWithRemaining.map(item => {
+                                                    const qty = item.remaining_quantity !== undefined && item.remaining_quantity >= 0 ? item.remaining_quantity : item.quantity;
+                                                    return {
+                                                        productName: item.product_name,
+                                                        quantity: qty,
+                                                        unit: item.unit,
+                                                        pricePerUnit: item.price_per_unit,
+                                                        amount: qty * item.price_per_unit
+                                                    };
+                                                });
                                                 setItems(mappedItems);
                                                 calculateTotals();
                                             }

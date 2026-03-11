@@ -72,10 +72,61 @@ export const purchaseOrderService = {
 
         if (error) throw error;
         // Sort items
+    // Get single purchase order by ID
         if (data && data.purchase_order_items) {
             data.purchase_order_items.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
         }
         return data;
+    },
+
+    // Get purchase order with remaining quantities calculated from invoices
+    async getPurchaseOrderWithRemainingQuantity(id) {
+        // 1. Get the PO and items normally
+        const po = await this.getPurchaseOrderById(id);
+        if (!po) return null;
+
+        // 2. Get non-cancelled invoices
+        const { data: invoices, error: invError } = await supabase
+            .from('invoices')
+            .select('id')
+            .eq('purchase_order_id', id)
+            .neq('status', 'Cancelled');
+
+        if (invError) throw invError;
+
+        let deliveredMap = {};
+
+        if (invoices && invoices.length > 0) {
+            const invoiceIds = invoices.map(inv => inv.id);
+            const { data: invItems, error: invItemsError } = await supabase
+                .from('invoice_items')
+                .select('product_name, quantity')
+                .in('invoice_id', invoiceIds);
+            
+            if (invItemsError) throw invItemsError;
+
+            if (invItems) {
+                invItems.forEach(item => {
+                    const name = item.product_name;
+                    deliveredMap[name] = (deliveredMap[name] || 0) + Number(item.quantity || 0);
+                });
+            }
+        }
+
+        // 3. Attach remaining quantity to PO items
+        if (po.purchase_order_items) {
+            po.purchase_order_items = po.purchase_order_items.map(item => {
+                const delivered = deliveredMap[item.product_name] || 0;
+                const remaining = Math.max(0, Number(item.quantity) - delivered);
+                return {
+                    ...item,
+                    remaining_quantity: remaining,
+                    delivered_quantity: delivered
+                };
+            });
+        }
+
+        return po;
     },
 
     // Get purchase orders by customer ID

@@ -103,22 +103,22 @@ const BillingNotePrintTemplate = () => {
                     </div>
                 </div>
 
-                <table className="items-table-print" style={{ marginTop: '1rem' }}>
+                <table className="items-table-print" style={{ marginTop: '1rem', borderTop: '1px solid #000' }}>
                     <thead>
                         <tr>
-                            <th style={{ width: '10%', color: 'black' }}>ลำดับ</th>
-                            <th style={{ width: '40%', color: 'black' }}>เลขที่ใบกำกับภาษี</th>
-                            <th style={{ width: '25%', color: 'black' }}>ลงวันที่</th>
-                            <th style={{ width: '25%', color: 'black' }}>จำนวนเงิน</th>
+                            <th style={{ width: '10%', color: 'black', padding: '8px' }}>ลำดับ</th>
+                            <th style={{ width: '40%', color: 'black', padding: '8px' }}>เลขที่ใบกำกับภาษี</th>
+                            <th style={{ width: '25%', color: 'black', padding: '8px' }}>ลงวันที่</th>
+                            <th style={{ width: '25%', color: 'black', padding: '8px' }}>จำนวนเงิน</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody style={{ borderBottom: '1px solid #000' }}>
                         {bn.invoices.map((inv, index) => (
                             <tr key={inv.id}>
-                                <td style={{ textAlign: 'center', color: 'black' }}>{index + 1}</td>
-                                <td style={{ textAlign: 'center', color: 'black' }}>{inv.invoiceNo}</td>
-                                <td style={{ textAlign: 'center', color: 'black' }}>{new Date(inv.date).toLocaleDateString('th-TH')}</td>
-                                <td style={{ textAlign: 'right', color: 'black' }}>{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td style={{ textAlign: 'center', color: 'black', borderRight: '1px solid #000', padding: '8px' }}>{index + 1}</td>
+                                <td style={{ textAlign: 'center', color: 'black', borderRight: '1px solid #000', padding: '8px' }}>{inv.invoiceNo}</td>
+                                <td style={{ textAlign: 'center', color: 'black', borderRight: '1px solid #000', padding: '8px' }}>{new Date(inv.date).toLocaleDateString('th-TH')}</td>
+                                <td style={{ textAlign: 'right', color: 'black', padding: '8px' }}>{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
                         ))}
                         {/* Fill empty rows */}
@@ -132,33 +132,35 @@ const BillingNotePrintTemplate = () => {
                         ))}
                     </tbody>
                     <tfoot>
-                        <tr>
-                            <td colSpan="2" style={{ borderRight: '1px solid #000', textAlign: 'center', color: 'black' }}>
+                        <tr style={{ borderBottom: '1px solid #000' }}>
+                            <td colSpan="3" style={{ borderRight: '1px solid #000', textAlign: 'center', color: 'black', padding: '8px' }}>
                                 ({bn.bahtText || '-'})
                             </td>
-                            <td className="summary-label-bold" style={{ color: 'black' }}>รวมทั้งสิ้น</td>
-                            <td className="summary-value-bold" style={{ color: 'black' }}>{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="summary-value" style={{ color: 'black', display: 'flex', justifyContent: 'space-between', borderLeft: 'none', padding: '8px' }}>
+                                <span className="summary-label-bold" style={{ color: 'black', background: 'transparent' }}>รวมทั้งสิ้น</span>
+                                <span className="summary-value-bold" style={{ color: 'black' }}>{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </td>
                         </tr>
                     </tfoot>
                 </table>
 
-                <div style={{ marginTop: '1rem', padding: '10px', border: '1px solid #000', minHeight: '60px' }}>
+                <div style={{ padding: '10px', border: '1px solid #000', borderTop: 'none', borderBottom: 'none', minHeight: '60px' }}>
                     <strong>หมายเหตุ:</strong><br />
                     {bn.notes || '-'}
                 </div>
 
-                <div className="footer-section" style={{ marginTop: '2rem' }}>
-                    <div className="signature-box">
-                        <div className="sig-line" style={{ color: 'black' }}>ผู้วางบิล____________________________________________________</div>
-                        <div className='sig-line' style={{ marginTop: '1rem', textAlign: 'center', color: 'black' }}>
+                <div className="footer-section" style={{ borderTop: 'none' }}>
+                    <div className="signature-box" style={{ width: '50%', borderRight: '1px solid #000', padding: '10px' }}>
+                        <div className="sig-line" style={{ color: 'black' }}>ผู้วางบิล_______________________________________</div>
+                        <div className='sig-line' style={{ marginTop: '2rem', textAlign: 'center', color: 'black' }}>
                             จำนวนบิล: {bn.invoices.length} ฉบับ
                         </div>
                     </div>
-                    <div className="signature-box">
-                        <div className="sig-line">ผู้รับวางบิล__________________________________________________</div>
+                    <div className="signature-box" style={{ width: '50%', padding: '10px' }}>
+                        <div className="sig-line" style={{ color: 'black' }}>ผู้รับวางบิล_______________________________________</div>
 
                         <div className="sig-input">
-                            <div style={{ textAlign: 'center', marginTop: '5px' }}>วันนัดชำระ______________/______________/______________</div>
+                            <div style={{ textAlign: 'center', marginTop: '1.5rem', color: 'black' }}>วันนัดชำระ______________/______________/______________</div>
                         </div>
                     </div>
                 </div>

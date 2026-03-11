@@ -131,7 +131,7 @@ const InvoicePrintTemplate = () => {
                             </tr>
                         ))}
                         {/* Fill empty rows to maintain height and show grid lines */}
-                        {[...Array(Math.max(1, 7 - invoice.items.length))].map((_, i) => (
+                        {[...Array(Math.max(1, 6 - invoice.items.length))].map((_, i) => (
                             <tr key={`empty-${i}`} className="empty-row">
                                 <td style={{ borderRight: '1px solid #000' }}>&nbsp;</td>
                                 <td style={{ borderRight: '1px solid #000' }}>&nbsp;</td>
@@ -143,43 +143,43 @@ const InvoicePrintTemplate = () => {
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td colSpan="2" rowSpan={4 + (invoice.adjustments?.length || 0)} className="notes-cell" style={{ verticalAlign: 'top', padding: '8px', textAlign: 'left', border: '1px solid #000' }}>
+                            <td colSpan="2" rowSpan={4 + (invoice.adjustments?.length || 0)} className="notes-cell" style={{ verticalAlign: 'top', padding: '8px', textAlign: 'left', border: '1px solid #000', borderBottom: 'none' }}>
                                 <strong>หมายเหตุ:</strong> {invoice.notes}
                             </td>
-                            <td colSpan="2" className="summary-label">รวมเป็นเงิน</td>
-                            <td className="summary-value">{invoice.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td colSpan="2" className="summary-label" style={{ borderRight: 'none', borderBottom: 'none' }}>รวมเป็นเงิน</td>
+                            <td className="summary-value" style={{ borderLeft: 'none', borderBottom: 'none' }}>{invoice.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr>
-                            <td colSpan="2" className="summary-label">หักส่วนลด</td>
-                            <td className="summary-value">{invoice.discount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '-'}</td>
+                            <td colSpan="2" className="summary-label" style={{ borderRight: 'none', borderBottom: 'none' }}>หักส่วนลด</td>
+                            <td className="summary-value" style={{ borderLeft: 'none', borderBottom: 'none' }}>{invoice.discount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '-'}</td>
                         </tr>
                         <tr>
-                            <td colSpan="2" className="summary-label">ยอดหลังหักส่วนลด</td>
-                            <td className="summary-value">{(invoice.subtotal - (invoice.discount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td colSpan="2" className="summary-label" style={{ borderRight: 'none', borderBottom: 'none' }}>ยอดหลังหักส่วนลด</td>
+                            <td className="summary-value" style={{ borderLeft: 'none', borderBottom: 'none' }}>{(invoice.subtotal - (invoice.discount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr>
-                            <td colSpan="2" className="summary-label">ภาษีมูลค่าเพิ่ม {invoice.vatRate}%</td>
-                            <td className="summary-value">{invoice.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td colSpan="2" className="summary-label" style={{ borderRight: 'none', borderBottom: 'none' }}>ภาษีมูลค่าเพิ่ม {invoice.vatRate}%</td>
+                            <td className="summary-value" style={{ borderLeft: 'none', borderBottom: 'none' }}>{invoice.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
 
                         {(invoice.adjustments || []).map((adj, idx) => (
                             <tr key={`adj-${idx}`}>
-                                <td colSpan="2" className="summary-label">{adj.label}</td>
-                                <td className="summary-value">{Number(adj.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td colSpan="2" className="summary-label" style={{ borderRight: 'none', borderBottom: 'none' }}>{adj.label}</td>
+                                <td className="summary-value" style={{ borderLeft: 'none', borderBottom: 'none' }}>{Number(adj.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
                         ))}
 
                         <tr>
-                            <td colSpan="2" className="baht-text-cell">({invoice.bahtText})</td>
-                            <td colSpan="2" className="summary-label-bold">จำนวนเงินรวมทั้งสิ้น</td>
-                            <td className="summary-value-bold">{invoice.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td colSpan="2" className="baht-text-cell" style={{ fontSize: "1.1rem", borderTop: 'none', borderRight: '1px solid #000' }}>({invoice.bahtText})</td>
+                            <td colSpan="2" className="summary-label-bold" style={{ borderRight: 'none', borderTop: 'none' }}>จำนวนเงินรวมทั้งสิ้น</td>
+                            <td className="summary-value-bold" style={{ borderLeft: 'none', borderTop: 'none' }}>{invoice.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                     </tfoot>
                 </table>
 
                 <div className="footer-section">
                     <div className="signature-box">
-                        <div className="sig-line">ได้รับสินค้าตามรายการข้างต้นไว้ถูกต้อง</div>
+                        <div className="sig-line">ได้รับสินค้าตามรายการข้างบนนี้ไว้ถูกต้อง</div>
                         <div className="sig-line">และอยู่ในสภาพเรียบร้อยทุกประการ</div>
                         <div className="sig-input">
                             <div>
@@ -194,7 +194,7 @@ const InvoicePrintTemplate = () => {
                         </div>
                     </div>
                     <div className="signature-box">
-                        <div className="sig-line">ในนาม {company.name}</div>
+                        <div className="sig-line">ในนาม บริษัท มัลติพลายส์ ออโต้ เวิร์ค จำกัด</div>
                         <div style={{ height: '40px' }}></div>
                         <div className="sig-input">
                             <span>ผู้รับมอบอำนาจ__________________________________________</span>

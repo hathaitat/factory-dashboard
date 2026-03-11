@@ -8,11 +8,11 @@ body {
     background: #f0f0f0;
     min-height: 100vh;
     padding-bottom: 2rem;
-    font-family: 'Cordia New', 'CordiaUPC', 'Sarabun', sans-serif;
+    font-family: 'Sarabun', sans-serif;
 }
 
 .invoice-paper {
-    font-family: 'Cordia New', 'CordiaUPC', 'Sarabun', sans-serif;
+    font-family: 'Sarabun', sans-serif;
     background: white;
     width: 9in;
     min-height: 11in;
@@ -144,7 +144,7 @@ body {
 .items-table-print th {
     border: 1px solid #000;
     padding: 8px;
-    font-size: 1rem;
+    font-size: .95rem;
     /* + ~1px */
 }
 
@@ -167,7 +167,7 @@ body {
 
 .items-table-print tfoot td {
     padding: 8px;
-    font-size: 1rem;
+    font-size: .95rem;
     border: none;
     border-right: 1px solid #000;
 }

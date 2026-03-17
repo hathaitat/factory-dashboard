@@ -36,32 +36,59 @@ const BillingNoteFormPage = () => {
     const [selectedInvoices, setSelectedInvoices] = useState([]);
 
     useEffect(() => {
-        loadInitialData();
+        const handlePreselection = async () => {
+            await loadInitialData();
 
-        // Handle preselected invoice from navigation state
-        if (!isEdit && location.state?.preselectInvoice) {
-            const inv = location.state.preselectInvoice;
-            // Set the customer ID and snapshot 
-            setFormData(prev => ({
-                ...prev,
-                customerId: inv.customerId || inv.customer?.id || '',
-                customerSnapshot: inv.customerSnapshot || inv.customer || null
-            }));
+            // Handle preselected invoice from navigation state
+            if (!isEdit && location.state?.preselectInvoice) {
+                const inv = location.state.preselectInvoice;
+                setFormData(prev => ({
+                    ...prev,
+                    customerId: inv.customerId || inv.customer?.id || '',
+                    customerSnapshot: inv.customerSnapshot || inv.customer || null
+                }));
 
-            const formattedInv = {
-                id: inv.id,
-                invoiceNo: inv.invoiceNo,
-                date: inv.date,
-                grandTotal: inv.grandTotal,
-                poNumber: inv.poNumber || inv.po?.po_number,
-                poStatus: inv.poStatus || inv.po?.status
-            };
-            setSelectedInvoices([formattedInv]);
+                const formattedInv = {
+                    id: inv.id,
+                    invoiceNo: inv.invoiceNo,
+                    date: inv.date,
+                    grandTotal: inv.grandTotal,
+                    poNumber: inv.poNumber || inv.po?.po_number,
+                    poStatus: inv.poStatus || inv.po?.status
+                };
+                setSelectedInvoices([formattedInv]);
+            }
+
+            // Handle preselected customer name from dashboard
+            if (!isEdit && location.state?.preselectCustomerName) {
+                const customerName = location.state.preselectCustomerName;
+                // customers state might not be updated yet if we don't wait for loadInitialData
+                // but loadInitialData sets the customers state.
+                // Since we await loadInitialData (if we make it return something or just wait for its completion), 
+                // we can then find the customer.
+            }
 
             // Clear history state gently to avoid re-triggering on refresh
-            window.history.replaceState({}, document.title);
-        }
+            if (location.state) {
+                window.history.replaceState({}, document.title);
+            }
+        };
+
+        handlePreselection();
     }, []);
+
+    // Effect to handle preselectCustomerName once customers are loaded
+    useEffect(() => {
+        if (!isEdit && location.state?.preselectCustomerName && customers.length > 0) {
+            const customer = customers.find(c => c.name === location.state.preselectCustomerName);
+            if (customer) {
+                setFormData(prev => ({
+                    ...prev,
+                    customerId: customer.id
+                }));
+            }
+        }
+    }, [customers, location.state, isEdit]);
 
     // Load available invoices when customer or date changes
     useEffect(() => {

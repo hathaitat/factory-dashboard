@@ -337,5 +337,78 @@ export const invoiceService = {
             const fallbackFormatStr = fallbackFormats?.invoice_format || 'IV{YY}{MM}{RUN}';
             return documentNumberHelper.getPreviewUrl(fallbackFormatStr);
         }
+    },
+
+    // Get Top Selling Products
+    getTopSellingProducts: async (limit = 5) => {
+        try {
+            // First, get all non-cancelled invoices to know which items to include
+            const { data: invoices, error: invError } = await supabase
+                .from('invoices')
+                .select('id')
+                .neq('status', 'Cancelled');
+
+            if (invError) throw invError;
+            if (!invoices || invoices.length === 0) return [];
+
+            const invoiceIds = invoices.map(inv => inv.id);
+
+            // Fetch items for these invoices
+            const { data: items, error: itemsError } = await supabase
+                .from('invoice_items')
+                .select('product_name, quantity, amount')
+                .in('invoice_id', invoiceIds);
+
+            if (itemsError) throw itemsError;
+
+            const productStats = items.reduce((acc, item) => {
+                const name = item.product_name;
+                if (!acc[name]) {
+                    acc[name] = { name, quantity: 0, amount: 0 };
+                }
+                acc[name].quantity += Number(item.quantity || 0);
+                acc[name].amount += Number(item.amount || 0);
+                return acc;
+            }, {});
+
+            return Object.values(productStats)
+                .sort((a, b) => b.quantity - a.quantity)
+                .slice(0, limit);
+        } catch (error) {
+            console.error('Error fetching top selling products:', error);
+            return [];
+        }
+    },
+
+    // Get Top Customers by sales volume
+    getTopCustomers: async (limit = 5) => {
+        try {
+            const { data, error } = await supabase
+                .from('invoices')
+                .select('customer_id, customer_snapshot, grand_total, status')
+                .neq('status', 'Cancelled');
+
+            if (error) throw error;
+
+            const customerStats = data.reduce((acc, inv) => {
+                const customerId = inv.customer_id;
+                const customerName = inv.customer_snapshot?.name || 'Unknown';
+                const key = customerId || customerName;
+
+                if (!acc[key]) {
+                    acc[key] = { name: customerName, totalAmount: 0, orderCount: 0 };
+                }
+                acc[key].totalAmount += Number(inv.grand_total || 0);
+                acc[key].orderCount += 1;
+                return acc;
+            }, {});
+
+            return Object.values(customerStats)
+                .sort((a, b) => b.totalAmount - a.totalAmount)
+                .slice(0, limit);
+        } catch (error) {
+            console.error('Error fetching top customers:', error);
+            return [];
+        }
     }
 };

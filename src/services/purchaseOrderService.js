@@ -161,7 +161,7 @@ export const purchaseOrderService = {
 
     // Create a new purchase order
     async createPurchaseOrder(poData, items) {
-        const { discount, subtotal, vat_amount, grand_total, vat_rate, ...cleanPoData } = poData;
+        const cleanPoData = { ...poData };
         const { data: po, error: poError } = await supabase
             .from('purchase_orders')
             .insert([cleanPoData])
@@ -189,7 +189,7 @@ export const purchaseOrderService = {
 
     // Update existing purchase order
     async updatePurchaseOrder(id, poData, items) {
-        const { discount, subtotal, vat_amount, grand_total, vat_rate, status, ...cleanPoData } = poData;
+        const { status, ...cleanPoData } = poData;
         const { data: po, error: poError } = await supabase
             .from('purchase_orders')
             .update(cleanPoData)

@@ -7,6 +7,7 @@ import { useDialog } from '../contexts/DialogContext';
 const MODULES = [
     { id: 'overview', label: 'ภาพรวม (Dashboard)' },
     { id: 'customers', label: 'ข้อมูลลูกค้า' },
+    { id: 'certificates', label: 'เอกสาร Certificate' },
     { id: 'invoices', label: 'ใบกำกับภาษี' },
     { id: 'billing', label: 'ใบวางบิล' },
     { id: 'employees', label: 'พนักงาน' },

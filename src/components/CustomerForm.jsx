@@ -12,7 +12,7 @@ const CustomerForm = ({ initialData, onSubmit, title }) => {
         address: '',
         status: 'Active',
         contactPerson: '',
-        branch: 'สำนักงานใหญ่'
+        branch: ''
     });
 
     useEffect(() => {

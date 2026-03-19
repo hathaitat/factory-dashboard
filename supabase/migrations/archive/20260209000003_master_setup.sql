@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.customers (
     code TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     tax_id TEXT,
-    branch TEXT DEFAULT 'สำนักงานใหญ่',
+    branch TEXT DEFAULT '',
     credit_term INTEGER DEFAULT 0,
     contact_person TEXT,
     email TEXT,

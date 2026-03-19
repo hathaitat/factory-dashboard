@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, DollarSign, FileText, Clock, ExternalLink } from 'lucide-react';
+import { Users, DollarSign, FileText, Clock, ExternalLink, ShieldAlert } from 'lucide-react';
 import { customerService } from '../services/customerService';
 import { invoiceService } from '../services/invoiceService';
 import { billingNoteService } from '../services/billingNoteService';
 import { purchaseOrderService } from '../services/purchaseOrderService';
+import { certificateService } from '../services/certificateService';
 import '../styles/OverviewPage.css';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 
@@ -19,18 +20,20 @@ const OverviewPage = () => {
     });
     const [recentInvoices, setRecentInvoices] = useState([]);
     const [duePurchaseOrders, setDuePurchaseOrders] = useState([]);
+    const [expiringCertificates, setExpiringCertificates] = useState([]);
 
     useEffect(() => {
         const loadDashboardData = async () => {
             setIsLoading(true);
             try {
-                const [customers, invoices, billingNotes, purchaseOrders, topProducts, topCustomers] = await Promise.all([
+                const [customers, invoices, billingNotes, purchaseOrders, topProducts, topCustomers, expiringCerts] = await Promise.all([
                     customerService.getCustomers(),
                     invoiceService.getInvoices(),
                     billingNoteService.getBillingNotes(),
                     purchaseOrderService.getPurchaseOrders(),
                     invoiceService.getTopSellingProducts(5),
-                    invoiceService.getTopCustomers(5)
+                    invoiceService.getTopCustomers(5),
+                    certificateService.getExpiringCertificates(30)
                 ]);
 
                 const now = new Date();
@@ -113,6 +116,7 @@ const OverviewPage = () => {
                     })
                     .slice(0, 10);
                 setDuePurchaseOrders(urgentPOs);
+                setExpiringCertificates(expiringCerts || []);
 
             } catch (error) {
                 console.error("Error loading dashboard data:", error);
@@ -161,27 +165,6 @@ const OverviewPage = () => {
                     </div>
                 </div>
 
-                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/billing-notes')} style={{ cursor: 'pointer' }}>
-                    <div className="kpi-icon-wrapper yellow">
-                        <FileText size={24} />
-                    </div>
-                    <div className="kpi-content">
-                        <span className="kpi-label">ยอดวางบิลเดือนนี้</span>
-                        <span className="kpi-value">฿{metrics.monthlyBilling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                </div>
-
-                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/invoices')} style={{ cursor: 'pointer' }}>
-                    <div className="kpi-icon-wrapper red">
-                        <Clock size={24} />
-                    </div>
-                    <div className="kpi-content">
-                        <span className="kpi-label">ใบกำกับที่รอดำเนินการ</span>
-                        <span className="kpi-value alert" style={{ color: metrics.pendingInvoices > 0 ? '#f87171' : 'var(--text-main)' }}>
-                            {metrics.pendingInvoices} <span className="unit">รายการ</span>
-                        </span>
-                    </div>
-                </div>
 
                 <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/purchase-orders')} style={{ cursor: 'pointer' }}>
                     <div className="kpi-icon-wrapper blue" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6' }}>
@@ -193,6 +176,23 @@ const OverviewPage = () => {
                     </div>
                 </div>
             </div>
+
+            {expiringCertificates.length > 0 && (
+                <div className="glass-panel" style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1.5rem', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '0.6rem', borderRadius: '50%' }}>
+                            <ShieldAlert size={24} />
+                        </div>
+                        <div>
+                            <h4 style={{ margin: '0 0 0.2rem 0', color: '#ef4444', fontSize: '1rem' }}>แจ้งเตือน: มี Certificate {expiringCertificates.length} รายการที่ใกล้หมดอายุหรือหมดอายุแล้ว</h4>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>กรุณาตรวจสอบและอัปเดตไฟล์ Certificate</p>
+                        </div>
+                    </div>
+                    <button onClick={() => navigate('/dashboard/certificates')} style={{ padding: '0.6rem 1.2rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
+                        ตรวจสอบ
+                    </button>
+                </div>
+            )}
 
             <div className="dashboard-grid">
                 <div className="glass-panel main-chart-panel" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '500px' }}>

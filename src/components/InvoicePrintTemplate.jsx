@@ -11,6 +11,7 @@ const InvoicePrintTemplate = () => {
     const [invoice, setInvoice] = useState(null);
     const [company, setCompany] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [matchingCerts, setMatchingCerts] = useState([]);
 
     useEffect(() => {
         loadData();
@@ -18,12 +19,32 @@ const InvoicePrintTemplate = () => {
 
     const loadData = async () => {
         setIsLoading(true);
-        const [invData, compData] = await Promise.all([
+        // We import certificateService dynamically to avoid circular dependencies if any, or just import at top.
+        const { certificateService } = await import('../services/certificateService');
+        
+        const [invData, compData, allCerts] = await Promise.all([
             invoiceService.getInvoiceById(id),
-            companyService.getCompanyInfo()
+            companyService.getCompanyInfo(),
+            certificateService.getCertificates()
         ]);
+        
         setInvoice(invData);
         setCompany(compData);
+        
+        // Find certificates that match the products in this invoice
+        if (invData && invData.items && allCerts) {
+            const certs = allCerts.filter(cert => {
+                // Check if any product in the certificate matches any product in the invoice
+                if (!cert.certificate_products) return false;
+                
+                return cert.certificate_products.some(cp => {
+                    const certProductName = cp.customer_products?.name;
+                    return invData.items.some(item => item.productName === certProductName);
+                });
+            });
+            setMatchingCerts(certs);
+        }
+        
         setIsLoading(false);
     };
 
@@ -36,13 +57,24 @@ const InvoicePrintTemplate = () => {
 
     return (
         <div className="print-container">
-            <div className="no-print" style={{ padding: '1rem', display: 'flex', gap: '1rem', background: '#111', borderBottom: '1px solid #333' }}>
+            <div className="no-print" style={{ padding: '1rem', display: 'flex', gap: '1rem', background: '#111', borderBottom: '1px solid #333', flexWrap: 'wrap' }}>
                 <button onClick={() => navigate('/dashboard/invoices')} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: '1px solid #444', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' }}>
                     <ArrowLeft size={18} /> ย้อนกลับ
                 </button>
                 <button onClick={handlePrint} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#3b82f6', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' }}>
                     <Printer size={18} /> พิมพ์ใบกำกับภาษี
                 </button>
+                
+                {/* Certificate Print Buttons */}
+                {matchingCerts.map((cert) => (
+                    <button 
+                        key={cert.id}
+                        onClick={() => window.open(cert.file_url, '_blank')}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#10b981', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                        <Printer size={18} /> ปริ้นท์ Cer: {cert.name}
+                    </button>
+                ))}
             </div>
 
             <div className="invoice-paper">

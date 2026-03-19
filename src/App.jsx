@@ -18,6 +18,8 @@ const CustomerDetailPage = React.lazy(() => import('./pages/CustomerDetailPage')
 const CompanyInfoPage = React.lazy(() => import('./pages/CompanyInfoPage'));
 const UserListPage = React.lazy(() => import('./pages/UserListPage'));
 const UserFormPage = React.lazy(() => import('./pages/UserFormPage'));
+const CertificateListPage = React.lazy(() => import('./pages/CertificateListPage'));
+const CertificateFormPage = React.lazy(() => import('./pages/CertificateFormPage'));
 const InvoiceListPage = React.lazy(() => import('./pages/InvoiceListPage'));
 const InvoiceDetailPage = React.lazy(() => import('./pages/InvoiceDetailPage'));
 const InvoiceFormPage = React.lazy(() => import('./pages/InvoiceFormPage'));
@@ -78,6 +80,17 @@ function App() {
                     </Route>
                     <Route element={<PermissionRoute module="customers" action="edit" />}>
                       <Route path="customers/:id/edit" element={<CustomerEditPage />} />
+                    </Route>
+
+                    {/* Certificates Module */}
+                    <Route element={<PermissionRoute module="customers" action="view" />}>
+                      <Route path="certificates" element={<CertificateListPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="customers" action="create" />}>
+                      <Route path="certificates/new" element={<CertificateFormPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="customers" action="edit" />}>
+                      <Route path="certificates/:id/edit" element={<CertificateFormPage />} />
                     </Route>
 
                     {/* Purchase Orders Module */}

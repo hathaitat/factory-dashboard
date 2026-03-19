@@ -53,7 +53,7 @@ const InvoiceDetailPage = () => {
         const metaInfo = [
             ['ลูกค้า', invoice.customer?.code || '', '', 'เลขที่ใบกำกับ', invoice.invoiceNo],
             [invoice.customer?.name || '', '', '', 'วันที่', new Date(invoice.date).toLocaleDateString('th-TH')],
-            ['เลขประจำตัวผู้เสียภาษี', `${invoice.customer?.taxId || ''} สาขา ${invoice.customer?.branch || 'สำนักงานใหญ่'}`, '', 'เครดิต', `${invoice.creditDays} วัน`],
+            ['เลขประจำตัวผู้เสียภาษี', `${invoice.customer?.taxId || ''} สาขา ${invoice.customer?.branch || ''}`, '', 'เครดิต', `${invoice.creditDays} วัน`],
             [invoice.customer?.address || '', '', '', 'ครบกำหนด', new Date(invoice.dueDate).toLocaleDateString('th-TH')],
             ['TEL:', invoice.customer?.phone || '', '', 'อ้างอิง (PO)', invoice.referenceNo || ''],
             ['FAX:', invoice.customer?.fax || '-', '', '', ''],
@@ -245,39 +245,39 @@ const InvoiceDetailPage = () => {
                     </div>
 
                     <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                                <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '500' }}>#</th>
-                                <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '500' }}>รายการสินค้า / รายละเอียด</th>
-                                <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>จำนวน</th>
-                                <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>ราคา/หน่วย</th>
-                                <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวนเงิน</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {invoice.items.map((item, idx) => (
-                                <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                    <td style={{ padding: '1rem', color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>{idx + 1}</td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-main)', fontWeight: '500', borderRight: '1px solid var(--border-color)' }}>{item.productName}</td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-muted)', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>{item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}</td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-muted)', textAlign: 'right', borderRight: '1px solid var(--border-color)' }}>฿{item.pricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-main)', textAlign: 'right', fontWeight: '500' }}>฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
+                                    <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '500' }}>#</th>
+                                    <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '500' }}>รายการสินค้า / รายละเอียด</th>
+                                    <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>จำนวน</th>
+                                    <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>ราคา/หน่วย</th>
+                                    <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวนเงิน</th>
                                 </tr>
-                            ))}
-                            {/* Fill empty rows to maintain consistency */}
-                            {[...Array(Math.max(1, 8 - invoice.items.length))].map((_, i) => (
-                                <tr key={`empty-${i}`} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                    <td style={{ padding: '1rem', borderRight: '1px solid var(--border-color)' }}>&nbsp;</td>
-                                    <td style={{ padding: '1rem', borderRight: '1px solid var(--border-color)' }}>&nbsp;</td>
-                                    <td style={{ padding: '1rem', borderRight: '1px solid var(--border-color)' }}>&nbsp;</td>
-                                    <td style={{ padding: '1rem', borderRight: '1px solid var(--border-color)' }}>&nbsp;</td>
-                                    <td style={{ padding: '1rem' }}>&nbsp;</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-</div>
+                            </thead>
+                            <tbody>
+                                {invoice.items.map((item, idx) => (
+                                    <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                        <td style={{ padding: '1rem', color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>{idx + 1}</td>
+                                        <td style={{ padding: '1rem', color: 'var(--text-main)', fontWeight: '500', borderRight: '1px solid var(--border-color)' }}>{item.productName}</td>
+                                        <td style={{ padding: '1rem', color: 'var(--text-muted)', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>{item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}</td>
+                                        <td style={{ padding: '1rem', color: 'var(--text-muted)', textAlign: 'right', borderRight: '1px solid var(--border-color)' }}>฿{item.pricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td style={{ padding: '1rem', color: 'var(--text-main)', textAlign: 'right', fontWeight: '500' }}>฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                ))}
+                                {/* Fill empty rows to maintain consistency */}
+                                {[...Array(Math.max(1, 8 - invoice.items.length))].map((_, i) => (
+                                    <tr key={`empty-${i}`} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                        <td style={{ padding: '1rem', borderRight: '1px solid var(--border-color)' }}>&nbsp;</td>
+                                        <td style={{ padding: '1rem', borderRight: '1px solid var(--border-color)' }}>&nbsp;</td>
+                                        <td style={{ padding: '1rem', borderRight: '1px solid var(--border-color)' }}>&nbsp;</td>
+                                        <td style={{ padding: '1rem', borderRight: '1px solid var(--border-color)' }}>&nbsp;</td>
+                                        <td style={{ padding: '1rem' }}>&nbsp;</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
 
                     {invoice.notes && (
                         <div style={{ marginBottom: '2rem' }}>

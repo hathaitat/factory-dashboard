@@ -77,7 +77,7 @@ export const customerService = {
         email: customerData.email,
         phone: customerData.phone,
         address: customerData.address,
-        branch: customerData.branch || 'สำนักงานใหญ่',
+        branch: customerData.branch || '',
         status: customerData.status || 'Active'
       };
 

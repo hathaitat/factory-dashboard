@@ -58,12 +58,7 @@ const DashboardLayout = () => {
                         </NavLink>
                     )}
 
-                    {hasPermission('customers', 'view') && (
-                        <NavLink to="/dashboard/customers" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                            <Users size={20} />
-                            <span>ลูกค้า</span>
-                        </NavLink>
-                    )}
+
 
                     {(hasPermission('purchase_orders', 'view') || hasPermission('invoices', 'view')) && (
                         <NavLink to="/dashboard/purchase-orders" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
@@ -97,6 +92,19 @@ const DashboardLayout = () => {
                             <Building size={20} />
                             <span>ข้อมูลบริษัท</span>
                         </NavLink>
+                    )}
+
+                    {hasPermission('customers', 'view') && (
+                        <>
+                            <NavLink to="/dashboard/customers" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <Users size={20} />
+                                <span>ลูกค้า</span>
+                            </NavLink>
+                            <NavLink to="/dashboard/certificates" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <Shield size={20} />
+                                <span>เอกสาร Certificate</span>
+                            </NavLink>
+                        </>
                     )}
 
                     {hasPermission('users', 'view') && (

@@ -292,14 +292,14 @@ const QuotationListPage = () => {
                                                 <td style={{ padding: '1rem', textAlign: 'right' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                                                         <button
-                                                            onClick={() => navigate(`/dashboard/quotations/${qt.id}`)}
+                                                            onClick={() => window.open(`/dashboard/quotations/${qt.id}`, '_blank')}
                                                             style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
                                                             title="View"
                                                         >
                                                             <Eye size={18} />
                                                         </button>
                                                         <button
-                                                            onClick={() => navigate(`/dashboard/quotations/${qt.id}/print`)}
+                                                            onClick={() => window.open(`/dashboard/quotations/${qt.id}/print`, '_blank')}
                                                             style={{ background: 'none', border: 'none', color: '#8b5cf6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
                                                             title="Print"
                                                         >

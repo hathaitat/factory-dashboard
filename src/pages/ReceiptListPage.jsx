@@ -224,14 +224,14 @@ const ReceiptListPage = () => {
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                                                     <button
-                                                        onClick={() => navigate(`/dashboard/receipts/${bn.id}`)}
+                                                        onClick={() => window.open(`/dashboard/receipts/${bn.id}`, '_blank')}
                                                         style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
                                                         title="View Details"
                                                     >
                                                         <Eye size={18} />
                                                     </button>
                                                     <button
-                                                        onClick={() => navigate(`/dashboard/billing-notes/${bn.id}/print-receipt`)}
+                                                        onClick={() => window.open(`/dashboard/billing-notes/${bn.id}/print-receipt`, '_blank')}
                                                         style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
                                                         title="Print Receipt"
                                                     >

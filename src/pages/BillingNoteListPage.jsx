@@ -223,14 +223,14 @@ const BillingNoteListPage = () => {
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                                                     <button
-                                                        onClick={() => navigate(`/dashboard/billing-notes/${bn.id}`)}
+                                                        onClick={() => window.open(`/dashboard/billing-notes/${bn.id}`, '_blank')}
                                                         style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
                                                         title="View"
                                                     >
                                                         <Eye size={18} />
                                                     </button>
                                                     <button
-                                                        onClick={() => navigate(`/dashboard/billing-notes/${bn.id}/print`)}
+                                                        onClick={() => window.open(`/dashboard/billing-notes/${bn.id}/print`, '_blank')}
                                                         style={{ background: 'none', border: 'none', color: '#8b5cf6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
                                                         title="Print"
                                                     >

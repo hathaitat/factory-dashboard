@@ -6,6 +6,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import * as XLSX from 'xlsx';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
+import ListFilter from '../components/ListFilter';
 
 const PurchaseOrderListPage = () => {
     const navigate = useNavigate();
@@ -14,6 +15,10 @@ const PurchaseOrderListPage = () => {
     const [purchaseOrders, setPurchaseOrders] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [dateFilterType, setDateFilterType] = useState('issue_date');
+    const [statusFilter, setStatusFilter] = useState('');
 
     useEffect(() => {
         loadPurchaseOrders();
@@ -46,7 +51,18 @@ const PurchaseOrderListPage = () => {
     };
 
     const exportToExcel = () => {
-        const dataToExport = purchaseOrders.map(po => ({
+        const filteredData = purchaseOrders.filter(po => {
+            const matchSearch = po.po_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (po.customers?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+            
+            const targetDate = dateFilterType === 'due_date' ? po.due_date : po.issue_date;
+            const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
+            const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
+            const matchStatus = !statusFilter || po.status === statusFilter;
+            return matchSearch && matchDateFrom && matchDateTo && matchStatus;
+        });
+
+        const dataToExport = filteredData.map(po => ({
             'เลขที่ใบสั่งซื้อ (PO)': po.po_number,
             'วันที่ออกเอกสาร': po.issue_date,
             'วันกำหนดส่ง': po.due_date,
@@ -61,10 +77,19 @@ const PurchaseOrderListPage = () => {
         XLSX.writeFile(wb, 'Purchase_Orders_Export.xlsx');
     };
 
-    const filteredPOs = purchaseOrders.filter(po =>
-        po.po_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (po.customers?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const hasActiveFilters = dateFrom || dateTo || statusFilter;
+    const clearFilters = () => { setDateFrom(''); setDateTo(''); setStatusFilter(''); setDateFilterType('issue_date'); };
+
+    const filteredPOs = purchaseOrders.filter(po => {
+        const matchSearch = po.po_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (po.customers?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+            
+        const targetDate = dateFilterType === 'due_date' ? po.due_date : po.issue_date;
+        const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
+        const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
+        const matchStatus = !statusFilter || po.status === statusFilter;
+        return matchSearch && matchDateFrom && matchDateTo && matchStatus;
+    });
 
     // Grouping by Month/Year of issue_date
     const getMonthYear = (dateString) => {
@@ -145,6 +170,32 @@ const PurchaseOrderListPage = () => {
                 />
             </div>
 
+            <ListFilter
+                filters={[
+                    { 
+                        type: 'date-range', 
+                        dateFrom, 
+                        dateTo, 
+                        onDateFromChange: setDateFrom, 
+                        onDateToChange: setDateTo,
+                        value: dateFilterType,
+                        onChange: setDateFilterType,
+                        options: [
+                            { value: 'issue_date', label: 'วันที่ออกเอกสาร' },
+                            { value: 'due_date', label: 'วันกำหนดส่ง' }
+                        ]
+                    },
+                    { type: 'select', label: 'สถานะ', value: statusFilter, onChange: setStatusFilter, options: [
+                        { value: '', label: 'ทั้งหมด' },
+                        { value: 'Pending', label: 'Pending' },
+                        { value: 'In Progress', label: 'In Progress' },
+                        { value: 'Completed', label: 'Completed' }
+                    ]}
+                ]}
+                onClear={clearFilters}
+                hasActiveFilters={!!hasActiveFilters}
+            />
+
             <div className="glass-panel" style={{ padding: '0', overflowX: 'auto' }}>
                 <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -220,13 +271,13 @@ const PurchaseOrderListPage = () => {
                                                 </span>
                                             </td>
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right' }}>
-                                                <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.3rem', width: 'fit-content', marginLeft: 'auto' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                                                     {po.file_url && (
                                                         <a
                                                             href={po.file_url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            style={{ background: 'none', border: 'none', color: '#8b5cf6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
+                                                            style={{ background: 'none', border: 'none', color: '#8b5cf6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
                                                             title="View Document File"
                                                         >
                                                             <Eye size={18} />
@@ -235,7 +286,7 @@ const PurchaseOrderListPage = () => {
                                                     {hasPermission('invoices', 'create') && (
                                                         <button
                                                             onClick={() => navigate('/dashboard/invoices/new', { state: { referencePoId: po.id } })}
-                                                            style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
+                                                            style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
                                                             title="ออกใบกำกับภาษีเชื่อมโยง PO นี้"
                                                         >
                                                             <LinkIcon size={18} />
@@ -244,7 +295,7 @@ const PurchaseOrderListPage = () => {
                                                     {hasPermission('invoices', 'edit') && (
                                                         <button
                                                             onClick={() => navigate(`/dashboard/purchase-orders/${po.id}/edit`)}
-                                                            style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
+                                                            style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
                                                             title="Edit"
                                                         >
                                                             <Edit size={18} />
@@ -253,7 +304,7 @@ const PurchaseOrderListPage = () => {
                                                     {hasPermission('invoices', 'delete') && (
                                                         <button
                                                             onClick={() => handleDelete(po.id, po.po_number)}
-                                                            style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
+                                                            style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
                                                             title="Delete"
                                                         >
                                                             <Trash2 size={18} />

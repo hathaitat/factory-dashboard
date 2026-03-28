@@ -5,6 +5,7 @@ import { certificateService } from '../services/certificateService';
 import { usePermissions } from '../hooks/usePermissions';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader from '../components/PageHeader';
+import ListFilter from '../components/ListFilter';
 
 const CertificateListPage = () => {
     const navigate = useNavigate();
@@ -14,6 +15,10 @@ const CertificateListPage = () => {
     const [certificates, setCertificates] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [expiryFilter, setExpiryFilter] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [dateFilterType, setDateFilterType] = useState('issue_date');
 
     useEffect(() => {
         loadCertificates();
@@ -41,9 +46,29 @@ const CertificateListPage = () => {
         }
     };
 
-    const filteredCertificates = certificates.filter(cert =>
-        cert.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const hasActiveFilters = !!expiryFilter || !!dateFrom || !!dateTo;
+    const clearFilters = () => { setExpiryFilter(''); setDateFrom(''); setDateTo(''); setDateFilterType('issue_date'); };
+
+    const getExpiryCategory = (expiryDate) => {
+        if (!expiryDate) return 'normal';
+        const today = new Date();
+        const expiry = new Date(expiryDate);
+        const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+        if (diffDays < 0) return 'expired';
+        if (diffDays <= 30) return 'expiring';
+        return 'normal';
+    };
+
+    const filteredCertificates = certificates.filter(cert => {
+        const matchSearch = cert.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchExpiry = !expiryFilter || getExpiryCategory(cert.expiry_date) === expiryFilter;
+        
+        const targetDate = dateFilterType === 'expiry_date' ? cert.expiry_date : cert.issue_date;
+        const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
+        const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
+        
+        return matchSearch && matchExpiry && matchDateFrom && matchDateTo;
+    });
 
     const getExpiryStatus = (expiryDate) => {
         if (!expiryDate) return { label: 'ไม่มีวันหมดอายุ', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' };
@@ -111,6 +136,32 @@ const CertificateListPage = () => {
                     </div>
                 </div>
             </div>
+
+            <ListFilter
+                filters={[
+                    { 
+                        type: 'date-range', 
+                        dateFrom, 
+                        dateTo, 
+                        onDateFromChange: setDateFrom, 
+                        onDateToChange: setDateTo,
+                        value: dateFilterType,
+                        onChange: setDateFilterType,
+                        options: [
+                            { value: 'issue_date', label: 'วันที่ออกเอกสาร' },
+                            { value: 'expiry_date', label: 'วันหมดอายุ' }
+                        ]
+                    },
+                    { type: 'select', label: 'สถานะหมดอายุ', value: expiryFilter, onChange: setExpiryFilter, options: [
+                        { value: '', label: 'ทั้งหมด' },
+                        { value: 'normal', label: 'ปกติ' },
+                        { value: 'expiring', label: 'ใกล้หมดอายุ' },
+                        { value: 'expired', label: 'หมดอายุแล้ว' }
+                    ]}
+                ]}
+                onClear={clearFilters}
+                hasActiveFilters={hasActiveFilters}
+            />
 
             <div className="glass-panel" style={{ padding: '0' }}>
                 <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -182,34 +233,34 @@ const CertificateListPage = () => {
                                             </span>
                                         </td>
                                         <td style={{ padding: '1.2rem', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                                                 {cert.file_url && (
                                                     <a
                                                         href={cert.file_url}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         title="ดาวน์โหลด / ดูไฟล์"
-                                                        style={{ padding: '0.5rem', background: 'var(--card-hover)', border: 'none', borderRadius: '6px', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                                        style={{ background: 'none', border: 'none', color: '#8b5cf6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
                                                     >
-                                                        <Download size={16} />
+                                                        <Download size={18} />
                                                     </a>
                                                 )}
                                                 {hasPermission('certificates', 'edit', true) && (
                                                     <button
                                                         onClick={() => navigate(`/dashboard/certificates/${cert.id}/edit`)}
                                                         title="แก้ไข"
-                                                        style={{ padding: '0.5rem', background: 'rgba(59, 130, 246, 0.1)', border: 'none', borderRadius: '6px', color: '#60a5fa', cursor: 'pointer' }}
+                                                        style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
                                                     >
-                                                        <Edit size={16} />
+                                                        <Edit size={18} />
                                                     </button>
                                                 )}
                                                 {hasPermission('certificates', 'delete', true) && (
                                                     <button
                                                         onClick={() => handleDelete(cert.id, cert.file_path)}
                                                         title="ลบ"
-                                                        style={{ padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '6px', color: '#f87171', cursor: 'pointer' }}
+                                                        style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
                                                     >
-                                                        <Trash2 size={16} />
+                                                        <Trash2 size={18} />
                                                     </button>
                                                 )}
                                             </div>

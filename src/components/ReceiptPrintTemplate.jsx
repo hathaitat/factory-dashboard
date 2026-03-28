@@ -42,19 +42,14 @@ const ReceiptPrintTemplate = () => {
     };
 
     const getReceiptNumber = () => {
-        if (!bn || !formats) return '-';
-        const bnFormat = formats.billing_note_format || (formats.billing_note_prefix ? `${formats.billing_note_prefix}{YY}{MM}{RUN}` : 'BN{YY}{MM}{RUN}');
-        const reFormat = formats.receipt_format || (formats.receipt_prefix ? `${formats.receipt_prefix}{YY}{MM}{RUN}` : 'RE{YY}{MM}{RUN}');
+        if (!bn || !bn.billingNoteNo || !formats) return '-';
+        const rePrefix = formats.receipt_prefix || 'RV';
+        const bnPrefix = formats.billing_note_prefix || 'BI';
 
-        try {
-            // Use the BN date to extract the original RUN number correctly
-            const runNumber = documentNumberHelper.extractRunNumber(bn.billingNoteNo, bnFormat, new Date(bn.date || new Date()));
-            // Use today's date for the new Receipt
-            return documentNumberHelper.applyRunNumberToFormat(runNumber, reFormat, new Date());
-        } catch (e) {
-            console.error('Error generating receipt number:', e);
-            return bn.billingNoteNo.replace(formats.billing_note_prefix || 'BN', formats.receipt_prefix || 'RE');
+        if (bn.billingNoteNo.startsWith(bnPrefix)) {
+            return bn.billingNoteNo.replace(bnPrefix, rePrefix);
         }
+        return bn.billingNoteNo.replace(/^[a-zA-Z]+/, rePrefix);
     };
 
     const handlePrint = () => {
@@ -78,10 +73,10 @@ const ReceiptPrintTemplate = () => {
             <div className="invoice-paper" style={{ border: 'none', boxShadow: 'none' }}>
                 {/* Header - Top Right "Copy" or similar if needed, user image shows "สำเนา" but usually we opt for original first. User said "template like this", probably the structure. I'll assume "Original" or "Receipt". */}
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', marginTop: '1rem' }}>
                     {/* Left: Company Info */}
-                    <div style={{ width: '60%' }}>
-                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', lineHeight: '1.8' }}>{company.name}</div>
+                    <div style={{ width: '65%' }}>
+                        <div style={{ fontSize: '1.26rem', fontWeight: 'bold', lineHeight: '1.8' }}>{company.name}</div>
                         <div style={{ fontSize: '0.9rem', lineHeight: '1.8' }}>{company.address}</div>
                         <div style={{ fontSize: '0.9rem', lineHeight: '1.8' }}>
                             {company.phone && `Tel. ${company.phone}`} {company.fax && `, Fax. ${company.fax}`}
@@ -143,7 +138,7 @@ const ReceiptPrintTemplate = () => {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span>วันที่ (Date)</span>
-                            <span>{new Date().toLocaleDateString('th-TH')}</span>
+                            <span>{new Date(bn.date).toLocaleDateString('th-TH')}</span>
                         </div>
                         {/* Reference to BN if needed, but image shows Invoice refs in table */}
                     </div>
@@ -283,7 +278,7 @@ const ReceiptPrintTemplate = () => {
                     }
                 `}</style>
             </div>
-        </div>
+        </div >
     );
 };
 

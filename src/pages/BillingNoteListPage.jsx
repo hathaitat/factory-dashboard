@@ -6,6 +6,7 @@ import { billingNoteService } from '../services/billingNoteService';
 import { usePermissions } from '../hooks/usePermissions';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
+import ListFilter from '../components/ListFilter';
 
 const BillingNoteListPage = () => {
     const navigate = useNavigate();
@@ -14,6 +15,10 @@ const BillingNoteListPage = () => {
     const [billingNotes, setBillingNotes] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [dateFilterType, setDateFilterType] = useState('date');
+    const [statusFilter, setStatusFilter] = useState('');
 
     useEffect(() => {
         loadBillingNotes();
@@ -39,7 +44,16 @@ const BillingNoteListPage = () => {
     };
 
     const exportToExcel = () => {
-        const dataToExport = billingNotes.map(bn => ({
+        const filteredData = billingNotes.filter(bn => {
+            const matchSearch = bn.billingNoteNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                bn.customerName.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchDateFrom = !dateFrom || bn.date >= dateFrom;
+            const matchDateTo = !dateTo || bn.date <= dateTo;
+            const matchStatus = !statusFilter || bn.status === statusFilter;
+            return matchSearch && matchDateFrom && matchDateTo && matchStatus;
+        });
+
+        const dataToExport = filteredData.map(bn => ({
             'เลขที่ใบวางบิล': bn.billingNoteNo,
             'วันที่': bn.date,
             'ลูกค้า': bn.customerName,
@@ -53,10 +67,19 @@ const BillingNoteListPage = () => {
         XLSX.writeFile(wb, 'BillingNote_Export.xlsx');
     };
 
-    const filteredNotes = billingNotes.filter(bn =>
-        bn.billingNoteNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        bn.customerName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const hasActiveFilters = dateFrom || dateTo || statusFilter;
+    const clearFilters = () => { setDateFrom(''); setDateTo(''); setStatusFilter(''); setDateFilterType('date'); };
+
+    const filteredNotes = billingNotes.filter(bn => {
+        const matchSearch = bn.billingNoteNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            bn.customerName.toLowerCase().includes(searchTerm.toLowerCase());
+            
+        const targetDate = bn.date;
+        const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
+        const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
+        const matchStatus = !statusFilter || bn.status === statusFilter;
+        return matchSearch && matchDateFrom && matchDateTo && matchStatus;
+    });
 
     // Grouping by Month/Year
     const getMonthYear = (dateString) => {
@@ -125,6 +148,28 @@ const BillingNoteListPage = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
+
+            <ListFilter
+                filters={[
+                    { 
+                        type: 'date-range', 
+                        dateFrom, 
+                        dateTo, 
+                        onDateFromChange: setDateFrom, 
+                        onDateToChange: setDateTo,
+                        value: dateFilterType,
+                        onChange: setDateFilterType,
+                        options: [{ value: 'date', label: 'วันที่เอกสาร' }]
+                    },
+                    { type: 'select', label: 'สถานะ', value: statusFilter, onChange: setStatusFilter, options: [
+                        { value: '', label: 'ทั้งหมด' },
+                        { value: 'Draft', label: 'Draft' },
+                        { value: 'Sent', label: 'Sent' }
+                    ]}
+                ]}
+                onClear={clearFilters}
+                hasActiveFilters={!!hasActiveFilters}
+            />
 
             <div className="glass-panel" style={{ padding: '0', overflowX: 'auto' }}>
                 <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>

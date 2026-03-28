@@ -37,7 +37,9 @@ const EmployeeDashboardPage = React.lazy(() => import('./pages/EmployeeDashboard
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const PurchaseOrderListPage = React.lazy(() => import('./pages/PurchaseOrderListPage'));
 const PurchaseOrderFormPage = React.lazy(() => import('./pages/PurchaseOrderFormPage'));
-
+const QuotationListPage = React.lazy(() => import('./pages/QuotationListPage'));
+const QuotationFormPage = React.lazy(() => import('./pages/QuotationFormPage'));
+const QuotationPrintTemplate = React.lazy(() => import('./components/QuotationPrintTemplate'));
 // Loading fallback component
 const PageLoader = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#6b7280' }}>
@@ -94,10 +96,22 @@ function App() {
                     </Route>
 
                     {/* Purchase Orders Module */}
-                    <Route element={<PermissionRoute module="purchase_orders" action="view" fallbackModule="invoices" />}>
+                    <Route element={<PermissionRoute module="purchase_orders" action="view" />}>
                       <Route path="purchase-orders" element={<PurchaseOrderListPage />} />
                       <Route path="purchase-orders/new" element={<PurchaseOrderFormPage />} />
                       <Route path="purchase-orders/:id/edit" element={<PurchaseOrderFormPage />} />
+                    </Route>
+
+                    {/* Quotations Module */}
+                    <Route element={<PermissionRoute module="invoices" action="view" />}>
+                      <Route path="quotations" element={<QuotationListPage />} />
+                      <Route path="quotations/:id" element={<QuotationFormPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="invoices" action="create" />}>
+                      <Route path="quotations/new" element={<QuotationFormPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="invoices" action="edit" />}>
+                      <Route path="quotations/:id/edit" element={<QuotationFormPage />} />
                     </Route>
 
                     {/* Invoices Module */}
@@ -167,6 +181,7 @@ function App() {
                   {/* Print Routes (Protected + Permission Check) */}
                   <Route element={<PermissionRoute module="invoices" action="view" />}>
                     <Route path="/dashboard/invoices/:id/print" element={<InvoicePrintTemplate />} />
+                    <Route path="/dashboard/quotations/:id/print" element={<QuotationPrintTemplate />} />
                   </Route>
                   <Route element={<PermissionRoute module="billing" action="view" />}>
                     <Route path="/dashboard/billing-notes/:id/print" element={<BillingNotePrintTemplate />} />

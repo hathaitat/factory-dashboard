@@ -6,6 +6,7 @@ import { billingNoteService } from '../services/billingNoteService';
 import { settingService } from '../services/settingService';
 import { documentNumberHelper } from '../utils/documentNumbering';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
+import ListFilter from '../components/ListFilter';
 
 const ReceiptListPage = () => {
     const navigate = useNavigate();
@@ -13,6 +14,10 @@ const ReceiptListPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [formats, setFormats] = useState(null);
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [dateFilterType, setDateFilterType] = useState('date');
+    const [statusFilter, setStatusFilter] = useState('');
 
     useEffect(() => {
         loadData();
@@ -35,21 +40,31 @@ const ReceiptListPage = () => {
     };
 
     const getReceiptNumber = (bnNo, bnDate) => {
-        if (!formats) return '-';
-        const bnFormat = formats.billing_note_format || (formats.billing_note_prefix ? `${formats.billing_note_prefix}{YY}{MM}{RUN}` : 'BN{YY}{MM}{RUN}');
-        const reFormat = formats.receipt_format || (formats.receipt_prefix ? `${formats.receipt_prefix}{YY}{MM}{RUN}` : 'RE{YY}{MM}{RUN}');
+        if (!bnNo || !formats) return '-';
+        const bnPrefix = formats.billing_note_prefix || 'BI';
+        const rePrefix = formats.receipt_prefix || 'RV';
 
-        try {
-            const runNumber = documentNumberHelper.extractRunNumber(bnNo, bnFormat, new Date(bnDate || new Date()));
-            // Simulating today's date for the list block just to show the format
-            return documentNumberHelper.applyRunNumberToFormat(runNumber, reFormat, new Date());
-        } catch (e) {
-            return bnNo.replace(formats.billing_note_prefix || 'BN', formats.receipt_prefix || 'RE');
+        if (bnNo.startsWith(bnPrefix)) {
+            return bnNo.replace(bnPrefix, rePrefix);
         }
+        return bnNo.replace(/^[a-zA-Z]+/, rePrefix);
     };
 
     const exportToExcel = () => {
-        const dataToExport = billingNotes.map(bn => ({
+        const filteredData = billingNotes.filter(bn => {
+            const receiptNo = getReceiptNumber(bn.billingNoteNo, bn.date).toLowerCase();
+            const bnNo = bn.billingNoteNo.toLowerCase();
+            const search = searchTerm.toLowerCase();
+            const matchSearch = receiptNo.includes(search) || bnNo.includes(search) || bn.customerName.toLowerCase().includes(search);
+            
+            const targetDate = bn.date;
+            const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
+            const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
+            const matchStatus = !statusFilter || bn.status === statusFilter;
+            return matchSearch && matchDateFrom && matchDateTo && matchStatus;
+        });
+
+        const dataToExport = filteredData.map(bn => ({
             'เลขที่ใบเสร็จ': getReceiptNumber(bn.billingNoteNo, bn.date),
             'อ้างอิงใบวางบิล': bn.billingNoteNo,
             'วันที่ใบวางบิล': bn.date,
@@ -64,11 +79,20 @@ const ReceiptListPage = () => {
         XLSX.writeFile(wb, 'Receipt_Export.xlsx');
     };
 
+    const hasActiveFilters = dateFrom || dateTo || statusFilter;
+    const clearFilters = () => { setDateFrom(''); setDateTo(''); setStatusFilter(''); setDateFilterType('date'); };
+
     const filteredNotes = billingNotes.filter(bn => {
         const receiptNo = getReceiptNumber(bn.billingNoteNo, bn.date).toLowerCase();
         const bnNo = bn.billingNoteNo.toLowerCase();
         const search = searchTerm.toLowerCase();
-        return receiptNo.includes(search) || bnNo.includes(search) || bn.customerName.toLowerCase().includes(search);
+        const matchSearch = receiptNo.includes(search) || bnNo.includes(search) || bn.customerName.toLowerCase().includes(search);
+        
+        const targetDate = bn.date;
+        const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
+        const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
+        const matchStatus = !statusFilter || bn.status === statusFilter;
+        return matchSearch && matchDateFrom && matchDateTo && matchStatus;
     });
 
     // Grouping by Month/Year
@@ -125,6 +149,28 @@ const ReceiptListPage = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
+
+            <ListFilter
+                filters={[
+                    { 
+                        type: 'date-range', 
+                        dateFrom, 
+                        dateTo, 
+                        onDateFromChange: setDateFrom, 
+                        onDateToChange: setDateTo,
+                        value: dateFilterType,
+                        onChange: setDateFilterType,
+                        options: [{ value: 'date', label: 'วันที่เอกสาร' }]
+                    },
+                    { type: 'select', label: 'สถานะบิล', value: statusFilter, onChange: setStatusFilter, options: [
+                        { value: '', label: 'ทั้งหมด' },
+                        { value: 'Draft', label: 'Draft' },
+                        { value: 'Sent', label: 'Sent' }
+                    ]}
+                ]}
+                onClear={clearFilters}
+                hasActiveFilters={!!hasActiveFilters}
+            />
 
             <div className="glass-panel" style={{ padding: '0', overflowX: 'auto' }}>
                 <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>

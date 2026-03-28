@@ -60,17 +60,24 @@ const DashboardLayout = () => {
 
 
 
-                    {(hasPermission('purchase_orders', 'view') || hasPermission('invoices', 'view')) && (
+                    {hasPermission('purchase_orders', 'view') && (
                         <NavLink to="/dashboard/purchase-orders" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                             <ShoppingCart size={20} />
                             <span>ใบสั่งซื้อ (PO)</span>
                         </NavLink>
                     )}
 
+                    {hasPermission('quotations', 'view') && (
+                        <NavLink to="/dashboard/quotations" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                            <FileText size={20} />
+                            <span>ใบเสนอราคา (Quotations)</span>
+                        </NavLink>
+                    )}
+
                     {hasPermission('invoices', 'view') && (
                         <NavLink to="/dashboard/invoices" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                             <FileText size={20} />
-                            <span>ใบกำกับภาษี</span>
+                            <span>ใบกำกับภาษี (Invoice)</span>
                         </NavLink>
                     )}
 
@@ -82,7 +89,7 @@ const DashboardLayout = () => {
                             </NavLink>
                             <NavLink to="/dashboard/receipts" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                                 <FileText size={20} />
-                                <span>ใบเสร็จรับเงิน</span>
+                                <span>ใบเสร็จรับเงิน (Receipt)</span>
                             </NavLink>
                         </>
                     )}

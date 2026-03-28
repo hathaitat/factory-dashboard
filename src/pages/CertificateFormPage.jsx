@@ -178,7 +178,7 @@ const CertificateFormPage = () => {
                         />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>วันที่ออกเอกสาร (Issue Date)</label>
                             <input
@@ -198,6 +198,19 @@ const CertificateFormPage = () => {
                                 onChange={(e) => setFormData({...formData, expiry_date: e.target.value})}
                                 style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-hover)', color: 'var(--text-main)' }}
                             />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>สถานะ (Status)</label>
+                            <select
+                                value={formData.status}
+                                onChange={e => setFormData({ ...formData, status: e.target.value })}
+                                className="glass-input"
+                                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-hover)', color: 'var(--text-main)' }}
+                            >
+                                <option value="Active">ใช้งาน (Active)</option>
+                                <option value="Expired">หมดอายุ (Expired)</option>
+                                <option value="Revoked">เพิกถอน (Revoked)</option>
+                            </select>
                         </div>
                     </div>
 

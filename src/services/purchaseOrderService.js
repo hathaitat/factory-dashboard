@@ -189,7 +189,10 @@ export const purchaseOrderService = {
 
     // Update existing purchase order
     async updatePurchaseOrder(id, poData, items) {
-        const { status, ...cleanPoData } = poData;
+        // Whitelist allowed fields to prevent overwriting protected columns
+        const { po_number, issue_date, due_date, customer_id, status, notes, file_url, discount, vat_rate, subtotal, vat_amount, grand_total } = poData;
+        const cleanPoData = { po_number, issue_date, due_date, customer_id, status, notes, file_url, discount, vat_rate, subtotal, vat_amount, grand_total };
+
         const { data: po, error: poError } = await supabase
             .from('purchase_orders')
             .update(cleanPoData)
@@ -226,18 +229,6 @@ export const purchaseOrderService = {
 
                 if (itemsError) throw itemsError;
             }
-        }
-
-        // Recalculate PO status based on delivered quantities
-        if (status === 'Cancelled') {
-            // If user manually set to Cancelled, respect that
-            await supabase
-                .from('purchase_orders')
-                .update({ status: 'Cancelled' })
-                .eq('id', id);
-        } else {
-            const newStatus = await purchaseOrderService.updatePurchaseOrderStatus(id);
-            console.log('[PO Update] Recalculated status:', newStatus, 'for PO id:', id);
         }
 
         return po;

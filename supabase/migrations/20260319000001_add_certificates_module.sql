@@ -30,28 +30,41 @@ ALTER TABLE public.certificates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.certificate_products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.certificate_customers ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Enable all access for all users" ON public.certificates FOR ALL USING (true);
-CREATE POLICY "Enable all access for all users" ON public.certificate_products FOR ALL USING (true);
-CREATE POLICY "Enable all access for all users" ON public.certificate_customers FOR ALL USING (true);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'certificates' AND policyname = 'Enable all access for all users') THEN
+        CREATE POLICY "Enable all access for all users" ON public.certificates FOR ALL USING (true);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'certificate_products' AND policyname = 'Enable all access for all users') THEN
+        CREATE POLICY "Enable all access for all users" ON public.certificate_products FOR ALL USING (true);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'certificate_customers' AND policyname = 'Enable all access for all users') THEN
+        CREATE POLICY "Enable all access for all users" ON public.certificate_customers FOR ALL USING (true);
+    END IF;
+END $$;
 
 -- 5. Create storage bucket for certificates
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('certificates', 'certificates', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Storage Policies
-CREATE POLICY "Public Access"
-  ON storage.objects FOR SELECT
-  USING ( bucket_id = 'certificates' );
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public Access' AND tablename = 'objects') THEN
+        CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING ( bucket_id = 'certificates' );
+    END IF;
 
-CREATE POLICY "Authenticated users can upload certificates"
-  ON storage.objects FOR INSERT
-  WITH CHECK ( bucket_id = 'certificates' AND auth.role() = 'authenticated' );
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated users can upload certificates' AND tablename = 'objects') THEN
+        CREATE POLICY "Authenticated users can upload certificates" ON storage.objects FOR INSERT WITH CHECK ( bucket_id = 'certificates' AND auth.role() = 'authenticated' );
+    END IF;
 
-CREATE POLICY "Authenticated users can update certificates"
-  ON storage.objects FOR UPDATE
-  WITH CHECK ( bucket_id = 'certificates' AND auth.role() = 'authenticated' );
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated users can update certificates' AND tablename = 'objects') THEN
+        CREATE POLICY "Authenticated users can update certificates" ON storage.objects FOR UPDATE WITH CHECK ( bucket_id = 'certificates' AND auth.role() = 'authenticated' );
+    END IF;
 
-CREATE POLICY "Authenticated users can delete certificates"
-  ON storage.objects FOR DELETE
-  USING ( bucket_id = 'certificates' AND auth.role() = 'authenticated' );
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated users can delete certificates' AND tablename = 'objects') THEN
+        CREATE POLICY "Authenticated users can delete certificates" ON storage.objects FOR DELETE USING ( bucket_id = 'certificates' AND auth.role() = 'authenticated' );
+    END IF;
+END $$;

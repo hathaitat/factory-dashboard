@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, MapPin, Phone, Mail, User, CreditCard, Building, Calendar, Package, Plus, X } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, MapPin, Phone, Mail, User, Building, Calendar, Package, Plus, X, History, FileText, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
+import { purchaseOrderService } from '../services/purchaseOrderService';
+import { invoiceService } from '../services/invoiceService';
 import { usePermissions } from '../hooks/usePermissions';
 import { useDialog } from '../contexts/DialogContext';
 
@@ -14,6 +16,12 @@ const CustomerDetailPage = () => {
     const [customer, setCustomer] = useState(null);
     const [products, setProducts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('info');
+
+    // History tab state
+    const [historyData, setHistoryData] = useState([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [expandedMonths, setExpandedMonths] = useState({});
 
     // Product Form State
     const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -41,6 +49,77 @@ const CustomerDetailPage = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Load history when tab changes
+    useEffect(() => {
+        if (activeTab === 'history' && historyData.length === 0) {
+            loadHistory();
+        }
+    }, [activeTab]);
+
+    const loadHistory = async () => {
+        setIsLoadingHistory(true);
+        try {
+            // Fetch all POs and Invoices for this customer
+            const [allPOs, allInvoices] = await Promise.all([
+                purchaseOrderService.getPurchaseOrdersByCustomer(id),
+                invoiceService.getInvoices()
+            ]);
+
+            // Filter invoices for this customer
+            const customerInvoices = allInvoices.filter(inv => String(inv.customerId) === String(id));
+
+            // Group by month
+            const monthlyMap = {};
+
+            // Process POs
+            (allPOs || []).forEach(po => {
+                if (po.status === 'Cancelled') return;
+                const date = new Date(po.issue_date || po.created_at);
+                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                if (!monthlyMap[key]) {
+                    monthlyMap[key] = { month: key, pos: [], invoices: [], totalPOAmount: 0, totalInvAmount: 0 };
+                }
+                monthlyMap[key].pos.push(po);
+                monthlyMap[key].totalPOAmount += Number(po.grand_total || 0);
+            });
+
+            // Process Invoices
+            (customerInvoices || []).forEach(inv => {
+                if (inv.status === 'Cancelled') return;
+                const date = new Date(inv.date || inv.createdAt);
+                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                if (!monthlyMap[key]) {
+                    monthlyMap[key] = { month: key, pos: [], invoices: [], totalPOAmount: 0, totalInvAmount: 0 };
+                }
+                monthlyMap[key].invoices.push(inv);
+                monthlyMap[key].totalInvAmount += Number(inv.grandTotal || 0);
+            });
+
+            // Sort by month descending
+            const sorted = Object.values(monthlyMap).sort((a, b) => b.month.localeCompare(a.month));
+            setHistoryData(sorted);
+
+            // Auto-expand first month
+            if (sorted.length > 0) {
+                setExpandedMonths({ [sorted[0].month]: true });
+            }
+        } catch (error) {
+            console.error('Error loading history:', error);
+        } finally {
+            setIsLoadingHistory(false);
+        }
+    };
+
+    const toggleMonth = (month) => {
+        setExpandedMonths(prev => ({ ...prev, [month]: !prev[month] }));
+    };
+
+    const formatMonthName = (monthKey) => {
+        const [year, month] = monthKey.split('-');
+        const thaiMonths = ['', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+        return `${thaiMonths[parseInt(month)]} ${parseInt(year) + 543}`;
     };
 
     const handleDeleteCustomer = async () => {
@@ -197,6 +276,52 @@ const CustomerDetailPage = () => {
                 </div>
             </div>
 
+            {/* Tab Navigation */}
+            <div style={{ display: 'flex', gap: '0', marginBottom: '1.5rem', borderBottom: '2px solid var(--border-color)' }}>
+                <button
+                    onClick={() => setActiveTab('info')}
+                    style={{
+                        padding: '0.8rem 1.5rem',
+                        background: 'none',
+                        border: 'none',
+                        borderBottom: activeTab === 'info' ? '2px solid #3b82f6' : '2px solid transparent',
+                        marginBottom: '-2px',
+                        color: activeTab === 'info' ? '#3b82f6' : 'var(--text-muted)',
+                        fontWeight: activeTab === 'info' ? '600' : '400',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        fontSize: '1rem',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <Building size={18} /> ข้อมูลลูกค้า
+                </button>
+                <button
+                    onClick={() => setActiveTab('history')}
+                    style={{
+                        padding: '0.8rem 1.5rem',
+                        background: 'none',
+                        border: 'none',
+                        borderBottom: activeTab === 'history' ? '2px solid #f59e0b' : '2px solid transparent',
+                        marginBottom: '-2px',
+                        color: activeTab === 'history' ? '#f59e0b' : 'var(--text-muted)',
+                        fontWeight: activeTab === 'history' ? '600' : '400',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        fontSize: '1rem',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <History size={18} /> ประวัติการซื้อ
+                </button>
+            </div>
+
+            {/* Tab: Info */}
+            {activeTab === 'info' && (
             <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     {/* General Info */}
@@ -436,9 +561,191 @@ const CustomerDetailPage = () => {
                         </div>
                     </div>
                 </div>
-
-
             </div>
+            )}
+
+            {/* Tab: History */}
+            {activeTab === 'history' && (
+            <div>
+                {isLoadingHistory ? (
+                    <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>กำลังโหลดประวัติการซื้อ...</div>
+                ) : historyData.length === 0 ? (
+                    <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <History size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+                        <div style={{ fontSize: '1.1rem' }}>ยังไม่มีประวัติการซื้อ</div>
+                    </div>
+                ) : (
+                    <>
+                        {/* Summary Cards */}
+                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                            <div className="glass-panel" style={{ padding: '1.2rem', textAlign: 'center' }}>
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.3rem' }}>ยอดซื้อรวมทั้งหมด</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#10b981' }}>
+                                    ฿{historyData.reduce((sum, m) => sum + m.totalInvAmount, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
+                            </div>
+                            <div className="glass-panel" style={{ padding: '1.2rem', textAlign: 'center' }}>
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.3rem' }}>จำนวน PO ทั้งหมด</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#3b82f6' }}>
+                                    {historyData.reduce((sum, m) => sum + m.pos.length, 0)} ฉบับ
+                                </div>
+                            </div>
+                            <div className="glass-panel" style={{ padding: '1.2rem', textAlign: 'center' }}>
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.3rem' }}>จำนวน INV ทั้งหมด</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#f59e0b' }}>
+                                    {historyData.reduce((sum, m) => sum + m.invoices.length, 0)} ฉบับ
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Monthly breakdown */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {historyData.map(monthData => (
+                                <div key={monthData.month} className="glass-panel" style={{ overflow: 'hidden' }}>
+                                    {/* Month Header - Clickable */}
+                                    <button
+                                        onClick={() => toggleMonth(monthData.month)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '1rem 1.5rem',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            color: 'var(--text-main)',
+                                            borderBottom: expandedMonths[monthData.month] ? '1px solid var(--border-color)' : 'none'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                {expandedMonths[monthData.month] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                                <span style={{ fontWeight: '600', fontSize: '1.05rem' }}>{formatMonthName(monthData.month)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                                <span style={{ fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+                                                    PO: {monthData.pos.length}
+                                                </span>
+                                                <span style={{ fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
+                                                    INV: {monthData.invoices.length}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontWeight: '600', color: '#10b981', fontSize: '1.1rem' }}>
+                                                ฿{monthData.totalInvAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    {/* Expanded Content */}
+                                    {expandedMonths[monthData.month] && (
+                                        <div style={{ padding: '1rem 1.5rem' }}>
+                                            {/* PO List */}
+                                            {monthData.pos.length > 0 && (
+                                                <div style={{ marginBottom: monthData.invoices.length > 0 ? '1.5rem' : 0 }}>
+                                                    <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#3b82f6', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                        <ShoppingCart size={14} /> ใบสั่งซื้อ (PO)
+                                                    </div>
+                                                    {monthData.pos.map(po => (
+                                                        <div
+                                                            key={po.id}
+                                                            onClick={() => window.open(`/dashboard/purchase-orders/${po.id}/edit`, '_blank')}
+                                                            style={{
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                alignItems: 'center',
+                                                                padding: '0.6rem 0.8rem',
+                                                                borderRadius: '6px',
+                                                                marginBottom: '0.3rem',
+                                                                background: 'var(--bg-main)',
+                                                                cursor: 'pointer',
+                                                                transition: 'background 0.15s'
+                                                            }}
+                                                            onMouseOver={e => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.05)'}
+                                                            onMouseOut={e => e.currentTarget.style.background = 'var(--bg-main)'}
+                                                        >
+                                                            <div>
+                                                                <span style={{ fontWeight: '500', color: '#3b82f6', fontSize: '0.9rem' }}>{po.po_number}</span>
+                                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '0.75rem' }}>
+                                                                    {new Date(po.issue_date).toLocaleDateString('th-TH')}
+                                                                </span>
+                                                                <span style={{
+                                                                    marginLeft: '0.5rem',
+                                                                    fontSize: '0.75rem',
+                                                                    padding: '0.1rem 0.4rem',
+                                                                    borderRadius: '8px',
+                                                                    background: po.status === 'Completed' ? 'rgba(16,185,129,0.1)' : po.status === 'In Progress' ? 'rgba(59,130,246,0.1)' : 'rgba(156,163,175,0.1)',
+                                                                    color: po.status === 'Completed' ? '#10b981' : po.status === 'In Progress' ? '#3b82f6' : '#9ca3af'
+                                                                }}>
+                                                                    {po.status}
+                                                                </span>
+                                                            </div>
+                                                            <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>
+                                                                ฿{Number(po.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* Invoice List */}
+                                            {monthData.invoices.length > 0 && (
+                                                <div>
+                                                    <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#f59e0b', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                        <FileText size={14} /> ใบกำกับภาษี (INV)
+                                                    </div>
+                                                    {monthData.invoices.map(inv => (
+                                                        <div
+                                                            key={inv.id}
+                                                            onClick={() => window.open(`/dashboard/invoices/${inv.id}/edit`, '_blank')}
+                                                            style={{
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                alignItems: 'center',
+                                                                padding: '0.6rem 0.8rem',
+                                                                borderRadius: '6px',
+                                                                marginBottom: '0.3rem',
+                                                                background: 'var(--bg-main)',
+                                                                cursor: 'pointer',
+                                                                transition: 'background 0.15s'
+                                                            }}
+                                                            onMouseOver={e => e.currentTarget.style.background = 'rgba(245, 158, 11, 0.05)'}
+                                                            onMouseOut={e => e.currentTarget.style.background = 'var(--bg-main)'}
+                                                        >
+                                                            <div>
+                                                                <span style={{ fontWeight: '500', color: '#f59e0b', fontSize: '0.9rem' }}>{inv.invoiceNo}</span>
+                                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '0.75rem' }}>
+                                                                    {new Date(inv.date).toLocaleDateString('th-TH')}
+                                                                </span>
+                                                                <span style={{
+                                                                    marginLeft: '0.5rem',
+                                                                    fontSize: '0.75rem',
+                                                                    padding: '0.1rem 0.4rem',
+                                                                    borderRadius: '8px',
+                                                                    background: inv.status === 'Paid' ? 'rgba(16,185,129,0.1)' : inv.status === 'Pending' ? 'rgba(245,158,11,0.1)' : 'rgba(156,163,175,0.1)',
+                                                                    color: inv.status === 'Paid' ? '#10b981' : inv.status === 'Pending' ? '#f59e0b' : '#9ca3af'
+                                                                }}>
+                                                                    {inv.status}
+                                                                </span>
+                                                            </div>
+                                                            <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>
+                                                                ฿{Number(inv.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
+            </div>
+            )}
         </div>
     );
 };

@@ -7,6 +7,7 @@ import { productService } from '../services/productService';
 import { usePermissions } from '../hooks/usePermissions';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
+import ListFilter from '../components/ListFilter';
 
 const CustomerListPage = () => {
     const navigate = useNavigate();
@@ -16,6 +17,7 @@ const CustomerListPage = () => {
     const [customers, setCustomers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState('');
 
     useEffect(() => {
         loadCustomers();
@@ -45,8 +47,17 @@ const CustomerListPage = () => {
 
     const exportToExcel = async () => {
         try {
+            // Calculate filtered data
+            const filteredData = customers.filter(customer => {
+                const matchSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    customer.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchStatus = !statusFilter || customer.status === statusFilter;
+                return matchSearch && matchStatus;
+            });
+
             // 1. Prepare Customer Data
-            const customerData = customers.map(customer => ({
+            const customerData = filteredData.map(customer => ({
                 'รหัสลูกค้า': customer.code || '',
                 'ชื่อบริษัท': customer.name || '',
                 'เลขประจำตัวผู้เสียภาษี': customer.taxId || '',
@@ -60,13 +71,15 @@ const CustomerListPage = () => {
 
             // 2. Prepare Product Data
             const products = await productService.getAllProducts();
-            const customerMap = customers.reduce((acc, cust) => {
+            const customerMap = filteredData.reduce((acc, cust) => {
                 acc[cust.id] = cust;
                 return acc;
             }, {});
 
-            const productData = products.map(product => {
-                const customer = customerMap[product.customerId] || {};
+            const productData = products
+                .filter(product => customerMap[product.customerId])
+                .map(product => {
+                const customer = customerMap[product.customerId];
                 return {
                     'รหัสลูกค้า': customer.code || '',
                     'ชื่อบริษัท': customer.name || '',
@@ -95,11 +108,16 @@ const CustomerListPage = () => {
         }
     };
 
-    const filteredCustomers = customers.filter(customer =>
-        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const hasActiveFilters = !!statusFilter;
+    const clearFilters = () => { setStatusFilter(''); };
+
+    const filteredCustomers = customers.filter(customer => {
+        const matchSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            customer.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchStatus = !statusFilter || customer.status === statusFilter;
+        return matchSearch && matchStatus;
+    });
 
     return (
         <div style={{ padding: '0 1rem 2rem 1rem' }}>
@@ -171,6 +189,18 @@ const CustomerListPage = () => {
                 </div>
             </div>
 
+            <ListFilter
+                filters={[
+                    { type: 'select', label: 'สถานะ', value: statusFilter, onChange: setStatusFilter, options: [
+                        { value: '', label: 'ทั้งหมด' },
+                        { value: 'Active', label: 'Active (ปกติ)' },
+                        { value: 'Inactive', label: 'Inactive (ระงับ)' }
+                    ]}
+                ]}
+                onClear={clearFilters}
+                hasActiveFilters={hasActiveFilters}
+            />
+
             <div className="glass-panel" style={{ padding: '0' }}>
                 <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -221,30 +251,30 @@ const CustomerListPage = () => {
                                             </span>
                                         </td>
                                         <td style={{ padding: '1.2rem', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                                                 <button
                                                     onClick={() => navigate(`/dashboard/customers/${customer.id}`)}
                                                     title="ดูรายละเอียด"
-                                                    style={{ padding: '0.5rem', background: 'var(--card-hover)', border: 'none', borderRadius: '6px', color: 'var(--text-muted)', cursor: 'pointer' }}
+                                                    style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
                                                 >
-                                                    <Eye size={16} />
+                                                    <Eye size={18} />
                                                 </button>
                                                 {hasPermission('customers', 'edit') && (
                                                     <button
                                                         onClick={() => navigate(`/dashboard/customers/${customer.id}/edit`)}
                                                         title="แก้ไข"
-                                                        style={{ padding: '0.5rem', background: 'rgba(59, 130, 246, 0.1)', border: 'none', borderRadius: '6px', color: '#60a5fa', cursor: 'pointer' }}
+                                                        style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
                                                     >
-                                                        <Edit size={16} />
+                                                        <Edit size={18} />
                                                     </button>
                                                 )}
                                                 {hasPermission('customers', 'delete') && (
                                                     <button
                                                         onClick={() => handleDelete(customer.id)}
                                                         title="ลบ"
-                                                        style={{ padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '6px', color: '#f87171', cursor: 'pointer' }}
+                                                        style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
                                                     >
-                                                        <Trash2 size={16} />
+                                                        <Trash2 size={18} />
                                                     </button>
                                                 )}
                                             </div>

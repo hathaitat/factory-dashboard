@@ -253,6 +253,7 @@ const BillingNoteFormPage = () => {
                             <option value="Draft">แบบร่าง (Draft)</option>
                             <option value="Sent">ส่งแล้ว (Sent)</option>
                             <option value="Paid">ชำระเงินแล้ว (Paid)</option>
+                            <option value="Cancelled">ยกเลิก (Cancelled)</option>
                         </select>
                         <button
                             type="submit"

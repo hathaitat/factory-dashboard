@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 .env
 .env.production
+.env.backup
+.env.development
+check-quotes.js
+public/formula_test.html

@@ -378,6 +378,7 @@ const InvoiceFormPage = () => {
                             <option value="Pending">ใบวางบิล (Pending)</option>
                             <option value="Sent">ส่งแล้ว (Sent)</option>
                             <option value="Paid">ชำระเงินแล้ว (Paid)</option>
+                            <option value="Cancelled">ยกเลิก (Cancelled)</option>
                         </select>
                         <button
                             type="submit"
@@ -523,7 +524,15 @@ const InvoiceFormPage = () => {
                                 disabled={!formData.customerId}
                             >
                                 <option value="">-- ไม่ระบุ / พิมพ์เลขเอกสารเอง --</option>
-                                {customerPOs.map(po => (
+                                {customerPOs
+                                    .filter(po => {
+                                        // Hide Completed/Cancelled POs, unless it's the currently selected PO (for edit mode)
+                                        if (po.status === 'Completed' || po.status === 'Cancelled') {
+                                            return po.id === formData.purchaseOrderId;
+                                        }
+                                        return true;
+                                    })
+                                    .map(po => (
                                     <option key={po.id} value={po.id}>{po.po_number}</option>
                                 ))}
                             </select>

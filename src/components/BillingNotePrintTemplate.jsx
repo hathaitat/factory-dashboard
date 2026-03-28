@@ -48,9 +48,9 @@ const BillingNotePrintTemplate = () => {
             </div>
 
             <div className="invoice-paper">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', marginTop: '1rem' }}>
                     <div style={{ width: '60%' }}>
-                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{company.name}</div>
+                        <div style={{ fontSize: '1.26rem', fontWeight: 'bold', paddingTop: "1rem" }}>{company.name}</div>
                         <div style={{ fontSize: '0.9rem', lineHeight: '1.8' }}>{company.address}</div>
                         <div style={{ fontSize: '0.9rem' }}>
                             {company.phone && `Tel. ${company.phone}`} {company.fax && `, Fax. ${company.fax}`}
@@ -58,7 +58,7 @@ const BillingNotePrintTemplate = () => {
                         </div>
                     </div>
 
-                    <div style={{ width: '35%', textAlign: 'center', padding: '2rem 0 0.5rem' }}>
+                    <div style={{ width: '35%', textAlign: 'center', padding: '3rem 0 0.5rem' }}>
                         <div style={{
                             border: '1px solid #000',
                             padding: '10px',
@@ -122,7 +122,7 @@ const BillingNotePrintTemplate = () => {
                             </tr>
                         ))}
                         {/* Fill empty rows */}
-                        {[...Array(Math.max(1, 10 - bn.invoices.length))].map((_, i) => (
+                        {[...Array(Math.max(1, 8 - bn.invoices.length))].map((_, i) => (
                             <tr key={`empty-${i}`} className="empty-row">
                                 <td style={{ borderRight: '1px solid #000' }}>&nbsp;</td>
                                 <td style={{ borderRight: '1px solid #000' }}>&nbsp;</td>

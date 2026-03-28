@@ -33,17 +33,14 @@ const ReceiptDetailPage = () => {
     };
 
     const getReceiptNumber = () => {
-        if (!bn || !formats) return '-';
-        const bnFormat = formats.billing_note_format || (formats.billing_note_prefix ? `${formats.billing_note_prefix}{YY}{MM}{RUN}` : 'BN{YY}{MM}{RUN}');
-        const reFormat = formats.receipt_format || (formats.receipt_prefix ? `${formats.receipt_prefix}{YY}{MM}{RUN}` : 'RE{YY}{MM}{RUN}');
+        if (!bn || !bn.billingNoteNo || !formats) return '-';
+        const bnPrefix = formats.billing_note_prefix || 'BI';
+        const rePrefix = formats.receipt_prefix || 'RV';
 
-        try {
-            const runNumber = documentNumberHelper.extractRunNumber(bn.billingNoteNo, bnFormat, new Date(bn.date || new Date()));
-            // Simulating today's date for display
-            return documentNumberHelper.applyRunNumberToFormat(runNumber, reFormat, new Date());
-        } catch (e) {
-            return bn.billingNoteNo.replace(formats.billing_note_prefix || 'BN', formats.receipt_prefix || 'RE');
+        if (bn.billingNoteNo.startsWith(bnPrefix)) {
+            return bn.billingNoteNo.replace(bnPrefix, rePrefix);
         }
+        return bn.billingNoteNo.replace(/^[a-zA-Z]+/, rePrefix);
     };
 
     if (isLoading) return <div style={{ padding: '2rem' }}>กำลังโหลด...</div>;

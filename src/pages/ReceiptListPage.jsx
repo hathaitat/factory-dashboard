@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 import { Search, Printer, Eye, FileSpreadsheet } from 'lucide-react';
 import { billingNoteService } from '../services/billingNoteService';
+import { companyService } from '../services/companyService';
 import { settingService } from '../services/settingService';
 import { documentNumberHelper } from '../utils/documentNumbering';
+import { useDialog } from '../contexts/DialogContext';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
 
 const ReceiptListPage = () => {
     const navigate = useNavigate();
+    const { showAlert, showError } = useDialog();
     const [billingNotes, setBillingNotes] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
     const [formats, setFormats] = useState(null);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
@@ -50,33 +54,196 @@ const ReceiptListPage = () => {
         return bnNo.replace(/^[a-zA-Z]+/, rePrefix);
     };
 
-    const exportToExcel = () => {
-        const filteredData = billingNotes.filter(bn => {
-            const receiptNo = getReceiptNumber(bn.billingNoteNo, bn.date).toLowerCase();
-            const bnNo = bn.billingNoteNo.toLowerCase();
-            const search = searchTerm.toLowerCase();
-            const matchSearch = receiptNo.includes(search) || bnNo.includes(search) || bn.customerName.toLowerCase().includes(search);
-            
-            const targetDate = bn.date;
-            const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
-            const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
-            const matchStatus = !statusFilter || bn.status === statusFilter;
-            return matchSearch && matchDateFrom && matchDateTo && matchStatus;
-        });
+    const fmtNum = (n) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtDate = (d) => d ? new Date(d).toLocaleDateString('th-TH') : '-';
 
-        const dataToExport = filteredData.map(bn => ({
-            'เลขที่ใบเสร็จ': getReceiptNumber(bn.billingNoteNo, bn.date),
-            'อ้างอิงใบวางบิล': bn.billingNoteNo,
-            'วันที่ใบวางบิล': bn.date,
-            'ลูกค้า': bn.customerName,
-            'จำนวนเงินรวม': bn.totalAmount,
-            'สถานะ': bn.status
-        }));
+    const exportToExcel = async () => {
+        setIsExporting(true);
+        try {
+            const company = await companyService.getCompanyInfo();
+            const bnIds = filteredNotes.map(bn => bn.id);
+            const fullBNs = await Promise.all(
+                bnIds.map(id => billingNoteService.getBillingNoteById(id))
+            );
 
-        const ws = XLSX.utils.json_to_sheet(dataToExport);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Receipts');
-        XLSX.writeFile(wb, 'Receipt_Export.xlsx');
+            // Style helpers
+            const border = (sides = 'all') => {
+                const b = { style: 'thin', color: { rgb: '000000' } };
+                if (sides === 'all') return { top: b, bottom: b, left: b, right: b };
+                const r = {};
+                if (sides.includes('t')) r.top = b;
+                if (sides.includes('b')) r.bottom = b;
+                if (sides.includes('l')) r.left = b;
+                if (sides.includes('r')) r.right = b;
+                return r;
+            };
+            const bold = (sz = 11) => ({ bold: true, sz, name: 'Tahoma' });
+            const normal = (sz = 11) => ({ sz, name: 'Tahoma' });
+            const alignR = { horizontal: 'right' };
+            const alignC = { horizontal: 'center' };
+            const alignL = { horizontal: 'left' };
+
+            const wb = XLSX.utils.book_new();
+
+            fullBNs.filter(Boolean).forEach((bn) => {
+                const cust = bn.customer || bn.customerSnapshot || {};
+                const ws = {};
+                const merges = [];
+                let r = 0; // current row index
+
+                // Helper to set cell
+                const setCell = (row, col, value, style = {}) => {
+                    const ref = XLSX.utils.encode_cell({ r: row, c: col });
+                    ws[ref] = { v: value, t: typeof value === 'number' ? 'n' : 's', s: style };
+                };
+
+                // === Row 0: Company Name (bold, large) ===
+                setCell(r, 0, company?.name || '', { font: bold(14) });
+                merges.push({ s: { r, c: 0 }, e: { r, c: 4 } });
+                r++;
+
+                // === Row 1: Address ===
+                setCell(r, 0, company?.address || '', { font: normal(10) });
+                merges.push({ s: { r, c: 0 }, e: { r, c: 4 } });
+                r++;
+
+                // === Row 2: Tel/Fax ===
+                setCell(r, 0, `TEL: ${company?.phone || ''} FAX: ${company?.fax || ''}`, { font: normal(10) });
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+                r++;
+
+                // === Row 3: Email ===
+                setCell(r, 0, `E-mail: ${company?.email || ''}`, { font: normal(10) });
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+                r++;
+
+                // === Row 4: Tax ID ===
+                setCell(r, 0, `เลขประจำตัวผู้เสียภาษี: ${company?.taxId || ''}`, { font: normal(10) });
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+                r++;
+
+                // === Row 5: blank ===
+                r++;
+
+                // === Row 6: Document Title ===
+                setCell(r, 3, 'ใบเสร็จรับเงิน', { font: bold(14), alignment: alignC });
+                merges.push({ s: { r, c: 3 }, e: { r, c: 5 } });
+                r++;
+
+                // === Row 7: blank ===
+                r++;
+
+                // === Row 8-13: Customer + Document Meta ===
+                setCell(r, 0, 'ลูกค้า', { font: bold(10) });
+                setCell(r, 1, cust.code || '', { font: normal(10) });
+                setCell(r, 4, 'เลขที่ใบเสร็จ', { font: bold(10), alignment: alignR });
+                setCell(r, 5, getReceiptNumber(bn.billingNoteNo, bn.date), { font: normal(10) });
+                r++;
+
+                setCell(r, 1, cust.name || '', { font: bold(11) });
+                merges.push({ s: { r, c: 1 }, e: { r, c: 3 } });
+                setCell(r, 4, 'วันที่', { font: bold(10), alignment: alignR });
+                setCell(r, 5, fmtDate(bn.date), { font: normal(10) });
+                r++;
+
+                setCell(r, 0, `เลขประจำตัวผู้เสียภาษี: ${cust.taxId || ''}`, { font: normal(9) });
+                setCell(r, 2, `สาขา ${cust.branch || '-'}`, { font: normal(9) });
+                setCell(r, 4, 'อ้างอิงใบวางบิล', { font: bold(10), alignment: alignR });
+                setCell(r, 5, bn.billingNoteNo, { font: normal(10) });
+                r++;
+
+                setCell(r, 0, cust.address || '', { font: normal(9) });
+                merges.push({ s: { r, c: 0 }, e: { r, c: 3 } });
+                r++;
+
+                setCell(r, 0, `TEL: ${cust.phone || ''}`, { font: normal(9) });
+                setCell(r, 1, `FAX: ${cust.fax || '-'}`, { font: normal(9) });
+                r++;
+
+                // === blank ===
+                r++;
+
+                // === Items Table Header ===
+                const headerRow = r;
+                const headerStyle = { font: bold(10), alignment: alignC, border: border('all'), fill: { fgColor: { rgb: 'E8E8E8' } } };
+                const headers = ['ลำดับ', 'เลขที่ใบกำกับภาษี', 'วันที่เอกสาร', 'ครบกำหนด', '', 'จำนวนเงิน'];
+                headers.forEach((h, c) => setCell(r, c, h, headerStyle));
+                merges.push({ s: { r, c: 3 }, e: { r, c: 4 } });
+                r++;
+
+                // === Items (Linked Invoices) ===
+                (bn.invoices || []).forEach((inv, idx) => {
+                    setCell(r, 0, idx + 1, { font: normal(10), alignment: alignC, border: border('all') });
+                    setCell(r, 1, inv.invoiceNo, { font: normal(10), alignment: alignL, border: border('all') });
+                    setCell(r, 2, fmtDate(inv.date), { font: normal(10), alignment: alignC, border: border('all') });
+                    setCell(r, 3, fmtDate(inv.dueDate), { font: normal(10), alignment: alignC, border: border('all') });
+                    setCell(r, 4, '', { font: normal(10), border: border('all') });
+                    setCell(r, 5, fmtNum(inv.grandTotal), { font: normal(10), alignment: alignR, border: border('all') });
+                    merges.push({ s: { r, c: 3 }, e: { r, c: 4 } });
+                    r++;
+                });
+
+                // Empty rows to fill table (min 6 rows total)
+                const minRows = 6;
+                const emptyCount = Math.max(0, minRows - (bn.invoices || []).length);
+                for (let i = 0; i < emptyCount; i++) {
+                    for (let c = 0; c <= 5; c++) {
+                        setCell(r, c, '', { border: border('all') });
+                    }
+                    merges.push({ s: { r, c: 3 }, e: { r, c: 4 } });
+                    r++;
+                }
+
+                // === Totals section ===
+                const notesStartRow = r;
+                setCell(r, 0, `หมายเหตุ: ${bn.notes || ''}`, { font: normal(9), alignment: { horizontal: 'left', vertical: 'top', wrapText: true }, border: border('all') });
+                
+                setCell(r, 4, 'จำนวนเงินรวมทั้งสิ้น', { font: bold(11), alignment: alignR, border: border('all') });
+                setCell(r, 5, fmtNum(bn.totalAmount), { font: bold(11), alignment: alignR, border: border('all') });
+                
+                // Baht Text
+                r++;
+                setCell(r, 0, bn.bahtText ? `(${bn.bahtText})` : '', { font: bold(10), border: border('blr') });
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } }); 
+                
+                // Merge notes cell
+                merges.push({ s: { r: notesStartRow, c: 0 }, e: { r: notesStartRow, c: 2 } });
+                merges.push({ s: { r: notesStartRow, c: 3 }, e: { r: r, c: 3 } }); // Space cell
+
+                // Column widths
+                ws['!cols'] = [
+                    { wch: 8 },   // ลำดับ
+                    { wch: 20 },  // เลขที่ใบกำกับ
+                    { wch: 15 },  // วันที่
+                    { wch: 15 },  // ครบกำหนด
+                    { wch: 8 },   // spacer
+                    { wch: 18 },  // จำนวนเงิน
+                ];
+
+                ws['!merges'] = merges;
+                ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r, c: 5 } });
+
+                const receiptNo = getReceiptNumber(bn.billingNoteNo, bn.date);
+                XLSX.utils.book_append_sheet(wb, ws, (receiptNo || 'Sheet').substring(0, 31));
+            });
+
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Receipt_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            await showAlert(`ส่งออก Excel เรียบร้อย (${fullBNs.filter(Boolean).length} ใบ)`);
+        } catch (error) {
+            console.error('Export error:', error);
+            await showError('ไม่สามารถส่งออก Excel ได้: ' + (error.message || ''));
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     const hasActiveFilters = dateFrom || dateTo || statusFilter;
@@ -126,16 +293,20 @@ const ReceiptListPage = () => {
             >
                 <button
                     onClick={exportToExcel}
+                    disabled={isExporting}
                     className="glass-panel"
                     style={{
                         padding: '0.6rem 1rem',
                         display: 'flex', alignItems: 'center', gap: '0.5rem',
                         background: 'rgba(16, 185, 129, 0.05)',
                         border: '1px solid rgba(16, 185, 129, 0.1)',
-                        color: 'var(--success)', cursor: 'pointer', borderRadius: '8px'
+                        color: 'var(--success)', 
+                        cursor: isExporting ? 'not-allowed' : 'pointer', 
+                        borderRadius: '8px',
+                        opacity: isExporting ? 0.6 : 1
                     }}
                 >
-                    <FileSpreadsheet size={18} /> Export Excel
+                    <FileSpreadsheet size={18} /> {isExporting ? 'กำลังสร้างไฟล์...' : 'Export Excel'}
                 </button>
             </PageHeader>
 

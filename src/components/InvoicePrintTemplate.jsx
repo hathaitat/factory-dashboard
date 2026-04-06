@@ -12,7 +12,6 @@ const InvoicePrintTemplate = () => {
     const [company, setCompany] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [matchingCerts, setMatchingCerts] = useState([]);
-    const [printSize] = useState('9x11'); // Standardized for both A4 and 9x11, optimized for 9x11
 
     useEffect(() => {
         loadData();
@@ -56,48 +55,25 @@ const InvoicePrintTemplate = () => {
     if (isLoading) return <div style={{ padding: '2rem' }}>กำลังโหลด...</div>;
     if (!invoice || !company) return <div style={{ padding: '2rem' }}>ไม่พบข้อมูล</div>;
 
-    // Pagination logic: count "lines" instead of just items
-    const CHARS_PER_LINE = 55; // Estimated chars in product name column
-
-    const calculateRows = (item) => {
-        // Minimum 1 row for the item
-        if (!item.productName) return 1;
-        // Calculate wrapping rows (total chars divided by chars per line, round up)
-        const lines = Math.ceil(item.productName.length / CHARS_PER_LINE);
-        return Math.max(1, lines);
-    };
-
-    const getRowBudget = () => {
-        // Average rows that fit in the items area before footer
-        // A4 is taller (11.7in) vs Continuous (11in)
-        return printSize === 'A4' ? 22 : 18;
-    };
+    // Pagination logic
+    const MAX_ITEMS_P1 = 12; // Fewer items on P1 due to header/customer info
+    const MAX_ITEMS_PN = 18; // More items on subsequent pages
 
     const paginateItems = (items) => {
-        const ROW_BUDGET = getRowBudget();
         const pages = [];
-        let currentPageItems = [];
-        let currentRows = 0;
+        let currentItems = [...items];
 
-        items.forEach((item) => {
-            const itemRows = calculateRows(item);
-            
-            // If adding this item exceeds the budget, start a new page
-            if (currentRows + itemRows > ROW_BUDGET && currentPageItems.length > 0) {
-                pages.push({ items: currentPageItems, rowCount: currentRows });
-                currentPageItems = [item];
-                currentRows = itemRows;
-            } else {
-                currentPageItems.push(item);
-                currentRows += itemRows;
-            }
-        });
+        // Page 1
+        pages.push(currentItems.slice(0, MAX_ITEMS_P1));
+        currentItems = currentItems.slice(MAX_ITEMS_P1);
 
-        if (currentPageItems.length > 0) {
-            pages.push({ items: currentPageItems, rowCount: currentRows });
+        // Subsequent pages
+        while (currentItems.length > 0) {
+            pages.push(currentItems.slice(0, MAX_ITEMS_PN));
+            currentItems = currentItems.slice(MAX_ITEMS_PN);
         }
 
-        return pages.length > 0 ? pages : [{ items: [], rowCount: 0 }];
+        return pages.length > 0 ? pages : [[]];
     };
 
     const pages = paginateItems(invoice.items);
@@ -124,27 +100,22 @@ const InvoicePrintTemplate = () => {
                 ))}
             </div>
 
-            {pages.map((page, pageIdx) => {
-                const pageItems = page.items;
+            {pages.map((pageItems, pageIdx) => {
                 const isFirstPage = pageIdx === 0;
                 const isLastPage = pageIdx === pages.length - 1;
                 const pageNumber = pageIdx + 1;
                 const totalPages = pages.length;
 
                 // Calculate cumulative subtotals for Balance Forward
-                const previousPagesItems = pages.slice(0, pageIdx).flatMap(p => p.items);
-                const previousPagesSubtotal = previousPagesItems.reduce((sum, item) => sum + item.amount, 0);
+                const itemsBeforeThisPage = invoice.items.slice(0, pages.slice(0, pageIdx).reduce((acc, p) => acc + p.length, 0));
+                const previousPagesSubtotal = itemsBeforeThisPage.reduce((sum, item) => sum + item.amount, 0);
 
-                const upToThisPageItems = pages.slice(0, pageIdx + 1).flatMap(p => p.items);
-                const currentCumulativeSubtotal = upToThisPageItems.reduce((sum, item) => sum + item.amount, 0);
+                const itemsUpToThisPage = invoice.items.slice(0, pages.slice(0, pageIdx + 1).reduce((acc, p) => acc + p.length, 0));
+                const currentCumulativeSubtotal = itemsUpToThisPage.reduce((sum, item) => sum + item.amount, 0);
 
                 return (
-                    <div className={`invoice-paper size-${printSize}`} key={pageIdx}>
-                        {/* Dynamic style for @page size */}
-                        <style>
-                            {`@media print { @page { size: ${printSize === 'A4' ? 'A4' : '9in 11in'}; margin: 0; } }`}
-                        </style>
-                        {/* Page Header (Always Full) */}
+                    <div className="invoice-paper" key={pageIdx}>
+                        {/* Page Header - Full on every page */}
                         <div className="header-section">
                             <div className="company-info-print">
                                 <div className="company-name-th">{company.name}</div>
@@ -154,19 +125,14 @@ const InvoicePrintTemplate = () => {
                                 </div>
                                 <div className="company-email">E-mail: {company.email}</div>
                                 <div className="company-taxid">เลขประจำตัวผู้เสียภาษี: {company.taxId}</div>
-
                             </div>
                             <div className="title-section">
-                                <div className="doc-title">ใบกำกับสินค้า / ใบกำกับภาษี </div>
-                                {totalPages > 1 && (
-                                    <div style={{ marginTop: '5px', fontSize: '0.85rem' }}>
-                                        หน้าที่ {pageNumber} / {totalPages}
-                                    </div>
-                                )}
+                                <div className="doc-title">ใบกำกับสินค้า / ใบกำกับภาษี</div>
+                                <div>{totalPages > 1 ? ` (หน้า ${pageNumber}/${totalPages})` : ''}</div>
                             </div>
                         </div>
 
-                        {/* Customer Details (Always Full) */}
+                        {/* Customer Details - Full on every page */}
                         <div className="details-section">
                             <div className="customer-info-box">
                                 <div className="info-row">
@@ -204,7 +170,7 @@ const InvoicePrintTemplate = () => {
                                     <span className="label">วันที่&nbsp;&nbsp;</span>
                                     <span className="value">{new Date(invoice.date).toLocaleDateString('th-TH')}</span>
                                 </div>
-                                <div className="info-row" style={{ marginTop: '1.5rem' }}>
+                                <div className="info-row" style={{ marginTop: '1.5rem', gap: '2px' }}>
                                     <span className="label">เครดิต</span>
                                     <span className="value">{parseInt(invoice.creditDays) === 0 ? 'สด' : `${invoice.creditDays} วัน`}</span>
                                     <span className="label" style={{ marginLeft: '1rem' }}>ครบกำหนด</span>
@@ -234,7 +200,7 @@ const InvoicePrintTemplate = () => {
 
                                 {pageItems.map((item, index) => {
                                     // Calculate actual global index
-                                    const globalIndex = pages.slice(0, pageIdx).reduce((acc, p) => acc + p.items.length, 0) + index;
+                                    const globalIndex = pageIdx === 0 ? index : MAX_ITEMS_P1 + (pageIdx - 1) * MAX_ITEMS_PN + index;
                                     return (
                                         <tr key={item.id}>
                                             <td style={{ textAlign: 'center' }}>{globalIndex + 1}</td>
@@ -254,8 +220,8 @@ const InvoicePrintTemplate = () => {
                                     </tr>
                                 )}
 
-                                {/* Fill empty rows to maintain height (Only on the last page) */}
-                                {isLastPage && [...Array(Math.max(1, getRowBudget() - page.rowCount - 3))].map((_, i) => (
+                                {/* Fill empty rows to maintain table height */}
+                                {isLastPage && [...Array(Math.max(1, 6 - pageItems.length))].map((_, i) => (
                                     <tr key={`empty-${i}`} className="empty-row">
                                         <td style={{ borderRight: '1px solid #000' }}>&nbsp;</td>
                                         <td style={{ borderRight: '1px solid #000' }}>&nbsp;</td>

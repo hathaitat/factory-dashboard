@@ -348,12 +348,12 @@ const ReceiptListPage = () => {
 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
+                            <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ใบเสร็จ</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>อ้างอิงใบวางบิล</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อลูกค้า</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวนเงินสุทธิ</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะบิล</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -371,6 +371,24 @@ const ReceiptListPage = () => {
                                     </tr>
                                     {groupedNotes[group].map((bn) => (
                                         <tr key={bn.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s', background: 'var(--card-bg)' }}>
+                                            <td className="actions-column">
+                                                <div className="table-actions">
+                                                    <button
+                                                        className="action-view"
+                                                        onClick={() => window.open(`/dashboard/receipts/${bn.id}`, '_blank')}
+                                                        title="View Details"
+                                                    >
+                                                        <Eye size={18} />
+                                                    </button>
+                                                    <button
+                                                        className="action-edit"
+                                                        onClick={() => window.open(`/dashboard/billing-notes/${bn.id}/print-receipt`, '_blank')}
+                                                        title="Print Receipt"
+                                                    >
+                                                        <Printer size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
                                             <td style={{ padding: '1.2rem 1.5rem', fontWeight: '600', color: '#8b5cf6', fontSize: '1.1rem', fontFamily: 'monospace' }}>
                                                 <Link to={`/dashboard/receipts/${bn.id}`} style={{ color: '#8b5cf6', textDecoration: 'none' }}>
                                                     {getReceiptNumber(bn.billingNoteNo, bn.date)}
@@ -391,24 +409,6 @@ const ReceiptListPage = () => {
                                                 }}>
                                                     {bn.status}
                                                 </span>
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                                    <button
-                                                        onClick={() => window.open(`/dashboard/receipts/${bn.id}`, '_blank')}
-                                                        style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                        title="View Details"
-                                                    >
-                                                        <Eye size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => window.open(`/dashboard/billing-notes/${bn.id}/print-receipt`, '_blank')}
-                                                        style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                        title="Print Receipt"
-                                                    >
-                                                        <Printer size={18} />
-                                                    </button>
-                                                </div>
                                             </td>
                                         </tr>
                                     ))}

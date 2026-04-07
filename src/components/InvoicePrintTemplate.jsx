@@ -184,8 +184,8 @@ const InvoicePrintTemplate = () => {
                                 <tr>
                                     <th style={{ width: '8%' }}>ลำดับ</th>
                                     <th style={{ width: '44%' }}>รหัสสินค้า / รายละเอียด</th>
-                                    <th style={{ width: '20%' }}>จำนวน</th>
-                                    <th style={{ width: '13%' }}>ราคา / หน่วย</th>
+                                    <th style={{ width: '18%' }}>จำนวน</th>
+                                    <th style={{ width: '15%' }}>ราคา / หน่วย</th>
                                     <th style={{ width: '15%' }}>จำนวนเงิน</th>
                                 </tr>
                             </thead>
@@ -220,8 +220,8 @@ const InvoicePrintTemplate = () => {
                                     </tr>
                                 )}
 
-                                {/* Fill empty rows to maintain table height */}
-                                {isLastPage && [...Array(Math.max(1, 6 - pageItems.length))].map((_, i) => (
+                                {/* Fill empty rows — always pad to 13 rows total (12 items + 1 empty = baseline) */}
+                                {isLastPage && [...Array(Math.max(0, 11 - pageItems.length))].map((_, i) => (
                                     <tr key={`empty-${i}`} className="empty-row">
                                         <td style={{ borderRight: '1px solid #000' }}>&nbsp;</td>
                                         <td style={{ borderRight: '1px solid #000' }}>&nbsp;</td>

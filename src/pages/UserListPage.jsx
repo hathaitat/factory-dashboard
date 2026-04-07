@@ -115,10 +115,10 @@ const UserListPage = () => {
 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                <th className="actions-column" style={{ color: '#888', fontWeight: '500' }}>จัดการ</th>
                                 <th style={{ padding: '1.2rem', color: '#888', fontWeight: '500' }}>ชื่อ - นามสกุล</th>
                                 <th style={{ padding: '1.2rem', color: '#888', fontWeight: '500' }}>Username</th>
                                 <th style={{ padding: '1.2rem', color: '#888', fontWeight: '500' }}>สิทธิ์การใช้งาน</th>
-                                <th style={{ padding: '1.2rem', color: '#888', fontWeight: '500', textAlign: 'right' }}>จัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -131,6 +131,28 @@ const UserListPage = () => {
                             ) : filteredUsers.length > 0 ? (
                                 filteredUsers.map((user) => (
                                     <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                        <td className="actions-column">
+                                            <div className="table-actions">
+                                                {hasPermission('users', 'edit') && (
+                                                    <button
+                                                        className="action-edit"
+                                                        onClick={() => navigate(`/dashboard/users/${user.id}/edit`)}
+                                                        title="แก้ไขสิทธิ์"
+                                                    >
+                                                        <Edit size={16} />
+                                                    </button>
+                                                )}
+                                                {hasPermission('users', 'delete') && (
+                                                    <button
+                                                        className="action-delete"
+                                                        onClick={() => handleDelete(user.id, user.fullName)}
+                                                        title="ลบผู้ใช้งาน"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td style={{ padding: '1.2rem' }}>
                                             <div style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', color: 'white' }}>
@@ -146,11 +168,8 @@ const UserListPage = () => {
                                         <td style={{ padding: '1.2rem' }}>
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                                                 {Object.entries(user.permissions || {}).map(([key, value]) => {
-                                                    // Count permissions for this module
                                                     const permCount = Object.values(value).filter(Boolean).length;
                                                     if (permCount === 0) return null;
-
-                                                    // Simple label map
                                                     const labels = {
                                                         customers: 'ลูกค้า',
                                                         invoices: 'ใบกำกับภาษี',
@@ -160,7 +179,6 @@ const UserListPage = () => {
                                                         users: 'ผู้ใช้',
                                                         production: 'ผลิต'
                                                     };
-
                                                     return (
                                                         <span key={key} style={{
                                                             fontSize: '0.75rem',
@@ -175,28 +193,6 @@ const UserListPage = () => {
                                                     );
                                                 })}
                                                 {Object.keys(user.permissions || {}).length === 0 && <span style={{ color: '#666', fontSize: '0.8rem' }}>- ไม่มีสิทธิ์ -</span>}
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1.2rem', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                                {hasPermission('users', 'edit') && (
-                                                    <button
-                                                        onClick={() => navigate(`/dashboard/users/${user.id}/edit`)}
-                                                        title="แก้ไขสิทธิ์"
-                                                        style={{ padding: '0.5rem', background: 'rgba(139, 92, 246, 0.1)', border: 'none', borderRadius: '6px', color: '#8b5cf6', cursor: 'pointer' }}
-                                                    >
-                                                        <Edit size={16} />
-                                                    </button>
-                                                )}
-                                                {hasPermission('users', 'delete') && (
-                                                    <button
-                                                        onClick={() => handleDelete(user.id, user.fullName)}
-                                                        title="ลบผู้ใช้งาน"
-                                                        style={{ padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '6px', color: '#f87171', cursor: 'pointer' }}
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                )}
                                             </div>
                                         </td>
                                     </tr>

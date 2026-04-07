@@ -201,6 +201,7 @@ const PurchaseOrderListPage = () => {
 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
+                            <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ PO</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อลูกค้า</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>วันที่ออกเอกสาร</th>
@@ -208,7 +209,6 @@ const PurchaseOrderListPage = () => {
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>ความคืบหน้า (ชิ้น)</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>มูลค่าทั้งหมด</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -226,6 +226,48 @@ const PurchaseOrderListPage = () => {
                                     </tr>
                                     {groupedPOs[group].map((po) => (
                                         <tr key={po.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s', background: 'var(--card-bg)' }}>
+                                            <td className="actions-column">
+                                                <div className="table-actions">
+                                                    {po.file_url && (
+                                                        <a
+                                                            className="action-download"
+                                                            href={po.file_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            title="View Document File"
+                                                        >
+                                                            <Eye size={18} />
+                                                        </a>
+                                                    )}
+                                                    {hasPermission('invoices', 'create') && (
+                                                        <button
+                                                            className="action-edit"
+                                                            onClick={() => navigate('/dashboard/invoices/new', { state: { referencePoId: po.id } })}
+                                                            title="ออกใบกำกับภาษีเชื่อมโยง PO นี้"
+                                                        >
+                                                            <LinkIcon size={18} />
+                                                        </button>
+                                                    )}
+                                                    {hasPermission('invoices', 'edit') && (
+                                                        <button
+                                                            className="action-edit"
+                                                            onClick={() => navigate(`/dashboard/purchase-orders/${po.id}/edit`)}
+                                                            title="Edit"
+                                                        >
+                                                            <Edit size={18} />
+                                                        </button>
+                                                    )}
+                                                    {hasPermission('invoices', 'delete') && (
+                                                        <button
+                                                            className="action-delete"
+                                                            onClick={() => handleDelete(po.id, po.po_number)}
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td style={{ padding: '1.2rem 1.5rem', fontWeight: '600', color: '#3b82f6', fontSize: '1.1rem', fontFamily: 'monospace' }}>
                                                 {po.po_number}
                                             </td>
@@ -269,48 +311,6 @@ const PurchaseOrderListPage = () => {
                                                 }}>
                                                     {po.status}
                                                 </span>
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                                    {po.file_url && (
-                                                        <a
-                                                            href={po.file_url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            style={{ background: 'none', border: 'none', color: '#8b5cf6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
-                                                            title="View Document File"
-                                                        >
-                                                            <Eye size={18} />
-                                                        </a>
-                                                    )}
-                                                    {hasPermission('invoices', 'create') && (
-                                                        <button
-                                                            onClick={() => navigate('/dashboard/invoices/new', { state: { referencePoId: po.id } })}
-                                                            style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
-                                                            title="ออกใบกำกับภาษีเชื่อมโยง PO นี้"
-                                                        >
-                                                            <LinkIcon size={18} />
-                                                        </button>
-                                                    )}
-                                                    {hasPermission('invoices', 'edit') && (
-                                                        <button
-                                                            onClick={() => navigate(`/dashboard/purchase-orders/${po.id}/edit`)}
-                                                            style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
-                                                            title="Edit"
-                                                        >
-                                                            <Edit size={18} />
-                                                        </button>
-                                                    )}
-                                                    {hasPermission('invoices', 'delete') && (
-                                                        <button
-                                                            onClick={() => handleDelete(po.id, po.po_number)}
-                                                            style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
-                                                            title="Delete"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    )}
-                                                </div>
                                             </td>
                                         </tr>
                                     ))}

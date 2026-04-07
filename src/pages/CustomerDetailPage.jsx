@@ -468,7 +468,8 @@ const CustomerDetailPage = () => {
                                                         {product.unit && `/ ${product.unit}`}
                                                     </span>
                                                 </td>
-                                                <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                                <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right' }}>
+                                                    <div className="table-actions">
                                                     {hasPermission('customers', 'edit') && (
                                                         <>
                                                             <button
@@ -501,6 +502,7 @@ const CustomerDetailPage = () => {
                                                             </button>
                                                         </>
                                                     )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))

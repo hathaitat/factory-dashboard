@@ -346,12 +346,12 @@ const BillingNoteListPage = () => {
 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
+                            <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ใบวางบิล</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อลูกค้า</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>วันที่</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวนเงินสุทธิ</th>
                             <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -369,6 +369,42 @@ const BillingNoteListPage = () => {
                                     </tr>
                                     {groupedNotes[group].map((bn) => (
                                         <tr key={bn.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s', background: 'var(--card-bg)' }}>
+                                            <td className="actions-column">
+                                                <div className="table-actions">
+                                                    <button
+                                                        className="action-view"
+                                                        onClick={() => window.open(`/dashboard/billing-notes/${bn.id}`, '_blank')}
+                                                        title="View"
+                                                    >
+                                                        <Eye size={18} />
+                                                    </button>
+                                                    <button
+                                                        className="action-print"
+                                                        onClick={() => window.open(`/dashboard/billing-notes/${bn.id}/print`, '_blank')}
+                                                        title="Print"
+                                                    >
+                                                        <Printer size={18} />
+                                                    </button>
+                                                    {hasPermission('billing', 'edit') && (
+                                                        <button
+                                                            className="action-edit"
+                                                            onClick={() => navigate(`/dashboard/billing-notes/${bn.id}/edit`)}
+                                                            title="Edit"
+                                                        >
+                                                            <Edit size={18} />
+                                                        </button>
+                                                    )}
+                                                    {hasPermission('billing', 'delete') && (
+                                                        <button
+                                                            className="action-delete"
+                                                            onClick={() => handleDelete(bn.id, bn.billingNoteNo)}
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td style={{ padding: '1.2rem 1.5rem', fontWeight: '600', color: '#3b82f6', fontSize: '1.1rem', fontFamily: 'monospace' }}>
                                                 <Link to={`/dashboard/billing-notes/${bn.id}`} style={{ color: '#3b82f6', textDecoration: 'none' }}>
                                                     {bn.billingNoteNo}
@@ -389,42 +425,6 @@ const BillingNoteListPage = () => {
                                                 }}>
                                                     {bn.status}
                                                 </span>
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                                    <button
-                                                        onClick={() => window.open(`/dashboard/billing-notes/${bn.id}`, '_blank')}
-                                                        style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                        title="View"
-                                                    >
-                                                        <Eye size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => window.open(`/dashboard/billing-notes/${bn.id}/print`, '_blank')}
-                                                        style={{ background: 'none', border: 'none', color: '#8b5cf6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                        title="Print"
-                                                    >
-                                                        <Printer size={18} />
-                                                    </button>
-                                                    {hasPermission('billing', 'edit') && (
-                                                        <button
-                                                            onClick={() => navigate(`/dashboard/billing-notes/${bn.id}/edit`)}
-                                                            style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                            title="Edit"
-                                                        >
-                                                            <Edit size={18} />
-                                                        </button>
-                                                    )}
-                                                    {hasPermission('billing', 'delete') && (
-                                                        <button
-                                                            onClick={() => handleDelete(bn.id, bn.billingNoteNo)}
-                                                            style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                            title="Delete"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    )}
-                                                </div>
                                             </td>
                                         </tr>
                                     ))}

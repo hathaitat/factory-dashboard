@@ -295,7 +295,7 @@ const InvoiceListPage = () => {
     const filteredInvoices = invoices.filter(inv => {
         const matchSearch = inv.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
             inv.customerName.toLowerCase().includes(searchTerm.toLowerCase());
-        
+
         const targetDate = dateFilterType === 'dueDate' ? inv.dueDate : inv.date;
         const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
         const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
@@ -386,11 +386,11 @@ const InvoiceListPage = () => {
 
             <ListFilter
                 filters={[
-                    { 
-                        type: 'date-range', 
-                        dateFrom, 
-                        dateTo, 
-                        onDateFromChange: setDateFrom, 
+                    {
+                        type: 'date-range',
+                        dateFrom,
+                        dateTo,
+                        onDateFromChange: setDateFrom,
                         onDateToChange: setDateTo,
                         value: dateFilterType,
                         onChange: setDateFilterType,
@@ -399,14 +399,16 @@ const InvoiceListPage = () => {
                             { value: 'dueDate', label: 'วันครบกำหนด' }
                         ]
                     },
-                    { type: 'select', label: 'สถานะ', value: statusFilter, onChange: setStatusFilter, options: [
-                        { value: '', label: 'ทั้งหมด' },
-                        { value: 'Draft', label: 'Draft' },
-                        { value: 'Issued', label: 'Issued' },
-                        { value: 'Paid', label: 'Paid' },
-                        { value: 'Overdue', label: 'Overdue' },
-                        { value: 'Cancelled', label: 'Cancelled' }
-                    ]}
+                    {
+                        type: 'select', label: 'สถานะ', value: statusFilter, onChange: setStatusFilter, options: [
+                            { value: '', label: 'ทั้งหมด' },
+                            { value: 'Draft', label: 'Draft' },
+                            { value: 'Issued', label: 'Issued' },
+                            { value: 'Paid', label: 'Paid' },
+                            { value: 'Overdue', label: 'Overdue' },
+                            { value: 'Cancelled', label: 'Cancelled' }
+                        ]
+                    }
                 ]}
                 onClear={clearFilters}
                 hasActiveFilters={!!hasActiveFilters}
@@ -417,14 +419,13 @@ const InvoiceListPage = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
+                                <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
                                 <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ใบกำกับ</th>
                                 <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อลูกค้า</th>
                                 <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>อ้างอิง(PO)</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>เครดิต (วัน)</th>
                                 <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>วันที่</th>
                                 <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวนเงินสุทธิ</th>
                                 <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -442,6 +443,51 @@ const InvoiceListPage = () => {
                                         </tr>
                                         {groupedInvoices[group].map((inv) => (
                                             <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s', background: 'var(--card-bg)' }}>
+                                                <td className="actions-column">
+                                                    <div className="table-actions">
+                                                        <button
+                                                            className="action-view"
+                                                            onClick={() => window.open(`/dashboard/invoices/${inv.id}`, '_blank')}
+                                                            title="View"
+                                                        >
+                                                            <Eye size={18} />
+                                                        </button>
+                                                        <button
+                                                            className="action-print"
+                                                            onClick={() => window.open(`/dashboard/invoices/${inv.id}/print`, '_blank')}
+                                                            title="Print"
+                                                        >
+                                                            <Printer size={18} />
+                                                        </button>
+                                                        {hasPermission('billing', 'create') && (
+                                                            <button
+                                                                className="action-link"
+                                                                onClick={() => navigate('/dashboard/billing-notes/new', { state: { preselectInvoice: inv } })}
+                                                                title="ออกใบวางบิล"
+                                                            >
+                                                                <FileText size={18} />
+                                                            </button>
+                                                        )}
+                                                        {hasPermission('invoices', 'edit') && (
+                                                            <button
+                                                                className="action-edit"
+                                                                onClick={() => navigate(`/dashboard/invoices/${inv.id}/edit`)}
+                                                                title="Edit"
+                                                            >
+                                                                <Edit size={18} />
+                                                            </button>
+                                                        )}
+                                                        {hasPermission('invoices', 'delete') && (
+                                                            <button
+                                                                className="action-delete"
+                                                                onClick={() => handleDelete(inv.id, inv.invoiceNo)}
+                                                                title="Delete"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
                                                 <td style={{ padding: '1.2rem 1.5rem', fontWeight: '600', color: '#3b82f6', fontSize: '1.1rem', fontFamily: 'monospace' }}>
                                                     <Link to={`/dashboard/invoices/${inv.id}`} style={{ color: '#3b82f6', textDecoration: 'none' }}>
                                                         {inv.invoiceNo}
@@ -449,7 +495,6 @@ const InvoiceListPage = () => {
                                                 </td>
                                                 <td style={{ padding: '1.2rem 1.5rem' }}>{inv.customerName}</td>
                                                 <td style={{ padding: '1.2rem 1.5rem', color: '#888' }}>{inv.referenceNo || '-'}</td>
-                                                <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>{parseInt(inv.creditDays) === 0 ? 'เงินสด' : `${inv.creditDays} วัน`}</td>
                                                 <td style={{ padding: '1.2rem 1.5rem' }}>{new Date(inv.date).toLocaleDateString('th-TH')}</td>
                                                 <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
                                                     ฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -464,51 +509,6 @@ const InvoiceListPage = () => {
                                                     }}>
                                                         {inv.status}
                                                     </span>
-                                                </td>
-                                                <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                                        <button
-                                                            onClick={() => window.open(`/dashboard/invoices/${inv.id}`, '_blank')}
-                                                            style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                            title="View"
-                                                        >
-                                                            <Eye size={18} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => window.open(`/dashboard/invoices/${inv.id}/print`, '_blank')}
-                                                            style={{ background: 'none', border: 'none', color: '#8b5cf6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                            title="Print"
-                                                        >
-                                                            <Printer size={18} />
-                                                        </button>
-                                                        {hasPermission('billing', 'create') && (
-                                                            <button
-                                                                onClick={() => navigate('/dashboard/billing-notes/new', { state: { preselectInvoice: inv } })}
-                                                                style={{ background: 'none', border: 'none', color: '#f59e0b', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                                title="ออกใบวางบิล"
-                                                            >
-                                                                <FileText size={18} />
-                                                            </button>
-                                                        )}
-                                                        {hasPermission('invoices', 'edit') && (
-                                                            <button
-                                                                onClick={() => navigate(`/dashboard/invoices/${inv.id}/edit`)}
-                                                                style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                                title="Edit"
-                                                            >
-                                                                <Edit size={18} />
-                                                            </button>
-                                                        )}
-                                                        {hasPermission('invoices', 'delete') && (
-                                                            <button
-                                                                onClick={() => handleDelete(inv.id, inv.invoiceNo)}
-                                                                style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                                title="Delete"
-                                                            >
-                                                                <Trash2 size={18} />
-                                                            </button>
-                                                        )}
-                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}

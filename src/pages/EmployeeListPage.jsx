@@ -1112,10 +1112,10 @@ const EmployeeListPage = () => {
                                             </>
                                         ) : (
                                             <>
+                                                <th className="actions-column" style={{ color: '#6b7280', fontWeight: '500' }}>จัดการ</th>
                                                 <th style={{ padding: '1.2rem', color: '#6b7280', fontWeight: '500' }}>ตำแหน่ง</th>
                                                 <th style={{ padding: '1.2rem', color: '#6b7280', fontWeight: '500' }}>เบอร์โทร</th>
                                                 <th style={{ padding: '1.2rem', color: '#6b7280', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
-                                                <th style={{ padding: '1.2rem', color: '#6b7280', fontWeight: '500', textAlign: 'right' }}>จัดการ</th>
                                             </>
                                         )}
                                     </tr>
@@ -1155,6 +1155,20 @@ const EmployeeListPage = () => {
                                                         </>
                                                     ) : (
                                                         <>
+                                                            <td className="actions-column">
+                                                                <div className="table-actions">
+                                                                    {hasPermission('employees', 'edit') && (
+                                                                        <button className="action-edit" onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/employees/${emp.id}/edit`); }}>
+                                                                            <Edit2 size={16} />
+                                                                        </button>
+                                                                    )}
+                                                                    {hasPermission('employees', 'delete') && (
+                                                                        <button className="action-delete" onClick={(e) => handleDelete(e, emp.id)}>
+                                                                            <Trash2 size={16} />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
                                                             <td style={{ padding: '1.2rem', color: '#6b7280' }}>{emp.position || '-'}</td>
                                                             <td style={{ padding: '1.2rem', color: '#6b7280' }}>{emp.phone || '-'}</td>
                                                             <td style={{ padding: '1.2rem', textAlign: 'center' }}>
@@ -1166,22 +1180,6 @@ const EmployeeListPage = () => {
                                                                 }}>
                                                                     {emp.status === 'Active' ? 'ปกติ' : 'ระงับ'}
                                                                 </span>
-                                                            </td>
-                                                            <td style={{ padding: '1.2rem', textAlign: 'right' }}>
-                                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                                                    {hasPermission('employees', 'edit') && (
-                                                                        <button onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/employees/${emp.id}/edit`); }}
-                                                                            style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'white', cursor: 'pointer', color: '#6b7280' }}>
-                                                                            <Edit2 size={16} />
-                                                                        </button>
-                                                                    )}
-                                                                    {hasPermission('employees', 'delete') && (
-                                                                        <button onClick={(e) => handleDelete(e, emp.id)}
-                                                                            style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fef2f2', cursor: 'pointer', color: '#ef4444' }}>
-                                                                            <Trash2 size={16} />
-                                                                        </button>
-                                                                    )}
-                                                                </div>
                                                             </td>
                                                         </>
                                                     )}

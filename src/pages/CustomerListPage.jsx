@@ -206,12 +206,12 @@ const CustomerListPage = () => {
 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
                                 <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>รหัส</th>
                                 <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อบริษัท</th>
                                 <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>ผู้ติดต่อ</th>
                                 <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>เครดิต (วัน)</th>
                                 <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>สถานะ</th>
-                                <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -224,6 +224,35 @@ const CustomerListPage = () => {
                             ) : filteredCustomers.length > 0 ? (
                                 filteredCustomers.map((customer) => (
                                     <tr key={customer.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                        <td className="actions-column">
+                                            <div className="table-actions">
+                                                <button
+                                                    className="action-view"
+                                                    onClick={() => navigate(`/dashboard/customers/${customer.id}`)}
+                                                    title="ดูรายละเอียด"
+                                                >
+                                                    <Eye size={18} />
+                                                </button>
+                                                {hasPermission('customers', 'edit') && (
+                                                    <button
+                                                        className="action-edit"
+                                                        onClick={() => navigate(`/dashboard/customers/${customer.id}/edit`)}
+                                                        title="แก้ไข"
+                                                    >
+                                                        <Edit size={18} />
+                                                    </button>
+                                                )}
+                                                {hasPermission('customers', 'delete') && (
+                                                    <button
+                                                        className="action-delete"
+                                                        onClick={() => handleDelete(customer.id)}
+                                                        title="ลบ"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td style={{ padding: '1.2rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
                                             {customer.code || '-'}
                                         </td>
@@ -249,35 +278,6 @@ const CustomerListPage = () => {
                                             }}>
                                                 {customer.status === 'Active' ? 'ปกติ' : 'ระงับ'}
                                             </span>
-                                        </td>
-                                        <td style={{ padding: '1.2rem', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                                <button
-                                                    onClick={() => navigate(`/dashboard/customers/${customer.id}`)}
-                                                    title="ดูรายละเอียด"
-                                                    style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
-                                                {hasPermission('customers', 'edit') && (
-                                                    <button
-                                                        onClick={() => navigate(`/dashboard/customers/${customer.id}/edit`)}
-                                                        title="แก้ไข"
-                                                        style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
-                                                    >
-                                                        <Edit size={18} />
-                                                    </button>
-                                                )}
-                                                {hasPermission('customers', 'delete') && (
-                                                    <button
-                                                        onClick={() => handleDelete(customer.id)}
-                                                        title="ลบ"
-                                                        style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
-                                                )}
-                                            </div>
                                         </td>
                                     </tr>
                                 ))

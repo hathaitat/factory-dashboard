@@ -168,12 +168,12 @@ const CertificateListPage = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
                                 <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อเอกสาร</th>
                                 <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>สินค้าที่เกี่ยวข้อง</th>
                                 <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>ลูกค้า</th>
                                 <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>วันหมดอายุ</th>
                                 <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>สถานะแจ้งเตือน</th>
-                                <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -189,6 +189,39 @@ const CertificateListPage = () => {
                                     
                                     return (
                                     <tr key={cert.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                            <td className="actions-column">
+                                                <div className="table-actions">
+                                                    {cert.file_url && (
+                                                        <a
+                                                            className="action-download"
+                                                            href={cert.file_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            title="ดาวน์โหลด / ดูไฟล์"
+                                                        >
+                                                            <Download size={18} />
+                                                        </a>
+                                                    )}
+                                                    {hasPermission('certificates', 'edit', true) && (
+                                                        <button
+                                                            className="action-edit"
+                                                            onClick={() => navigate(`/dashboard/certificates/${cert.id}/edit`)}
+                                                            title="แก้ไข"
+                                                        >
+                                                            <Edit size={18} />
+                                                        </button>
+                                                    )}
+                                                    {hasPermission('certificates', 'delete', true) && (
+                                                        <button
+                                                            className="action-delete"
+                                                            onClick={() => handleDelete(cert.id, cert.file_path)}
+                                                            title="ลบ"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
                                         <td style={{ padding: '1.2rem' }}>
                                             <div style={{ fontWeight: '600', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 {cert.name}
@@ -231,39 +264,6 @@ const CertificateListPage = () => {
                                                 {status.isWarning && <AlertTriangle size={12} />}
                                                 {status.label}
                                             </span>
-                                        </td>
-                                        <td style={{ padding: '1.2rem', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                                {cert.file_url && (
-                                                    <a
-                                                        href={cert.file_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        title="ดาวน์โหลด / ดูไฟล์"
-                                                        style={{ background: 'none', border: 'none', color: '#8b5cf6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
-                                                    >
-                                                        <Download size={18} />
-                                                    </a>
-                                                )}
-                                                {hasPermission('certificates', 'edit', true) && (
-                                                    <button
-                                                        onClick={() => navigate(`/dashboard/certificates/${cert.id}/edit`)}
-                                                        title="แก้ไข"
-                                                        style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
-                                                    >
-                                                        <Edit size={18} />
-                                                    </button>
-                                                )}
-                                                {hasPermission('certificates', 'delete', true) && (
-                                                    <button
-                                                        onClick={() => handleDelete(cert.id, cert.file_path)}
-                                                        title="ลบ"
-                                                        style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
-                                                )}
-                                            </div>
                                         </td>
                                     </tr>
                                 );

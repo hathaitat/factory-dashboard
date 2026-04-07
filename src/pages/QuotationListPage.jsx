@@ -235,11 +235,11 @@ const QuotationListPage = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                             <tr style={{ background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--border-color)' }}>
+                                <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem' }}>จัดการ</th>
                                 <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem' }}>เลขที่ใบเสนอราคา</th>
                                 <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem' }}>ลูกค้า</th>
                                 <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem' }}>ยอดรวม (บาท)</th>
                                 <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem' }}>สถานะ</th>
-                                <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem', textAlign: 'right' }}>จัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -265,6 +265,40 @@ const QuotationListPage = () => {
                                         </tr>
                                         {groupedQuotations[group].map((qt) => (
                                             <tr key={qt.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
+                                                <td className="actions-column">
+                                                    <div className="table-actions">
+                                                        <button
+                                                            className="action-view"
+                                                            onClick={() => window.open(`/dashboard/quotations/${qt.id}`, '_blank')}
+                                                            title="View"
+                                                        >
+                                                            <Eye size={18} />
+                                                        </button>
+                                                        <button
+                                                            className="action-print"
+                                                            onClick={() => window.open(`/dashboard/quotations/${qt.id}/print`, '_blank')}
+                                                            title="Print"
+                                                        >
+                                                            <Printer size={18} />
+                                                        </button>
+                                                        <button
+                                                            className="action-edit"
+                                                            onClick={() => navigate(`/dashboard/quotations/${qt.id}`)}
+                                                            title="Edit"
+                                                        >
+                                                            <Edit size={18} />
+                                                        </button>
+                                                        {hasPermission('invoices', 'delete') && (
+                                                            <button 
+                                                                className="action-delete"
+                                                                onClick={() => handleDelete(qt.id, qt.quotationNo)}
+                                                                title="Delete"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
                                                 <td style={{ padding: '1rem' }}>
                                                     <div style={{ fontWeight: '600', color: '#3b82f6', marginBottom: '2px' }}>
                                                         {qt.quotationNo}
@@ -288,40 +322,6 @@ const QuotationListPage = () => {
                                                 </td>
                                                 <td style={{ padding: '1rem' }}>
                                                     {getStatusBlock(qt.status)}
-                                                </td>
-                                                <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                                        <button
-                                                            onClick={() => window.open(`/dashboard/quotations/${qt.id}`, '_blank')}
-                                                            style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                            title="View"
-                                                        >
-                                                            <Eye size={18} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => window.open(`/dashboard/quotations/${qt.id}/print`, '_blank')}
-                                                            style={{ background: 'none', border: 'none', color: '#8b5cf6', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                            title="Print"
-                                                        >
-                                                            <Printer size={18} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => navigate(`/dashboard/quotations/${qt.id}`)}
-                                                            style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                            title="Edit"
-                                                        >
-                                                            <Edit size={18} />
-                                                        </button>
-                                                        {hasPermission('invoices', 'delete') && (
-                                                            <button 
-                                                                onClick={() => handleDelete(qt.id, qt.quotationNo)}
-                                                                style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.4rem', borderRadius: '4px' }}
-                                                                title="Delete"
-                                                            >
-                                                                <Trash2 size={18} />
-                                                            </button>
-                                                        )}
-                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}

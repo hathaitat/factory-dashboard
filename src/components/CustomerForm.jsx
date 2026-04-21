@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, X } from 'lucide-react';
+import { Save, X, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const CustomerForm = ({ initialData, onSubmit, title }) => {
@@ -12,7 +12,11 @@ const CustomerForm = ({ initialData, onSubmit, title }) => {
         address: '',
         status: 'Active',
         contactPerson: '',
-        branch: ''
+        branch: '',
+        poNote: '',
+        invoiceNote: '',
+        billingNoteNote: '',
+        receiptNote: ''
     });
 
     useEffect(() => {
@@ -201,6 +205,66 @@ const CustomerForm = ({ initialData, onSubmit, title }) => {
                         className="glass-input"
                         style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', resize: 'vertical' }}
                     />
+                </div>
+
+                <div style={{ borderTop: '1px solid var(--border-color)', margin: '1rem 0' }}></div>
+
+                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <FileText size={20} /> หมายเหตุสำหรับเอกสาร (จะแสดงเมื่อสร้างเอกสารนั้นๆ)
+                </h3>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                    <div className="form-group">
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>หมายเหตุใบสั่งซื้อ (PO)</label>
+                        <textarea
+                            name="poNote"
+                            value={formData.poNote || ''}
+                            onChange={handleChange}
+                            rows="2"
+                            placeholder="ระบุหมายเหตุที่จะให้เตือนเมื่อสร้าง PO..."
+                            className="glass-input"
+                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', resize: 'vertical' }}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>หมายเหตุใบกำกับภาษี (Invoice)</label>
+                        <textarea
+                            name="invoiceNote"
+                            value={formData.invoiceNote || ''}
+                            onChange={handleChange}
+                            rows="2"
+                            placeholder="ระบุหมายเหตุที่จะให้เตือนเมื่อสร้าง Invoice..."
+                            className="glass-input"
+                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', resize: 'vertical' }}
+                        />
+                    </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                    <div className="form-group">
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>หมายเหตุใบวางบิล</label>
+                        <textarea
+                            name="billingNoteNote"
+                            value={formData.billingNoteNote || ''}
+                            onChange={handleChange}
+                            rows="2"
+                            placeholder="ระบุหมายเหตุที่จะให้เตือนเมื่อสร้างใบวางบิล..."
+                            className="glass-input"
+                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', resize: 'vertical' }}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>หมายเหตุใบเสร็จรับเงิน</label>
+                        <textarea
+                            name="receiptNote"
+                            value={formData.receiptNote || ''}
+                            onChange={handleChange}
+                            rows="2"
+                            placeholder="ระบุหมายเหตุที่จะให้เตือนเมื่อออกใบเสร็จ..."
+                            className="glass-input"
+                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', resize: 'vertical' }}
+                        />
+                    </div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>

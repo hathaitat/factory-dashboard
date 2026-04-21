@@ -1,11 +1,17 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { AlertCircle, CheckCircle, Info, XCircle, HelpCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, Info, XCircle, HelpCircle, X } from 'lucide-react';
 
 const DialogContext = createContext();
 
 export const useDialog = () => useContext(DialogContext);
 
 export const DialogProvider = ({ children }) => {
+    const [toast, setToast] = useState({
+        isOpen: false,
+        message: '',
+        duration: 5000
+    });
+
     const [dialogState, setDialogState] = useState({
         isOpen: false,
         type: 'alert', // 'alert' | 'confirm' | 'error' | 'help'
@@ -64,6 +70,17 @@ export const DialogProvider = ({ children }) => {
         });
     }, []);
 
+    const showToast = useCallback((message, duration = 3000) => {
+        setToast({
+            isOpen: true,
+            message,
+            duration
+        });
+        setTimeout(() => {
+            setToast(prev => ({ ...prev, isOpen: false }));
+        }, duration);
+    }, []);
+
     const handleClose = (result) => {
         setDialogState(prev => ({ ...prev, isOpen: false }));
         if (dialogState.resolveProps) {
@@ -72,7 +89,7 @@ export const DialogProvider = ({ children }) => {
     };
 
     return (
-        <DialogContext.Provider value={{ showAlert, showConfirm, showError, showHelp }}>
+        <DialogContext.Provider value={{ showAlert, showConfirm, showError, showHelp, showToast }}>
             {children}
             {dialogState.isOpen && (
                 <div style={{
@@ -92,9 +109,17 @@ export const DialogProvider = ({ children }) => {
                             from { opacity: 0; }
                             to { opacity: 1; }
                         }
+                        @keyframes fadeOut {
+                            from { opacity: 1; }
+                            to { opacity: 0; }
+                        }
                         @keyframes slideUp {
                             from { opacity: 0; transform: translateY(20px); }
                             to { opacity: 1; transform: translateY(0); }
+                        }
+                        @keyframes slideInRight {
+                            from { opacity: 0; transform: translateX(100%); }
+                            to { opacity: 1; transform: translateX(0); }
                         }
                         `}
                     </style>
@@ -195,6 +220,45 @@ export const DialogProvider = ({ children }) => {
                                 <CheckCircle size={16} /> {dialogState.type === 'confirm' ? 'ยืนยัน' : dialogState.type === 'error' ? 'ปิด' : 'ตกลง'}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Toast Notification */}
+            {toast.isOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: '20px',
+                    right: '20px',
+                    zIndex: 10000,
+                    animation: 'slideInRight 0.3s ease-out',
+                    maxWidth: '350px'
+                }}>
+                    <div className="glass-panel" style={{
+                        padding: '1rem 1.2rem',
+                        background: 'rgba(59, 130, 246, 0.95)',
+                        color: 'white',
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        backdropFilter: 'blur(8px)',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '0.8rem'
+                    }}>
+                        <div style={{ marginTop: '2px' }}>
+                            <Info size={20} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '2px', fontWeight: '500' }}>หมายเหตุเฉพาะลูกค้า</div>
+                            <div style={{ fontSize: '0.95rem', lineHeight: '1.4', fontWeight: '500' }}>{toast.message}</div>
+                        </div>
+                        <button
+                            onClick={() => setToast(prev => ({ ...prev, isOpen: false }))}
+                            style={{ background: 'none', border: 'none', color: 'white', opacity: 0.7, cursor: 'pointer', padding: '2px' }}
+                        >
+                            <X size={16} />
+                        </button>
                     </div>
                 </div>
             )}

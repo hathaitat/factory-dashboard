@@ -95,6 +95,8 @@ export const invoiceService = {
                 notes: inv.notes,
                 adjustments: inv.adjustments || [],
                 status: inv.status,
+                createdAt: inv.created_at,
+                updatedAt: inv.updated_at,
                 items: items.map(item => ({
                     id: item.id,
                     productName: item.product_name,

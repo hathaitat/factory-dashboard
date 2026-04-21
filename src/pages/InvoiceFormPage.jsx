@@ -11,7 +11,7 @@ const InvoiceFormPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const { showAlert, showConfirm } = useDialog();
+    const { showAlert, showConfirm, showToast } = useDialog();
     const isEdit = !!id;
     const referencePoId = location.state?.referencePoId;
 
@@ -339,6 +339,14 @@ const InvoiceFormPage = () => {
                             await showAlert('เกิดข้อผิดพลาดในการบันทึกสินค้าใหม่บางรายการ');
                         }
                     }
+                }
+            }
+
+            // Check for customer Invoice remark and show toast
+            if (formData.customerId) {
+                const customer = customers.find(c => String(c.id) === String(formData.customerId));
+                if (customer && customer.invoiceNote) {
+                    showToast(customer.invoiceNote, 5000);
                 }
             }
 

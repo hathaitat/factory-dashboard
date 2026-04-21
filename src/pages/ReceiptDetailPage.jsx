@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Printer, Building, FileText, Calendar, DollarSign } from 'lucide-react';
+import { ArrowLeft, Printer, Building, FileText, Calendar, DollarSign, Clock } from 'lucide-react';
 import { billingNoteService } from '../services/billingNoteService';
 import { settingService } from '../services/settingService';
 import { documentNumberHelper } from '../utils/documentNumbering';
@@ -121,6 +121,19 @@ const ReceiptDetailPage = () => {
                                 {bn.notes}
                             </div>
                         )}
+
+                        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Clock size={14} /> 
+                                <span>สร้างเมื่อ: {new Date(bn.createdAt).toLocaleString('th-TH')}</span>
+                            </div>
+                            {bn.updatedAt && bn.updatedAt !== bn.createdAt && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Clock size={14} /> 
+                                    <span>แก้ไขล่าสุด: {new Date(bn.updatedAt).toLocaleString('th-TH')}</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

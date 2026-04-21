@@ -10,7 +10,7 @@ const BillingNoteFormPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const isEdit = !!id;
-    const { showAlert } = useDialog();
+    const { showAlert, showToast } = useDialog();
 
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -213,6 +213,19 @@ const BillingNoteFormPage = () => {
             } else {
                 await billingNoteService.createBillingNote(submissionData, invoiceIds);
             }
+            
+            // Check for customer remarks and show toast
+            if (formData.customerId) {
+                const customer = customers.find(c => String(c.id) === String(formData.customerId));
+                if (customer) {
+                    if (formData.status === 'Paid' && customer.receiptNote) {
+                        showToast(customer.receiptNote, 5000);
+                    } else if (customer.billingNoteNote) {
+                        showToast(customer.billingNoteNote, 5000);
+                    }
+                }
+            }
+
             navigate('/dashboard/billing-notes');
         } catch (error) {
             console.error('Save error:', error);

@@ -80,6 +80,8 @@ export const billingNoteService = {
                 bahtText: bn.baht_text,
                 status: bn.status,
                 notes: bn.notes,
+                createdAt: bn.created_at,
+                updatedAt: bn.updated_at,
                 invoices: items.map(item => ({
                     id: item.invoice.id,
                     invoiceNo: item.invoice.invoice_no,

@@ -208,6 +208,20 @@ const BillingNoteDetailPage = () => {
                             {bn.notes || 'ไม่มีหมายเหตุ'}
                         </div>
                     </div>
+
+                    <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ข้อมูลระบบ</h4>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Clock size={14} /> 
+                            <span>สร้างเมื่อ: {new Date(bn.createdAt).toLocaleString('th-TH')}</span>
+                        </div>
+                        {bn.updatedAt && bn.updatedAt !== bn.createdAt && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Clock size={14} /> 
+                                <span>แก้ไขล่าสุด: {new Date(bn.updatedAt).toLocaleString('th-TH')}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

@@ -24,6 +24,10 @@ export const customerService = {
         address: customer.address,
         branch: customer.branch,
         status: customer.status,
+        poNote: customer.po_note,
+        invoiceNote: customer.invoice_note,
+        billingNoteNote: customer.billing_note_note,
+        receiptNote: customer.receipt_note,
         createdAt: customer.created_at,
         updatedAt: customer.updated_at
       }));
@@ -57,6 +61,10 @@ export const customerService = {
         address: data.address,
         branch: data.branch,
         status: data.status,
+        poNote: data.po_note,
+        invoiceNote: data.invoice_note,
+        billingNoteNote: data.billing_note_note,
+        receiptNote: data.receipt_note,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };
@@ -78,7 +86,11 @@ export const customerService = {
         phone: customerData.phone,
         address: customerData.address,
         branch: customerData.branch || '',
-        status: customerData.status || 'Active'
+        status: customerData.status || 'Active',
+        po_note: customerData.poNote || '',
+        invoice_note: customerData.invoiceNote || '',
+        billing_note_note: customerData.billingNoteNote || '',
+        receipt_note: customerData.receiptNote || ''
       };
 
       const { data, error } = await supabase
@@ -110,6 +122,10 @@ export const customerService = {
         address: customerData.address,
         branch: customerData.branch,
         status: customerData.status,
+        po_note: customerData.poNote,
+        invoice_note: customerData.invoiceNote,
+        billing_note_note: customerData.billingNoteNote,
+        receipt_note: customerData.receiptNote,
         updated_at: new Date().toISOString()
       };
 

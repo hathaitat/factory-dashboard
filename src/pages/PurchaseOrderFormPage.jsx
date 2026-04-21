@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, Plus, Trash2, ArrowLeft, Search, X, UploadCloud, File, Eye, FileText } from 'lucide-react';
+import { Save, Plus, Trash2, ArrowLeft, Search, X, UploadCloud, File, Eye, FileText, Clock } from 'lucide-react';
 import { purchaseOrderService } from '../services/purchaseOrderService';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
@@ -9,7 +9,7 @@ import { useDialog } from '../contexts/DialogContext';
 const PurchaseOrderFormPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { showAlert, showConfirm } = useDialog();
+    const { showAlert, showConfirm, showToast } = useDialog();
     const isEdit = !!id;
 
     const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +34,9 @@ const PurchaseOrderFormPage = () => {
         vat_rate: 7,
         subtotal: 0,
         vat_amount: 0,
-        grand_total: 0
+        grand_total: 0,
+        created_at: null,
+        updated_at: null
     });
 
     const [items, setItems] = useState([
@@ -83,7 +85,9 @@ const PurchaseOrderFormPage = () => {
                         vat_rate: po.vat_rate !== null ? po.vat_rate : 7,
                         subtotal: po.subtotal || 0,
                         vat_amount: po.vat_amount || 0,
-                        grand_total: po.grand_total || 0
+                        grand_total: po.grand_total || 0,
+                        created_at: po.created_at,
+                        updated_at: po.updated_at
                     });
 
                     if (po.purchase_order_items && po.purchase_order_items.length > 0) {
@@ -192,6 +196,14 @@ const PurchaseOrderFormPage = () => {
             } else {
                 await purchaseOrderService.createPurchaseOrder(formData, items);
             }
+            
+            if (formData.customer_id) {
+                const customer = customers.find(c => String(c.id) === String(formData.customer_id));
+                if (customer && customer.poNote) {
+                    showToast(customer.poNote, 5000);
+                }
+            }
+
             navigate('/dashboard/purchase-orders');
         } catch (error) {
             console.error('Save error:', error);
@@ -364,7 +376,7 @@ const PurchaseOrderFormPage = () => {
                         </button>
                     </div>
                     <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
                                     <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '40%' }}>รายละเอียดสินค้า</th>
@@ -465,7 +477,7 @@ const PurchaseOrderFormPage = () => {
                                 ))}
                             </tbody>
                         </table>
-</div>
+                    </div>
                 </div>
 
                 <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
@@ -529,6 +541,21 @@ const PurchaseOrderFormPage = () => {
                     </div>
                 </div>
             </form>
+
+            {isEdit && formData.created_at && (
+                <div style={{ marginTop: '1.5rem', padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', flexWrap: 'wrap', gap: '2rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Clock size={14} /> 
+                        <span>สร้างเมื่อ: {new Date(formData.created_at).toLocaleString('th-TH')}</span>
+                    </div>
+                    {formData.updated_at && formData.updated_at !== formData.created_at && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Clock size={14} /> 
+                            <span>แก้ไขล่าสุด: {new Date(formData.updated_at).toLocaleString('th-TH')}</span>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

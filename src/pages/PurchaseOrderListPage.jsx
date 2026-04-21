@@ -54,7 +54,7 @@ const PurchaseOrderListPage = () => {
         const filteredData = purchaseOrders.filter(po => {
             const matchSearch = po.po_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (po.customers?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-            
+
             const targetDate = dateFilterType === 'due_date' ? po.due_date : po.issue_date;
             const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
             const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
@@ -83,7 +83,7 @@ const PurchaseOrderListPage = () => {
     const filteredPOs = purchaseOrders.filter(po => {
         const matchSearch = po.po_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (po.customers?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-            
+
         const targetDate = dateFilterType === 'due_date' ? po.due_date : po.issue_date;
         const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
         const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
@@ -118,7 +118,7 @@ const PurchaseOrderListPage = () => {
     return (
         <div style={{ padding: '0 1rem' }}>
             <PageHeader
-                title="รายการใบสั่งซื้อ (Purchase Orders)"
+                title="รายการใบสั่งซื้อ (Purchase Orders) ของลูกค้า"
                 helpContent={HELP_CONTENT.purchaseOrders}
             >
                 <button
@@ -172,11 +172,11 @@ const PurchaseOrderListPage = () => {
 
             <ListFilter
                 filters={[
-                    { 
-                        type: 'date-range', 
-                        dateFrom, 
-                        dateTo, 
-                        onDateFromChange: setDateFrom, 
+                    {
+                        type: 'date-range',
+                        dateFrom,
+                        dateTo,
+                        onDateFromChange: setDateFrom,
                         onDateToChange: setDateTo,
                         value: dateFilterType,
                         onChange: setDateFilterType,
@@ -185,12 +185,14 @@ const PurchaseOrderListPage = () => {
                             { value: 'due_date', label: 'วันกำหนดส่ง' }
                         ]
                     },
-                    { type: 'select', label: 'สถานะ', value: statusFilter, onChange: setStatusFilter, options: [
-                        { value: '', label: 'ทั้งหมด' },
-                        { value: 'Pending', label: 'Pending' },
-                        { value: 'In Progress', label: 'In Progress' },
-                        { value: 'Completed', label: 'Completed' }
-                    ]}
+                    {
+                        type: 'select', label: 'สถานะ', value: statusFilter, onChange: setStatusFilter, options: [
+                            { value: '', label: 'ทั้งหมด' },
+                            { value: 'Pending', label: 'Pending' },
+                            { value: 'In Progress', label: 'In Progress' },
+                            { value: 'Completed', label: 'Completed' }
+                        ]
+                    }
                 ]}
                 onClear={clearFilters}
                 hasActiveFilters={!!hasActiveFilters}
@@ -198,132 +200,132 @@ const PurchaseOrderListPage = () => {
 
             <div className="glass-panel" style={{ padding: '0', overflowX: 'auto' }}>
                 <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                            <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ PO</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อลูกค้า</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>วันที่ออกเอกสาร</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>กำหนดส่ง</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>ความคืบหน้า (ชิ้น)</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>มูลค่าทั้งหมด</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {isLoading ? (
-                            <tr>
-                                <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>กำลังโหลดข้อมูล...</td>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
+                                <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
+                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ PO</th>
+                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อลูกค้า</th>
+                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>วันที่ออกเอกสาร</th>
+                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>กำหนดส่ง</th>
+                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>ความคืบหน้า (ชิ้น)</th>
+                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>มูลค่าทั้งหมด</th>
+                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
                             </tr>
-                        ) : filteredPOs.length > 0 ? (
-                            monthYearGroups.map((group) => (
-                                <React.Fragment key={group}>
-                                    <tr style={{ background: 'var(--bg-main)' }}>
-                                        <td colSpan="8" style={{ padding: '0.8rem 1.5rem', fontWeight: '600', color: 'var(--text-main)', borderBottom: '1px solid var(--border-color)', borderTop: 'none' }}>
-                                            เดือน {group}
-                                        </td>
-                                    </tr>
-                                    {groupedPOs[group].map((po) => (
-                                        <tr key={po.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s', background: 'var(--card-bg)' }}>
-                                            <td className="actions-column">
-                                                <div className="table-actions">
-                                                    {po.file_url && (
-                                                        <a
-                                                            className="action-download"
-                                                            href={po.file_url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            title="View Document File"
-                                                        >
-                                                            <Eye size={18} />
-                                                        </a>
-                                                    )}
-                                                    {hasPermission('invoices', 'create') && (
-                                                        <button
-                                                            className="action-edit"
-                                                            onClick={() => navigate('/dashboard/invoices/new', { state: { referencePoId: po.id } })}
-                                                            title="ออกใบกำกับภาษีเชื่อมโยง PO นี้"
-                                                        >
-                                                            <LinkIcon size={18} />
-                                                        </button>
-                                                    )}
-                                                    {hasPermission('invoices', 'edit') && (
-                                                        <button
-                                                            className="action-edit"
-                                                            onClick={() => navigate(`/dashboard/purchase-orders/${po.id}/edit`)}
-                                                            title="Edit"
-                                                        >
-                                                            <Edit size={18} />
-                                                        </button>
-                                                    )}
-                                                    {hasPermission('invoices', 'delete') && (
-                                                        <button
-                                                            className="action-delete"
-                                                            onClick={() => handleDelete(po.id, po.po_number)}
-                                                            title="Delete"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem', fontWeight: '600', color: '#3b82f6', fontSize: '1.1rem', fontFamily: 'monospace' }}>
-                                                {po.po_number}
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem' }}>{po.customers?.name || 'ลูกค้าทั่วไป'}</td>
-                                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>{new Date(po.issue_date).toLocaleDateString('th-TH')}</td>
-                                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
-                                                <span style={{
-                                                    color: new Date(po.due_date) < new Date() && po.status !== 'Completed' ? 'var(--danger)' : 'inherit',
-                                                    fontWeight: new Date(po.due_date) < new Date() && po.status !== 'Completed' ? '600' : 'normal'
-                                                }}>
-                                                    {po.due_date ? new Date(po.due_date).toLocaleDateString('th-TH') : '-'}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
-                                                <div style={{ fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
-                                                    <span style={{ color: po.total_delivered_quantity >= po.total_po_quantity ? 'var(--success)' : '#3b82f6', fontWeight: '600' }}>
-                                                        {po.total_delivered_quantity?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
-                                                    </span>
-                                                    <span style={{ color: 'var(--text-muted)' }}>/</span>
-                                                    <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>
-                                                        {po.total_po_quantity?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '500', color: 'var(--text-main)' }}>
-                                                ฿{po.total_po_amount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
-                                                <span style={{
-                                                    padding: '0.3rem 0.8rem',
-                                                    borderRadius: '20px',
-                                                    fontSize: '0.85rem',
-                                                    fontWeight: '500',
-                                                    whiteSpace: 'nowrap',
-                                                    background: po.status === 'Pending' ? 'rgba(245, 158, 11, 0.1)' :
-                                                        po.status === 'In Progress' ? 'rgba(59, 130, 246, 0.1)' :
-                                                            po.status === 'Completed' ? 'rgba(16, 185, 129, 0.1)' : 'var(--card-hover)',
-                                                    color: po.status === 'Pending' ? '#f59e0b' :
-                                                        po.status === 'In Progress' ? 'var(--primary)' :
-                                                            po.status === 'Completed' ? 'var(--success)' : 'var(--text-muted)'
-                                                }}>
-                                                    {po.status}
-                                                </span>
+                        </thead>
+                        <tbody>
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>กำลังโหลดข้อมูล...</td>
+                                </tr>
+                            ) : filteredPOs.length > 0 ? (
+                                monthYearGroups.map((group) => (
+                                    <React.Fragment key={group}>
+                                        <tr style={{ background: 'var(--bg-main)' }}>
+                                            <td colSpan="8" style={{ padding: '0.8rem 1.5rem', fontWeight: '600', color: 'var(--text-main)', borderBottom: '1px solid var(--border-color)', borderTop: 'none' }}>
+                                                เดือน {group}
                                             </td>
                                         </tr>
-                                    ))}
-                                </React.Fragment>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>ไม่พบรายการใบสั่งซื้อ</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-</div>
+                                        {groupedPOs[group].map((po) => (
+                                            <tr key={po.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s', background: 'var(--card-bg)' }}>
+                                                <td className="actions-column">
+                                                    <div className="table-actions">
+                                                        {po.file_url && (
+                                                            <a
+                                                                className="action-download"
+                                                                href={po.file_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                title="View Document File"
+                                                            >
+                                                                <Eye size={18} />
+                                                            </a>
+                                                        )}
+                                                        {hasPermission('invoices', 'create') && (
+                                                            <button
+                                                                className="action-edit"
+                                                                onClick={() => navigate('/dashboard/invoices/new', { state: { referencePoId: po.id } })}
+                                                                title="ออกใบกำกับภาษีเชื่อมโยง PO นี้"
+                                                            >
+                                                                <LinkIcon size={18} />
+                                                            </button>
+                                                        )}
+                                                        {hasPermission('invoices', 'edit') && (
+                                                            <button
+                                                                className="action-edit"
+                                                                onClick={() => navigate(`/dashboard/purchase-orders/${po.id}/edit`)}
+                                                                title="Edit"
+                                                            >
+                                                                <Edit size={18} />
+                                                            </button>
+                                                        )}
+                                                        {hasPermission('invoices', 'delete') && (
+                                                            <button
+                                                                className="action-delete"
+                                                                onClick={() => handleDelete(po.id, po.po_number)}
+                                                                title="Delete"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '1.2rem 1.5rem', fontWeight: '600', color: '#3b82f6', fontSize: '1.1rem', fontFamily: 'monospace' }}>
+                                                    {po.po_number}
+                                                </td>
+                                                <td style={{ padding: '1.2rem 1.5rem' }}>{po.customers?.name || 'ลูกค้าทั่วไป'}</td>
+                                                <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>{new Date(po.issue_date).toLocaleDateString('th-TH')}</td>
+                                                <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
+                                                    <span style={{
+                                                        color: new Date(po.due_date) < new Date() && po.status !== 'Completed' ? 'var(--danger)' : 'inherit',
+                                                        fontWeight: new Date(po.due_date) < new Date() && po.status !== 'Completed' ? '600' : 'normal'
+                                                    }}>
+                                                        {po.due_date ? new Date(po.due_date).toLocaleDateString('th-TH') : '-'}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
+                                                    <div style={{ fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                                                        <span style={{ color: po.total_delivered_quantity >= po.total_po_quantity ? 'var(--success)' : '#3b82f6', fontWeight: '600' }}>
+                                                            {po.total_delivered_quantity?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                                        </span>
+                                                        <span style={{ color: 'var(--text-muted)' }}>/</span>
+                                                        <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>
+                                                            {po.total_po_quantity?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '500', color: 'var(--text-main)' }}>
+                                                    ฿{po.total_po_amount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </td>
+                                                <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
+                                                    <span style={{
+                                                        padding: '0.3rem 0.8rem',
+                                                        borderRadius: '20px',
+                                                        fontSize: '0.85rem',
+                                                        fontWeight: '500',
+                                                        whiteSpace: 'nowrap',
+                                                        background: po.status === 'Pending' ? 'rgba(245, 158, 11, 0.1)' :
+                                                            po.status === 'In Progress' ? 'rgba(59, 130, 246, 0.1)' :
+                                                                po.status === 'Completed' ? 'rgba(16, 185, 129, 0.1)' : 'var(--card-hover)',
+                                                        color: po.status === 'Pending' ? '#f59e0b' :
+                                                            po.status === 'In Progress' ? 'var(--primary)' :
+                                                                po.status === 'Completed' ? 'var(--success)' : 'var(--text-muted)'
+                                                    }}>
+                                                        {po.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </React.Fragment>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>ไม่พบรายการใบสั่งซื้อ</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

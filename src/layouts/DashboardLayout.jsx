@@ -63,7 +63,7 @@ const DashboardLayout = () => {
                     {hasPermission('purchase_orders', 'view') && (
                         <NavLink to="/dashboard/purchase-orders" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                             <ShoppingCart size={20} />
-                            <span>ใบสั่งซื้อ (PO)</span>
+                            <span>ใบสั่งซื้อ (PO) ของลูกค้า</span>
                         </NavLink>
                     )}
 

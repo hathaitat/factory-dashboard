@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Printer, ArrowLeft, FileSpreadsheet, Edit, FileText } from 'lucide-react';
+import { Printer, ArrowLeft, FileSpreadsheet, Edit, FileText, Clock } from 'lucide-react';
 import { invoiceService } from '../services/invoiceService';
 import { companyService } from '../services/companyService';
 import { usePermissions } from '../hooks/usePermissions';
@@ -321,6 +321,20 @@ const InvoiceDetailPage = () => {
                         <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
                             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>({invoice.bahtText})</span>
                         </div>
+                    </div>
+
+                    <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.8rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ข้อมูลระบบ</h4>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Clock size={14} /> 
+                            <span>สร้างเมื่อ: {new Date(invoice.createdAt).toLocaleString('th-TH')}</span>
+                        </div>
+                        {invoice.updatedAt && invoice.updatedAt !== invoice.createdAt && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Clock size={14} /> 
+                                <span>แก้ไขล่าสุด: {new Date(invoice.updatedAt).toLocaleString('th-TH')}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

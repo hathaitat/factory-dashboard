@@ -289,8 +289,8 @@ const InvoiceListPage = () => {
         }
     };
 
-    const hasActiveFilters = dateFrom || dateTo || statusFilter;
-    const clearFilters = () => { setDateFrom(''); setDateTo(''); setStatusFilter(''); setDateFilterType('date'); };
+    const hasActiveFilters = dateFrom || dateTo;
+    const clearFilters = () => { setDateFrom(''); setDateTo(''); setDateFilterType('date'); };
 
     const filteredInvoices = invoices.filter(inv => {
         const matchSearch = inv.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -299,8 +299,7 @@ const InvoiceListPage = () => {
         const targetDate = dateFilterType === 'dueDate' ? inv.dueDate : inv.date;
         const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
         const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
-        const matchStatus = !statusFilter || inv.status === statusFilter;
-        return matchSearch && matchDateFrom && matchDateTo && matchStatus;
+        return matchSearch && matchDateFrom && matchDateTo;
     });
 
     // Grouping by Month/Year
@@ -398,16 +397,6 @@ const InvoiceListPage = () => {
                             { value: 'date', label: 'วันที่ออกบิล' },
                             { value: 'dueDate', label: 'วันครบกำหนด' }
                         ]
-                    },
-                    {
-                        type: 'select', label: 'สถานะ', value: statusFilter, onChange: setStatusFilter, options: [
-                            { value: '', label: 'ทั้งหมด' },
-                            { value: 'Draft', label: 'Draft' },
-                            { value: 'Issued', label: 'Issued' },
-                            { value: 'Paid', label: 'Paid' },
-                            { value: 'Overdue', label: 'Overdue' },
-                            { value: 'Cancelled', label: 'Cancelled' }
-                        ]
                     }
                 ]}
                 onClear={clearFilters}
@@ -431,7 +420,10 @@ const InvoiceListPage = () => {
                         <tbody>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>กำลังโหลดข้อมูล...</td>
+                                    <td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+                                        กำลังโหลดข้อมูล...
+                                    </td>
                                 </tr>
                             ) : filteredInvoices.length > 0 ? (
                                 monthYearGroups.map((group) => (
@@ -494,20 +486,31 @@ const InvoiceListPage = () => {
                                                     </Link>
                                                 </td>
                                                 <td style={{ padding: '1.2rem 1.5rem' }}>{inv.customerName}</td>
-                                                <td style={{ padding: '1.2rem 1.5rem', color: '#888' }}>{inv.referenceNo || '-'}</td>
+                                                <td style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)' }}>{inv.referenceNo || '-'}</td>
                                                 <td style={{ padding: '1.2rem 1.5rem' }}>{new Date(inv.date).toLocaleDateString('th-TH')}</td>
                                                 <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
                                                     ฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </td>
                                                 <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
                                                     <span style={{
-                                                        padding: '0.2rem 0.6rem',
-                                                        borderRadius: '12px',
-                                                        fontSize: '0.8rem',
-                                                        background: inv.status === 'Draft' ? 'var(--card-hover)' : inv.status === 'Pending' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-                                                        color: inv.status === 'Draft' ? 'var(--text-muted)' : inv.status === 'Pending' ? '#f59e0b' : 'var(--primary)'
+                                                        padding: '0.3rem 0.8rem',
+                                                        borderRadius: '20px',
+                                                        fontSize: '0.85rem',
+                                                        fontWeight: '500',
+                                                        whiteSpace: 'nowrap',
+                                                        background: inv.status === 'Draft' ? 'var(--card-hover)' : 
+                                                                   (inv.status === 'Sent' || inv.status === 'Pending') ? 'rgba(245, 158, 11, 0.1)' : 
+                                                                   inv.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' : 
+                                                                   inv.status === 'Cancelled' ? 'rgba(248, 113, 113, 0.1)' : 'rgba(107, 114, 128, 0.1)',
+                                                        color: inv.status === 'Draft' ? 'var(--text-muted)' : 
+                                                               (inv.status === 'Sent' || inv.status === 'Pending') ? '#f59e0b' : 
+                                                               inv.status === 'Paid' ? '#10b981' : 
+                                                               inv.status === 'Cancelled' ? '#f87171' : '#6b7280'
                                                     }}>
-                                                        {inv.status}
+                                                        {inv.status === 'Draft' ? 'Draft' : 
+                                                         (inv.status === 'Sent' || inv.status === 'Pending') ? 'Sent' : 
+                                                         inv.status === 'Paid' ? 'Paid' : 
+                                                         inv.status === 'Cancelled' ? 'Cancelled' : inv.status}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -516,7 +519,7 @@ const InvoiceListPage = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="7" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>ไม่พบรายการใบกำกับภาษี</td>
+                                    <td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>ไม่พบรายการใบกำกับภาษี</td>
                                 </tr>
                             )}
                         </tbody>

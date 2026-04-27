@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, Plus, Trash2, ArrowLeft, Search, X, UploadCloud, File, Eye, FileText, Clock } from 'lucide-react';
+import { Save, Plus, Trash2, ArrowLeft, X, UploadCloud, File, Eye, FileText, Clock } from 'lucide-react';
 import { purchaseOrderService } from '../services/purchaseOrderService';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
@@ -9,7 +9,7 @@ import { useDialog } from '../contexts/DialogContext';
 const PurchaseOrderFormPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { showAlert, showConfirm, showToast } = useDialog();
+    const { showAlert, showToast } = useDialog();
     const isEdit = !!id;
 
     const [isLoading, setIsLoading] = useState(false);
@@ -20,14 +20,14 @@ const PurchaseOrderFormPage = () => {
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
     const [uploadingFile, setUploadingFile] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
 
     const [formData, setFormData] = useState({
         po_number: '',
         issue_date: new Date().toISOString().split('T')[0],
         due_date: '',
         customer_id: '',
-        status: 'Pending',
+        status: 'Waiting',
         notes: '',
         file_url: '',
         discount: 0,
@@ -78,7 +78,7 @@ const PurchaseOrderFormPage = () => {
                         issue_date: po.issue_date,
                         due_date: po.due_date || '',
                         customer_id: po.customer_id || '',
-                        status: po.status || 'Pending',
+                        status: po.status || 'Waiting',
                         notes: po.notes || '',
                         file_url: po.file_url || '',
                         discount: po.discount || 0,
@@ -161,8 +161,7 @@ const PurchaseOrderFormPage = () => {
         calculateTotals();
     }, [formData.discount, formData.vat_rate]);
 
-    const handleFileUpload = async (e) => {
-        const file = e.target.files[0];
+    const handleFileUpload = async (file) => {
         if (!file) return;
 
         setUploadingFile(true);
@@ -176,6 +175,23 @@ const PurchaseOrderFormPage = () => {
         } finally {
             setUploadingFile(false);
         }
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file) handleFileUpload(file);
     };
 
     const handleSubmit = async (e) => {
@@ -196,7 +212,7 @@ const PurchaseOrderFormPage = () => {
             } else {
                 await purchaseOrderService.createPurchaseOrder(formData, items);
             }
-            
+
             if (formData.customer_id) {
                 const customer = customers.find(c => String(c.id) === String(formData.customer_id));
                 if (customer && customer.poNote) {
@@ -219,9 +235,9 @@ const PurchaseOrderFormPage = () => {
         <div style={{ padding: '0 1rem 2rem 1rem' }}>
             <button
                 onClick={() => navigate('/dashboard/purchase-orders')}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: '#888', cursor: 'pointer', marginBottom: '1.5rem' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '1.5rem', fontSize: '0.9rem' }}
             >
-                <ArrowLeft size={20} /> ย้อนกลับ
+                <ArrowLeft size={18} /> ย้อนกลับ
             </button>
 
             <form onSubmit={handleSubmit}>
@@ -236,15 +252,15 @@ const PurchaseOrderFormPage = () => {
                             className="glass-input"
                             style={{ padding: '0.6rem 1rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
                         >
-                            <option value="Pending">รอดำเนินการ (Pending)</option>
-                            <option value="In Progress">กำลังจัดเตรียม (In Progress)</option>
+                            <option value="Waiting">รอดำเนินการ (Waiting)</option>
+                            <option value="Progressing">กำลังดำเนินการ (Progressing)</option>
                             <option value="Completed">ส่งมอบครบแล้ว (Completed)</option>
                             <option value="Cancelled">ยกเลิก (Cancelled)</option>
                         </select>
                         <button
                             type="submit"
                             disabled={isLoading || uploadingFile}
-                            style={{ padding: '0.6rem 1.5rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
+                            style={{ padding: '0.6rem 1.5rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
                         >
                             <Save size={18} /> {isLoading ? 'กำลังบันทึก...' : 'บันทึก'}
                         </button>
@@ -257,7 +273,7 @@ const PurchaseOrderFormPage = () => {
                     </h3>
                     <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>เลขที่ใบสั่งซื้อ (PO Number) <span style={{ color: '#f87171' }}>*</span></label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เลขที่ใบสั่งซื้อ (PO Number) <span style={{ color: 'var(--error)' }}>*</span></label>
                             <input
                                 type="text"
                                 value={formData.po_number}
@@ -268,7 +284,7 @@ const PurchaseOrderFormPage = () => {
                             />
                         </div>
                         <div style={{ position: 'relative' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>เลือกลูกค้า (หรือพิมพ์ใหม่)</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เลือกลูกค้า (หรือพิมพ์ใหม่)</label>
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                                 <input
                                     type="text"
@@ -292,14 +308,14 @@ const PurchaseOrderFormPage = () => {
                                             handleCustomerChange('');
                                             setShowCustomerDropdown(false);
                                         }}
-                                        style={{ position: 'absolute', right: '12px', background: 'none', border: 'none', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px', zIndex: 2 }}
+                                        style={{ position: 'absolute', right: '12px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px', zIndex: 2 }}
                                     >
                                         <X size={16} />
                                     </button>
                                 )}
                             </div>
                             {showCustomerDropdown && (
-                                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, maxHeight: '250px', overflowY: 'auto', background: 'var(--card-hover)', zIndex: 50, border: '1px solid var(--border-color)', borderRadius: '8px', marginTop: '0.2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, maxHeight: '250px', overflowY: 'auto', background: 'var(--card-bg)', zIndex: 50, border: '1px solid var(--border-color)', borderRadius: '8px', marginTop: '0.2rem', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
                                     {customers.filter(c =>
                                         c.name?.toLowerCase().includes(customerSearch.toLowerCase()) ||
                                         c.code?.toLowerCase().includes(customerSearch.toLowerCase())
@@ -310,18 +326,19 @@ const PurchaseOrderFormPage = () => {
                                                 handleCustomerChange(c.id);
                                                 setShowCustomerDropdown(false);
                                             }}
-                                            style={{ padding: '0.7rem', cursor: 'pointer', borderBottom: '1px solid var(--border-color)', color: 'var(--text-main)' }}
-                                            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'}
+                                            style={{ padding: '0.8rem 1rem', cursor: 'pointer', borderBottom: '1px solid var(--border-color)', color: 'var(--text-main)', transition: 'background 0.2s' }}
+                                            onMouseOver={(e) => e.currentTarget.style.background = 'var(--card-hover)'}
                                             onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                                         >
-                                            {c.name} <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>({c.code})</span>
+                                            <div style={{ fontWeight: '500' }}>{c.name}</div>
+                                            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{c.code}</div>
                                         </div>
                                     ))}
                                 </div>
                             )}
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>วันที่ออกเอกสาร</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>วันที่ออกเอกสาร</label>
                             <input
                                 type="date"
                                 value={formData.issue_date}
@@ -332,7 +349,7 @@ const PurchaseOrderFormPage = () => {
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>วันกำหนดส่ง (Due Date)</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>วันกำหนดส่ง (Due Date)</label>
                             <input
                                 type="date"
                                 value={formData.due_date}
@@ -342,35 +359,45 @@ const PurchaseOrderFormPage = () => {
                             />
                         </div>
                         <div style={{ gridColumn: 'span 2' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>ไฟล์แนบ PO (PDF / รูปภาพ)</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ไฟล์แนบ PO (PDF / รูปภาพ)</label>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <label style={{
-                                    padding: '0.7rem 1rem', background: 'var(--card-hover)',
-                                    border: '1px dashed var(--border-color)', borderRadius: '8px',
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                    color: 'var(--text-main)'
-                                }}>
-                                    <UploadCloud size={18} />
-                                    {uploadingFile ? 'กำลังอัปโหลด...' : 'เลือกไฟล์/ถ่ายภาพ'}
-                                    <input type="file" style={{ display: 'none' }} onChange={handleFileUpload} accept="image/*,.pdf" />
+                                <label
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                    style={{
+                                        padding: '1.5rem', background: isDragging ? 'rgba(59, 130, 246, 0.1)' : 'var(--card-hover)',
+                                        border: `2px dashed ${isDragging ? '#3b82f6' : 'var(--border-color)'}`, borderRadius: '8px',
+                                        cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                                        color: isDragging ? '#3b82f6' : 'var(--text-main)', transition: 'all 0.2s',
+                                        width: '100%', minHeight: '100px', textAlign: 'center'
+                                    }}>
+                                    <UploadCloud size={24} style={{ color: isDragging ? '#3b82f6' : 'var(--text-muted)' }} />
+                                    <div style={{ fontSize: '0.95rem' }}>
+                                        {uploadingFile ? 'กำลังอัปโหลด...' : 'ลากไฟล์มาวางที่นี่ หรือ คลิกเพื่อเลือกไฟล์'}
+                                    </div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>รองรับ PDF และ รูปภาพ (สูงสุด 5MB)</div>
+                                    <input type="file" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e.target.files[0])} accept="image/*,.pdf" />
                                 </label>
-                                {formData.file_url && (
-                                    <a href={formData.file_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', textDecoration: 'none' }}>
-                                        <File size={18} /> ไฟล์แนบปัจจุบัน
-                                    </a>
-                                )}
                             </div>
+                            {formData.file_url && (
+                                <div style={{ marginTop: '0.5rem' }}>
+                                    <a href={formData.file_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', textDecoration: 'none', background: 'rgba(59, 130, 246, 0.1)', padding: '0.5rem 1rem', borderRadius: '6px', width: 'fit-content' }}>
+                                        <File size={18} /> ดูไฟล์แนบปัจจุบัน
+                                    </a>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
 
                 <div className="glass-panel" style={{ padding: '0', marginBottom: '1.5rem', overflow: 'hidden' }}>
                     <div style={{ padding: '1.2rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#f59e0b' }}>รายการออเดอร์</h3>
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--primary)' }}>รายการออเดอร์</h3>
                         <button
                             type="button"
                             onClick={handleAddItem}
-                            style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', color: '#f59e0b', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem' }}
+                            style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: 'var(--primary)', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem' }}
                         >
                             <Plus size={16} /> เพิ่มรายการ
                         </button>
@@ -379,11 +406,11 @@ const PurchaseOrderFormPage = () => {
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                                    <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '40%' }}>รายละเอียดสินค้า</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '15%' }}>จำนวน</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '15%' }}>หน่วย</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '15%' }}>ราคา/หน่วย <span style={{ fontSize: '0.75rem' }}>(ถ้ามี)</span></th>
-                                    <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '15%', textAlign: 'right' }}>จำนวนเงิน</th>
+                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '40%' }}>รายละเอียดสินค้า</th>
+                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%' }}>จำนวน</th>
+                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%' }}>หน่วย</th>
+                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%' }}>ราคา/หน่วย <span style={{ fontSize: '0.75rem' }}>(ถ้ามี)</span></th>
+                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%', textAlign: 'right' }}>จำนวนเงิน</th>
                                     <th style={{ padding: '1rem', width: '50px' }}></th>
                                 </tr>
                             </thead>
@@ -420,7 +447,7 @@ const PurchaseOrderFormPage = () => {
                                                             handleItemChange(index, 'unit', '');
                                                             handleItemChange(index, 'price_per_unit', 0);
                                                         }}
-                                                        style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px' }}
+                                                        style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px' }}
                                                     >
                                                         <X size={14} />
                                                     </button>
@@ -468,7 +495,7 @@ const PurchaseOrderFormPage = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => handleRemoveItem(index)}
-                                                style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.4rem' }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: '0.4rem' }}
                                             >
                                                 <Trash2 size={16} />
                                             </button>
@@ -482,7 +509,7 @@ const PurchaseOrderFormPage = () => {
 
                 <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                     <div className="glass-panel" style={{ padding: '1.5rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>รายละเอียดเพิ่มเติม / หมายเหตุ</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>รายละเอียดเพิ่มเติม / หมายเหตุ</label>
                         <textarea
                             value={formData.notes}
                             onChange={e => setFormData({ ...formData, notes: e.target.value })}
@@ -545,12 +572,12 @@ const PurchaseOrderFormPage = () => {
             {isEdit && formData.created_at && (
                 <div style={{ marginTop: '1.5rem', padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', flexWrap: 'wrap', gap: '2rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Clock size={14} /> 
+                        <Clock size={14} />
                         <span>สร้างเมื่อ: {new Date(formData.created_at).toLocaleString('th-TH')}</span>
                     </div>
                     {formData.updated_at && formData.updated_at !== formData.created_at && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Clock size={14} /> 
+                            <Clock size={14} />
                             <span>แก้ไขล่าสุด: {new Date(formData.updated_at).toLocaleString('th-TH')}</span>
                         </div>
                     )}

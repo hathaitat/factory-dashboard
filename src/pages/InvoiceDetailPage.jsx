@@ -128,11 +128,17 @@ const InvoiceDetailPage = () => {
                         padding: '0.3rem 0.8rem',
                         borderRadius: '20px',
                         fontSize: '0.9rem',
-                        background: invoice.status === 'Draft' ? 'var(--card-hover)' : 'rgba(59, 130, 246, 0.1)',
-                        color: invoice.status === 'Draft' ? 'var(--text-muted)' : 'var(--primary)',
+                        background: invoice.status === 'Draft' ? 'var(--card-hover)' : 
+                                   (invoice.status === 'Sent' || invoice.status === 'Pending') ? 'rgba(245, 158, 11, 0.1)' :
+                                   invoice.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' :
+                                   invoice.status === 'Cancelled' ? 'rgba(248, 113, 113, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                        color: invoice.status === 'Draft' ? 'var(--text-muted)' : 
+                               (invoice.status === 'Sent' || invoice.status === 'Pending') ? '#f59e0b' :
+                               invoice.status === 'Paid' ? '#10b981' :
+                               invoice.status === 'Cancelled' ? '#f87171' : 'var(--primary)',
                         marginLeft: '0.5rem'
                     }}>
-                        {invoice.status}
+                        {invoice.status === 'Pending' ? 'Sent' : invoice.status}
                     </span>
                 </div>
                 <div style={{ display: 'flex', gap: '0.8rem' }}>
@@ -296,8 +302,8 @@ const InvoiceDetailPage = () => {
                         </div>
                         {invoice.discount > 0 && (
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#aaa' }}>ส่วนลด</span>
-                                <span style={{ color: '#f87171' }}>- ฿{invoice.discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span style={{ color: 'var(--text-muted)' }}>ส่วนลด</span>
+                                <span style={{ color: 'var(--error)' }}>- ฿{invoice.discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.8rem', borderBottom: '1px solid var(--border-color)' }}>
@@ -323,7 +329,16 @@ const InvoiceDetailPage = () => {
                         </div>
                     </div>
 
-                    <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.8rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    {invoice.customerSnapshot?.deliveredBy && (
+                        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.8rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ข้อมูลการจัดส่ง</h4>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>ผู้จัดส่ง: {invoice.customerSnapshot.deliveredBy}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={{ marginTop: invoice.customerSnapshot?.deliveredBy ? '1.5rem' : '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.8rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                         <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ข้อมูลระบบ</h4>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <Clock size={14} /> 

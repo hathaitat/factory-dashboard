@@ -387,7 +387,14 @@ export const invoiceService = {
         try {
             const { data, error } = await supabase
                 .from('invoices')
-                .select('customer_id, customer_snapshot, grand_total, status')
+                .select(`
+                    id,
+                    customer_id, 
+                    customer_snapshot, 
+                    grand_total, 
+                    status,
+                    items:invoice_items(quantity)
+                `)
                 .neq('status', 'Cancelled');
 
             if (error) throw error;
@@ -398,10 +405,15 @@ export const invoiceService = {
                 const key = customerId || customerName;
 
                 if (!acc[key]) {
-                    acc[key] = { name: customerName, totalAmount: 0, orderCount: 0 };
+                    acc[key] = { name: customerName, totalAmount: 0, orderCount: 0, totalQuantity: 0 };
                 }
                 acc[key].totalAmount += Number(inv.grand_total || 0);
                 acc[key].orderCount += 1;
+                
+                // Sum up quantities from items
+                const itemQty = (inv.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+                acc[key].totalQuantity += itemQty;
+                
                 return acc;
             }, {});
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Search, Edit, Trash2, Printer, FileSpreadsheet, Eye, Link as LinkIcon } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, FileSpreadsheet, Eye, Link as LinkIcon } from 'lucide-react';
 import { purchaseOrderService } from '../services/purchaseOrderService';
 import { usePermissions } from '../hooks/usePermissions';
 import * as XLSX from 'xlsx';
@@ -77,8 +77,8 @@ const PurchaseOrderListPage = () => {
         XLSX.writeFile(wb, 'Purchase_Orders_Export.xlsx');
     };
 
-    const hasActiveFilters = dateFrom || dateTo || statusFilter;
-    const clearFilters = () => { setDateFrom(''); setDateTo(''); setStatusFilter(''); setDateFilterType('issue_date'); };
+    const hasActiveFilters = dateFrom || dateTo;
+    const clearFilters = () => { setDateFrom(''); setDateTo(''); setDateFilterType('issue_date'); };
 
     const filteredPOs = purchaseOrders.filter(po => {
         const matchSearch = po.po_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -87,8 +87,7 @@ const PurchaseOrderListPage = () => {
         const targetDate = dateFilterType === 'due_date' ? po.due_date : po.issue_date;
         const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
         const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
-        const matchStatus = !statusFilter || po.status === statusFilter;
-        return matchSearch && matchDateFrom && matchDateTo && matchStatus;
+        return matchSearch && matchDateFrom && matchDateTo;
     });
 
     // Grouping by Month/Year of issue_date
@@ -107,6 +106,13 @@ const PurchaseOrderListPage = () => {
         acc[group].push(po);
         return acc;
     }, {});
+
+    // Sort items within each group primarily by po_number (DESC)
+    Object.keys(groupedPOs).forEach(group => {
+        groupedPOs[group].sort((a, b) => {
+            return (b.po_number || '').localeCompare(a.po_number || '');
+        });
+    });
 
     // Create an ordered array of keys sorted by the latest PO in each group
     const monthYearGroups = Object.keys(groupedPOs).sort((a, b) => {
@@ -184,14 +190,6 @@ const PurchaseOrderListPage = () => {
                             { value: 'issue_date', label: 'วันที่ออกเอกสาร' },
                             { value: 'due_date', label: 'วันกำหนดส่ง' }
                         ]
-                    },
-                    {
-                        type: 'select', label: 'สถานะ', value: statusFilter, onChange: setStatusFilter, options: [
-                            { value: '', label: 'ทั้งหมด' },
-                            { value: 'Pending', label: 'Pending' },
-                            { value: 'In Progress', label: 'In Progress' },
-                            { value: 'Completed', label: 'Completed' }
-                        ]
                     }
                 ]}
                 onClear={clearFilters}
@@ -216,7 +214,10 @@ const PurchaseOrderListPage = () => {
                         <tbody>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>กำลังโหลดข้อมูล...</td>
+                                    <td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+                                        กำลังโหลดข้อมูล...
+                                    </td>
                                 </tr>
                             ) : filteredPOs.length > 0 ? (
                                 monthYearGroups.map((group) => (
@@ -304,14 +305,14 @@ const PurchaseOrderListPage = () => {
                                                         fontSize: '0.85rem',
                                                         fontWeight: '500',
                                                         whiteSpace: 'nowrap',
-                                                        background: po.status === 'Pending' ? 'rgba(245, 158, 11, 0.1)' :
-                                                            po.status === 'In Progress' ? 'rgba(59, 130, 246, 0.1)' :
+                                                        background: po.status === 'Waiting' ? 'rgba(245, 158, 11, 0.1)' :
+                                                            po.status === 'Progressing' ? 'rgba(59, 130, 246, 0.1)' :
                                                                 po.status === 'Completed' ? 'rgba(16, 185, 129, 0.1)' : 'var(--card-hover)',
-                                                        color: po.status === 'Pending' ? '#f59e0b' :
-                                                            po.status === 'In Progress' ? 'var(--primary)' :
+                                                        color: po.status === 'Waiting' ? '#f59e0b' :
+                                                            po.status === 'Progressing' ? 'var(--primary)' :
                                                                 po.status === 'Completed' ? 'var(--success)' : 'var(--text-muted)'
                                                     }}>
-                                                        {po.status}
+                                                        {po.status === 'Progressing' ? 'Production' : po.status}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -320,7 +321,7 @@ const PurchaseOrderListPage = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>ไม่พบรายการใบสั่งซื้อ</td>
+                                    <td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>ไม่พบรายการใบสั่งซื้อ</td>
                                 </tr>
                             )}
                         </tbody>

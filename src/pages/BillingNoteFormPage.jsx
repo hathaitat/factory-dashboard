@@ -240,15 +240,20 @@ const BillingNoteFormPage = () => {
         }
     };
 
-    if (isLoading) return <div style={{ padding: '2rem' }}>กำลังโหลด...</div>;
+    if (isLoading) return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', flexDirection: 'column', gap: '1rem', color: 'var(--text-muted)' }}>
+            <div className="loading-spinner"></div>
+            <span>กำลังโหลดข้อมูล...</span>
+        </div>
+    );
 
     return (
         <div style={{ padding: '0 1rem 2rem 1rem' }}>
             <button
                 onClick={() => navigate('/dashboard/billing-notes')}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: '#888', cursor: 'pointer', marginBottom: '1.5rem' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '1.5rem', fontSize: '0.9rem' }}
             >
-                <ArrowLeft size={20} /> ย้อนกลับ
+                <ArrowLeft size={18} /> ย้อนกลับ
             </button>
 
             <form onSubmit={handleSubmit}>
@@ -264,7 +269,6 @@ const BillingNoteFormPage = () => {
                             style={{ padding: '0.6rem 1rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
                         >
                             <option value="Draft">แบบร่าง (Draft)</option>
-                            <option value="Sent">ส่งแล้ว (Sent)</option>
                             <option value="Paid">ชำระเงินแล้ว (Paid)</option>
                             <option value="Cancelled">ยกเลิก (Cancelled)</option>
                         </select>
@@ -281,7 +285,7 @@ const BillingNoteFormPage = () => {
                 <div className="glass-panel" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
                     <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
                         <div style={{ position: 'relative' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>เลือกลูกค้า</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เลือกลูกค้า</label>
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                                 <input
                                     type="text"
@@ -316,7 +320,7 @@ const BillingNoteFormPage = () => {
                                             right: '12px',
                                             background: 'none',
                                             border: 'none',
-                                            color: '#888',
+                                            color: 'var(--text-muted)',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
@@ -360,7 +364,7 @@ const BillingNoteFormPage = () => {
                             )}
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>เลขที่ใบวางบิล (Auto)</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เลขที่ใบวางบิล (Auto)</label>
                             <input
                                 type="text"
                                 value={formData.billingNoteNo}
@@ -371,7 +375,7 @@ const BillingNoteFormPage = () => {
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>วันที่</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>วันที่</label>
                             <input
                                 type="date"
                                 value={formData.date}
@@ -394,9 +398,9 @@ const BillingNoteFormPage = () => {
                         </div>
                         <div style={{ maxHeight: '400px', overflowY: 'auto', padding: '1rem' }}>
                             {!formData.customerId ? (
-                                <div style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>กรุณาเลือกลูกค้าเพื่อดูรายการบิล</div>
+                                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>กรุณาเลือกลูกค้าเพื่อดูรายการบิล</div>
                             ) : availableInvoices.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>ไม่พบใบกำกับภาษีที่ยังไม่ได้วางบิลในเดือนนี้</div>
+                                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>ไม่พบใบกำกับภาษีที่ยังไม่ได้วางบิลในเดือนนี้</div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                                     {availableInvoices.map(inv => (
@@ -410,7 +414,7 @@ const BillingNoteFormPage = () => {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div style={{ fontSize: '0.85rem', color: '#888', marginTop: '0.2rem' }}>วันที่: {new Date(inv.date).toLocaleDateString('th-TH')}</div>
+                                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>วันที่: {new Date(inv.date).toLocaleDateString('th-TH')}</div>
                                                 <div style={{ fontWeight: '500', color: 'var(--success)', marginTop: '0.2rem' }}>฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                             </div>
                                             <button
@@ -439,9 +443,9 @@ const BillingNoteFormPage = () => {
 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead>
                                     <tr style={{ background: 'var(--card-hover)', textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
-                                        <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: '#888' }}>เลขที่บิล</th>
-                                        <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: '#888' }}>วันที่</th>
-                                        <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: '#888', textAlign: 'right' }}>จำนวนเงิน</th>
+                                        <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>เลขที่บิล</th>
+                                        <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>วันที่</th>
+                                        <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>จำนวนเงิน</th>
                                         <th style={{ padding: '0.8rem', width: '40px' }}></th>
                                     </tr>
                                 </thead>
@@ -467,7 +471,7 @@ const BillingNoteFormPage = () => {
                                     ))}
                                     {selectedInvoices.length === 0 && (
                                         <tr>
-                                            <td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>ยังไม่พบรายการที่เลือก</td>
+                                            <td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>ยังไม่พบรายการที่เลือก</td>
                                         </tr>
                                     )}
                                 </tbody>
@@ -475,14 +479,14 @@ const BillingNoteFormPage = () => {
 </div>
                         </div>
                         <div style={{ padding: '1.2rem 1.5rem', borderTop: '2px solid var(--border-color)', background: 'var(--bg-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontWeight: '600', color: '#888' }}>รวมทั้งสิ้น</span>
+                            <span style={{ fontWeight: '600', color: 'var(--text-muted)' }}>รวมทั้งสิ้น</span>
                             <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--success)' }}>฿{formData.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                     </div>
                 </div>
 
                 <div className="glass-panel" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>หมายเหตุ</label>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>หมายเหตุ</label>
                     <textarea
                         value={formData.notes}
                         onChange={e => setFormData({ ...formData, notes: e.target.value })}

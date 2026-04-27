@@ -40,13 +40,13 @@ const PurchaseOrderFormPage = React.lazy(() => import('./pages/PurchaseOrderForm
 const QuotationListPage = React.lazy(() => import('./pages/QuotationListPage'));
 const QuotationFormPage = React.lazy(() => import('./pages/QuotationFormPage'));
 const QuotationPrintTemplate = React.lazy(() => import('./components/QuotationPrintTemplate'));
+const GuidePage = React.lazy(() => import('./pages/GuidePage'));
 // Loading fallback component
 const PageLoader = () => (
-  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#6b7280' }}>
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--text-muted)', background: 'var(--bg-main)' }}>
     <div style={{ textAlign: 'center' }}>
-      <div style={{ width: '40px', height: '40px', border: '3px solid #e5e7eb', borderTop: '3px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }}></div>
-      <p>กำลังโหลด...</p>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div className="loading-spinner" style={{ margin: '0 auto 12px', width: '40px', height: '40px' }}></div>
+      <p style={{ fontWeight: '500' }}>กำลังโหลด...</p>
     </div>
   </div>
 );
@@ -175,6 +175,9 @@ function App() {
                     {/* Production Module */}
                     <Route element={<PermissionRoute module="production" action="view" />}>
                       <Route path="production" element={<div style={{ padding: '2rem' }}><h2>ข้อมูลการผลิต (เร็วๆ นี้)</h2></div>} />
+                    </Route>
+                    <Route element={<PermissionRoute module="overview" action="view" />}>
+                      <Route path="guide" element={<GuidePage />} />
                     </Route>
                   </Route>
 

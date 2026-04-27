@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Activity, Settings, LogOut, Hexagon, Users, Building, Shield, FileText, Menu, X, Clock, ShoppingCart } from 'lucide-react';
+import { LayoutDashboard, Activity, Settings, LogOut, Hexagon, Users, Building, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle } from 'lucide-react';
 import { userService } from '../services/userService';
 import { usePermissions } from '../hooks/usePermissions';
 import '../styles/DashboardLayout.css';
@@ -84,11 +84,11 @@ const DashboardLayout = () => {
                     {hasPermission('billing', 'view') && (
                         <>
                             <NavLink to="/dashboard/billing-notes" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                                <FileText size={20} />
+                                <FileSymlink size={20} />
                                 <span>ใบวางบิล</span>
                             </NavLink>
                             <NavLink to="/dashboard/receipts" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                                <FileText size={20} />
+                                <DollarSign size={20} />
                                 <span>ใบเสร็จรับเงิน (Receipt)</span>
                             </NavLink>
                         </>
@@ -142,10 +142,16 @@ const DashboardLayout = () => {
                     )}
 
                     {hasPermission('settings', 'view') && (
-                        <NavLink to="/dashboard/settings" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                            <Settings size={20} />
-                            <span>ตั้งค่า</span>
-                        </NavLink>
+                        <>
+                            <NavLink to="/dashboard/guide" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <HelpCircle size={20} />
+                                <span>คู่มือใช้งาน</span>
+                            </NavLink>
+                            <NavLink to="/dashboard/settings" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <Settings size={20} />
+                                <span>ตั้งค่า</span>
+                            </NavLink>
+                        </>
                     )}
                 </nav>
 

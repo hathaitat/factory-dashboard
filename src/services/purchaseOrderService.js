@@ -322,12 +322,12 @@ export const purchaseOrderService = {
             }
 
             // 4. Determine new status
-            let newStatus = 'Pending';
+            let newStatus = 'Waiting';
             if (totalInvoicedQuantity > 0) {
                 if (totalInvoicedQuantity >= totalPOQuantity) {
                     newStatus = 'Completed';
                 } else {
-                    newStatus = 'In Progress';
+                    newStatus = 'Progressing';
                 }
             }
 

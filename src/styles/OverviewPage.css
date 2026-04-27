@@ -2,6 +2,93 @@
     padding: 0.5rem 1rem 2rem 1rem;
 }
 
+/* Dashboard Tab Bar */
+.dashboard-tab-bar {
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.dashboard-tab-scroll {
+    display: flex;
+    gap: 0.35rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.dashboard-tab-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.dashboard-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.65rem 1rem;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s ease;
+    border-radius: 6px 6px 0 0;
+}
+
+.dashboard-tab:hover {
+    color: var(--text-main);
+    background: var(--card-hover);
+}
+
+.dashboard-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: rgba(59, 130, 246, 0.05);
+    font-weight: 600;
+}
+
+.dashboard-tab.active svg {
+    color: var(--primary);
+}
+
+/* Tab Content */
+.tab-content {
+    animation: tabFadeIn 0.3s ease;
+}
+
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.tab-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 3rem;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.tab-loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border-color);
+    border-top: 2px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 .overview-header {
     display: flex;
     justify-content: space-between;

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Search, FileText, Edit, Trash2, Printer, FileSpreadsheet, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Search, Edit, Trash2, Printer, FileSpreadsheet, Eye } from 'lucide-react';
 import { quotationService } from '../services/quotationService';
-import { companyService } from '../services/companyService';
 import { usePermissions } from '../hooks/usePermissions';
 import XLSX from 'xlsx-js-style';
 import { useDialog } from '../contexts/DialogContext';
@@ -90,18 +89,17 @@ const QuotationListPage = () => {
         }
     };
 
-    const hasActiveFilters = dateFrom || dateTo || statusFilter;
-    const clearFilters = () => { setDateFrom(''); setDateTo(''); setStatusFilter(''); setDateFilterType('date'); };
+    const hasActiveFilters = dateFrom || dateTo;
+    const clearFilters = () => { setDateFrom(''); setDateTo(''); setDateFilterType('date'); };
 
     const filteredQuotations = quotations.filter(qt => {
         const matchSearch = qt.quotationNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (qt.customerName || '').toLowerCase().includes(searchTerm.toLowerCase());
-        
+
         const targetDate = qt.date; // Only one date type for quotes
         const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
         const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
-        const matchStatus = !statusFilter || qt.status === statusFilter;
-        return matchSearch && matchDateFrom && matchDateTo && matchStatus;
+        return matchSearch && matchDateFrom && matchDateTo;
     });
 
     const groupedQuotations = filteredQuotations.reduce((acc, qt) => {
@@ -120,14 +118,28 @@ const QuotationListPage = () => {
     });
 
     const getStatusBlock = (status) => {
-        switch (status) {
-            case 'Draft': return <span style={{ background: '#f1f5f9', color: '#64748b', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.85rem' }}>Draft</span>;
-            case 'Sent': return <span style={{ background: '#dbeafe', color: '#3b82f6', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.85rem' }}>Sent</span>;
-            case 'Approved': return <span style={{ background: '#dcfce7', color: '#10b981', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.85rem' }}>Approved</span>;
-            case 'Rejected': return <span style={{ background: '#fee2e2', color: '#ef4444', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.85rem' }}>Rejected</span>;
-            case 'Cancelled': return <span style={{ background: '#f3f4f6', color: '#9ca3af', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.85rem' }}>Cancelled</span>;
-            default: return <span style={{ background: '#f1f5f9', color: '#64748b', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.85rem' }}>{status}</span>;
-        }
+        const styles = {
+            Draft: { background: 'var(--card-hover)', color: 'var(--text-muted)' },
+            Sent: { background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' },
+            Approved: { background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)' },
+            Rejected: { background: 'rgba(248, 113, 113, 0.1)', color: 'var(--error)' },
+            Cancelled: { background: 'var(--card-hover)', color: 'var(--text-muted)' }
+        };
+
+        const currentStyle = styles[status] || styles.Draft;
+
+        return (
+            <span style={{
+                padding: '0.3rem 0.8rem',
+                borderRadius: '20px',
+                fontSize: '0.85rem',
+                fontWeight: '500',
+                whiteSpace: 'nowrap',
+                ...currentStyle
+            }}>
+                {status}
+            </span>
+        );
     };
 
     return (
@@ -209,20 +221,6 @@ const QuotationListPage = () => {
                         options: [
                             { value: 'date', label: 'วันที่เอกสาร' }
                         ]
-                    },
-                    {
-                        type: 'select',
-                        label: 'สถานะ',
-                        value: statusFilter,
-                        onChange: setStatusFilter,
-                        options: [
-                            { value: '', label: 'ทั้งหมด' },
-                            { value: 'Draft', label: 'Draft' },
-                            { value: 'Sent', label: 'Sent' },
-                            { value: 'Approved', label: 'Approved' },
-                            { value: 'Rejected', label: 'Rejected' },
-                            { value: 'Cancelled', label: 'Cancelled' }
-                        ]
                     }
                 ]}
                 onClear={clearFilters}
@@ -245,7 +243,8 @@ const QuotationListPage = () => {
                         <tbody>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    <td colSpan="5" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
                                         กำลังโหลดข้อมูล...
                                     </td>
                                 </tr>
@@ -289,7 +288,7 @@ const QuotationListPage = () => {
                                                             <Edit size={18} />
                                                         </button>
                                                         {hasPermission('invoices', 'delete') && (
-                                                            <button 
+                                                            <button
                                                                 className="action-delete"
                                                                 onClick={() => handleDelete(qt.id, qt.quotationNo)}
                                                                 title="Delete"

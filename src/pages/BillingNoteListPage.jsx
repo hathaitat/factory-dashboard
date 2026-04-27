@@ -233,8 +233,8 @@ const BillingNoteListPage = () => {
         }
     };
 
-    const hasActiveFilters = dateFrom || dateTo || statusFilter;
-    const clearFilters = () => { setDateFrom(''); setDateTo(''); setStatusFilter(''); setDateFilterType('date'); };
+    const hasActiveFilters = dateFrom || dateTo;
+    const clearFilters = () => { setDateFrom(''); setDateTo(''); setDateFilterType('date'); };
 
     const filteredNotes = billingNotes.filter(bn => {
         const matchSearch = bn.billingNoteNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -243,8 +243,7 @@ const BillingNoteListPage = () => {
         const targetDate = bn.date;
         const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
         const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
-        const matchStatus = !statusFilter || bn.status === statusFilter;
-        return matchSearch && matchDateFrom && matchDateTo && matchStatus;
+        return matchSearch && matchDateFrom && matchDateTo;
     });
 
     // Grouping by Month/Year
@@ -330,12 +329,7 @@ const BillingNoteListPage = () => {
                         value: dateFilterType,
                         onChange: setDateFilterType,
                         options: [{ value: 'date', label: 'วันที่เอกสาร' }]
-                    },
-                    { type: 'select', label: 'สถานะ', value: statusFilter, onChange: setStatusFilter, options: [
-                        { value: '', label: 'ทั้งหมด' },
-                        { value: 'Draft', label: 'Draft' },
-                        { value: 'Sent', label: 'Sent' }
-                    ]}
+                    }
                 ]}
                 onClear={clearFilters}
                 hasActiveFilters={!!hasActiveFilters}
@@ -357,7 +351,10 @@ const BillingNoteListPage = () => {
                     <tbody>
                         {isLoading ? (
                             <tr>
-                                <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>กำลังโหลดข้อมูล...</td>
+                                <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+                                    กำลังโหลดข้อมูล...
+                                </td>
                             </tr>
                         ) : filteredNotes.length > 0 ? (
                             monthYearGroups.map((group) => (
@@ -417,13 +414,18 @@ const BillingNoteListPage = () => {
                                             </td>
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
                                                 <span style={{
-                                                    padding: '0.2rem 0.6rem',
-                                                    borderRadius: '12px',
-                                                    fontSize: '0.8rem',
-                                                    background: bn.status === 'Draft' ? 'var(--card-hover)' : 'rgba(59, 130, 246, 0.1)',
-                                                    color: bn.status === 'Draft' ? 'var(--text-muted)' : 'var(--primary)'
+                                                    padding: '0.3rem 0.8rem',
+                                                    borderRadius: '20px',
+                                                    fontSize: '0.85rem',
+                                                    fontWeight: '500',
+                                                    whiteSpace: 'nowrap',
+                                                    background: bn.status === 'Draft' ? 'var(--card-hover)' : 
+                                                               bn.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(248, 113, 113, 0.1)',
+                                                    color: bn.status === 'Draft' ? 'var(--text-muted)' : 
+                                                           bn.status === 'Paid' ? '#10b981' : '#f87171'
                                                 }}>
-                                                    {bn.status}
+                                                    {bn.status === 'Draft' ? 'Draft' : 
+                                                     bn.status === 'Paid' ? 'Paid' : 'Cancelled'}
                                                 </span>
                                             </td>
                                         </tr>
@@ -432,7 +434,7 @@ const BillingNoteListPage = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>ไม่พบรายการใบวางบิล</td>
+                                <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>ไม่พบรายการใบวางบิล</td>
                             </tr>
                         )}
                     </tbody>

@@ -40,7 +40,8 @@ const InvoiceFormPage = () => {
         vatAmount: 0,
         grandTotal: 0,
         bahtText: '',
-        status: 'Draft'
+        status: 'Draft',
+        deliveredBy: ''
     });
 
     const [items, setItems] = useState([
@@ -92,7 +93,8 @@ const InvoiceFormPage = () => {
                         ...inv,
                         date: inv.date,
                         dueDate: inv.dueDate,
-                        adjustments: inv.adjustments || []
+                        adjustments: inv.adjustments || [],
+                        deliveredBy: inv.customerSnapshot?.deliveredBy || ''
                     });
                     setItems(inv.items);
                     if (inv.customerId) {
@@ -297,8 +299,9 @@ const InvoiceFormPage = () => {
                     phone: selectedCustomer.phone,
                     fax: selectedCustomer.fax,
                     address: selectedCustomer.address,
-                    creditTerm: selectedCustomer.creditTerm
-                } : formData.customerSnapshot
+                    creditTerm: selectedCustomer.creditTerm,
+                    deliveredBy: formData.deliveredBy
+                } : { ...formData.customerSnapshot, deliveredBy: formData.deliveredBy }
             };
 
             if (isEdit) {
@@ -365,9 +368,9 @@ const InvoiceFormPage = () => {
         <div style={{ padding: '0 1rem 2rem 1rem' }}>
             <button
                 onClick={() => navigate('/dashboard/invoices')}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: '#888', cursor: 'pointer', marginBottom: '1.5rem' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '1.5rem', fontSize: '0.9rem' }}
             >
-                <ArrowLeft size={20} /> ย้อนกลับ
+                <ArrowLeft size={18} /> ย้อนกลับ
             </button>
 
             <form onSubmit={handleSubmit}>
@@ -383,8 +386,7 @@ const InvoiceFormPage = () => {
                             style={{ padding: '0.6rem 1rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
                         >
                             <option value="Draft">แบบร่าง (Draft)</option>
-                            <option value="Pending">ใบวางบิล (Pending)</option>
-                            <option value="Sent">ส่งแล้ว (Sent)</option>
+                            <option value="Sent">ใบวางบิล (Sent)</option>
                             <option value="Paid">ชำระเงินแล้ว (Paid)</option>
                             <option value="Cancelled">ยกเลิก (Cancelled)</option>
                         </select>
@@ -401,7 +403,7 @@ const InvoiceFormPage = () => {
                 <div className="glass-panel" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
                     <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
                         <div style={{ position: 'relative' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>เลือกลูกค้า</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เลือกลูกค้า</label>
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                                 <input
                                     type="text"
@@ -430,7 +432,7 @@ const InvoiceFormPage = () => {
                                             right: '12px',
                                             background: 'none',
                                             border: 'none',
-                                            color: '#888',
+                                            color: 'var(--text-muted)',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
@@ -444,7 +446,7 @@ const InvoiceFormPage = () => {
                                 )}
                             </div>
                             {showCustomerDropdown && (
-                                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, maxHeight: '250px', overflowY: 'auto', background: 'var(--card-hover)', zIndex: 50, border: '1px solid var(--border-color)', borderRadius: '8px', marginTop: '0.2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, maxHeight: '250px', overflowY: 'auto', background: 'var(--card-bg)', zIndex: 50, border: '1px solid var(--border-color)', borderRadius: '8px', marginTop: '0.2rem', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
                                     {customers.filter(c =>
                                         c.name?.toLowerCase().includes(customerSearch.toLowerCase()) ||
                                         c.code?.toLowerCase().includes(customerSearch.toLowerCase())
@@ -455,11 +457,12 @@ const InvoiceFormPage = () => {
                                                 handleCustomerChange(c.id);
                                                 setShowCustomerDropdown(false);
                                             }}
-                                            style={{ padding: '0.7rem', cursor: 'pointer', borderBottom: '1px solid var(--border-color)', color: 'var(--text-main)' }}
-                                            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'}
+                                            style={{ padding: '0.8rem 1rem', cursor: 'pointer', borderBottom: '1px solid var(--border-color)', color: 'var(--text-main)', transition: 'background 0.2s' }}
+                                            onMouseOver={(e) => e.currentTarget.style.background = 'var(--card-hover)'}
                                             onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                                         >
-                                            {c.name} <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>({c.code})</span>
+                                            <div style={{ fontWeight: '500' }}>{c.name}</div>
+                                            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{c.code}</div>
                                         </div>
                                     ))}
                                     {customers.filter(c => c.name?.toLowerCase().includes(customerSearch.toLowerCase()) || c.code?.toLowerCase().includes(customerSearch.toLowerCase())).length === 0 && (
@@ -469,7 +472,7 @@ const InvoiceFormPage = () => {
                             )}
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>เลขที่ใบกำกับ</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เลขที่ใบกำกับ</label>
                             <input
                                 type="text"
                                 value={formData.invoiceNo}
@@ -480,7 +483,7 @@ const InvoiceFormPage = () => {
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>วันที่</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>วันที่</label>
                             <input
                                 type="date"
                                 value={formData.date}
@@ -491,7 +494,7 @@ const InvoiceFormPage = () => {
                             />
                         </div>
                         <div style={{ position: 'relative' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                                 เลขอ้างอิง (PO No.)
                             </label>
                             <select
@@ -554,7 +557,7 @@ const InvoiceFormPage = () => {
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>เครดิต (วัน)</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เครดิต (วัน)</label>
                             <input
                                 type="number"
                                 value={formData.creditDays}
@@ -564,7 +567,7 @@ const InvoiceFormPage = () => {
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>วันครบกำหนด</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>วันครบกำหนด</label>
                             <input
                                 type="date"
                                 value={formData.dueDate}
@@ -573,16 +576,27 @@ const InvoiceFormPage = () => {
                                 style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-muted)', border: '1px solid var(--border-color)', opacity: 0.7 }}
                             />
                         </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ผู้จัดส่ง (ไม่บังคับ)</label>
+                            <input
+                                type="text"
+                                value={formData.deliveredBy || ''}
+                                onChange={e => setFormData({ ...formData, deliveredBy: e.target.value })}
+                                placeholder="ชื่อพนักงานหรือผู้ส่งมอบ"
+                                className="glass-input"
+                                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                            />
+                        </div>
                     </div>
                 </div>
 
                 <div className="glass-panel" style={{ padding: '0', marginBottom: '1.5rem', overflow: 'hidden' }}>
                     <div style={{ padding: '1.2rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#f59e0b' }}>รายการสินค้า</h3>
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--primary)' }}>รายการสินค้า</h3>
                         <button
                             type="button"
                             onClick={handleAddItem}
-                            style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', color: '#f59e0b', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem' }}
+                            style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: 'var(--primary)', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem' }}
                         >
                             <Plus size={16} /> เพิ่มรายการ
                         </button>
@@ -591,11 +605,11 @@ const InvoiceFormPage = () => {
 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                                    <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '40%' }}>รายละเอียดสินค้า</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '15%' }}>จำนวน</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '15%' }}>หน่วย</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '15%' }}>ราคา/หน่วย</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '15%', textAlign: 'right' }}>จำนวนเงิน</th>
+                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '40%' }}>รายละเอียดสินค้า</th>
+                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%' }}>จำนวน</th>
+                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%' }}>หน่วย</th>
+                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%' }}>ราคา/หน่วย</th>
+                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%', textAlign: 'right' }}>จำนวนเงิน</th>
                                     <th style={{ padding: '1rem', width: '50px' }}></th>
                                 </tr>
                             </thead>
@@ -637,7 +651,7 @@ const InvoiceFormPage = () => {
                                                             right: '8px',
                                                             background: 'none',
                                                             border: 'none',
-                                                            color: '#888',
+                                                            color: 'var(--text-muted)',
                                                             cursor: 'pointer',
                                                             display: 'flex',
                                                             alignItems: 'center',
@@ -686,7 +700,7 @@ const InvoiceFormPage = () => {
                                             />
                                         </td>
                                         <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right', fontWeight: '500' }}>
-                                            <div style={{ marginBottom: '0.2rem', fontSize: '0.9rem', color: '#888' }}>
+                                            <div style={{ marginBottom: '0.2rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                                                 {item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}
                                             </div>
                                             ฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -695,7 +709,7 @@ const InvoiceFormPage = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => handleRemoveItem(index)}
-                                                style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '0.4rem' }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: '0.4rem' }}
                                             >
                                                 <Trash2 size={16} />
                                             </button>
@@ -709,7 +723,7 @@ const InvoiceFormPage = () => {
 
                 <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                     <div className="glass-panel" style={{ padding: '1.5rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>หมายเหตุ</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>หมายเหตุ</label>
                         <textarea
                             value={formData.notes}
                             onChange={e => setFormData({ ...formData, notes: e.target.value })}
@@ -726,11 +740,11 @@ const InvoiceFormPage = () => {
                     <div className="glass-panel" style={{ padding: '1.5rem' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ color: '#888' }}>รวมเป็นเงิน (Subtotal)</span>
-                                <span style={{ fontSize: '1.1rem' }}>฿{formData.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span style={{ color: 'var(--text-muted)' }}>รวมเป็นเงิน (Subtotal)</span>
+                                <span style={{ fontSize: '1.1rem', color: 'var(--text-main)' }}>฿{formData.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ color: '#888' }}>หักส่วนลด</span>
+                                <span style={{ color: 'var(--text-muted)' }}>หักส่วนลด</span>
                                 <input
                                     type="number"
                                     value={formData.discount}
@@ -741,7 +755,7 @@ const InvoiceFormPage = () => {
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span style={{ color: '#888' }}>ภาษีมูลค่าเพิ่ม (VAT)</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>ภาษีมูลค่าเพิ่ม (VAT)</span>
                                     <input
                                         type="number"
                                         value={formData.vatRate}
@@ -749,9 +763,9 @@ const InvoiceFormPage = () => {
                                         className="glass-input"
                                         style={{ width: '50px', padding: '0.2rem', textAlign: 'center', background: 'var(--bg-main)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '0.8rem' }}
                                     />
-                                    <span style={{ color: '#888' }}>%</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>%</span>
                                 </div>
-                                <span>฿{formData.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span style={{ color: 'var(--text-main)' }}>฿{formData.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
 
@@ -759,7 +773,7 @@ const InvoiceFormPage = () => {
                         <div style={{ marginTop: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                 <span style={{ fontSize: '0.85rem', color: '#f59e0b' }}>รายการปรับปรุงพิเศษ (บวก/ลบ)</span>
-                                <button type="button" onClick={handleAddAdjustment} style={{ background: 'none', border: 'none', color: '#f59e0b', cursor: 'pointer', fontSize: '0.8rem' }}>+ เพิ่มช่อง</button>
+                                <button type="button" onClick={handleAddAdjustment} style={{ background: 'none', border: 'none', color: '#f59e0b', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '500' }}>+ เพิ่มช่อง</button>
                             </div>
                             {formData.adjustments?.map((adj, idx) => (
                                 <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
@@ -778,7 +792,7 @@ const InvoiceFormPage = () => {
                                         className="glass-panel"
                                         style={{ flex: 1, padding: '0.3rem', fontSize: '0.85rem', textAlign: 'right', background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)' }}
                                     />
-                                    <button type="button" onClick={() => handleRemoveAdjustment(idx)} style={{ color: '#f87171', background: 'none', border: 'none', cursor: 'pointer' }}><X size={14} /></button>
+                                    <button type="button" onClick={() => handleRemoveAdjustment(idx)} style={{ color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer' }}><X size={14} /></button>
                                 </div>
                             ))}
                         </div>

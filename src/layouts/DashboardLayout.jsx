@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Activity, Settings, LogOut, Hexagon, Users, Building, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, Activity, Settings, LogOut, Hexagon, Users, Building, Building2, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle, Truck, Package } from 'lucide-react';
 import { userService } from '../services/userService';
 import { usePermissions } from '../hooks/usePermissions';
 import '../styles/DashboardLayout.css';
@@ -105,7 +105,7 @@ const DashboardLayout = () => {
                         <>
                             <NavLink to="/dashboard/customers" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                                 <Users size={20} />
-                                <span>ลูกค้า</span>
+                                <span>ลูกค้า (Customers)</span>
                             </NavLink>
                             <NavLink to="/dashboard/certificates" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                                 <Shield size={20} />
@@ -114,10 +114,25 @@ const DashboardLayout = () => {
                         </>
                     )}
 
-                    {hasPermission('users', 'view') && (
-                        <NavLink to="/dashboard/users" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                            <Shield size={20} />
-                            <span>สิทธิ์การใช้งาน</span>
+                    {hasPermission('suppliers', 'view') && (
+                        <>
+                            <NavLink to="/dashboard/suppliers" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <Truck size={20} />
+                                <span>ผู้ขาย (Suppliers)</span>
+                            </NavLink>
+                            <NavLink to="/dashboard/supplier-pos" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <ShoppingCart size={20} />
+                                <span>ใบสั่งซื้อจากผู้ขาย (Vendor PO)</span>
+                            </NavLink>
+                        </>
+                    )}
+
+
+
+                    {hasPermission('settings', 'view') && (
+                        <NavLink to="/dashboard/warehouses" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                            <Package size={20} />
+                            <span>คลังสินค้า (Warehouse)</span>
                         </NavLink>
                     )}
 
@@ -140,7 +155,12 @@ const DashboardLayout = () => {
                             </NavLink>
                         </>
                     )}
-
+                    {hasPermission('users', 'view') && (
+                        <NavLink to="/dashboard/users" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                            <Shield size={20} />
+                            <span>สิทธิ์การใช้งาน</span>
+                        </NavLink>
+                    )}
                     {hasPermission('settings', 'view') && (
                         <>
                             <NavLink to="/dashboard/guide" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>

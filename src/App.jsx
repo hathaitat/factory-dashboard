@@ -41,6 +41,16 @@ const QuotationListPage = React.lazy(() => import('./pages/QuotationListPage'));
 const QuotationFormPage = React.lazy(() => import('./pages/QuotationFormPage'));
 const QuotationPrintTemplate = React.lazy(() => import('./components/QuotationPrintTemplate'));
 const GuidePage = React.lazy(() => import('./pages/GuidePage'));
+const SupplierListPage = React.lazy(() => import('./pages/SupplierListPage'));
+const SupplierCreatePage = React.lazy(() => import('./pages/SupplierCreatePage'));
+const SupplierEditPage = React.lazy(() => import('./pages/SupplierEditPage'));
+const SupplierDetailPage = React.lazy(() => import('./pages/SupplierDetailPage'));
+const SupplierPoListPage = React.lazy(() => import('./pages/SupplierPoListPage'));
+const SupplierPoFormPage = React.lazy(() => import('./pages/SupplierPoFormPage'));
+const SupplierPoDetailPage = React.lazy(() => import('./pages/SupplierPoDetailPage'));
+const SupplierPoPrintPage = React.lazy(() => import('./pages/SupplierPoPrintPage'));
+const WarehouseListPage = React.lazy(() => import('./pages/WarehouseListPage'));
+const WarehouseDetailPage = React.lazy(() => import('./pages/WarehouseDetailPage'));
 // Loading fallback component
 const PageLoader = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--text-muted)', background: 'var(--bg-main)' }}>
@@ -82,6 +92,35 @@ function App() {
                     </Route>
                     <Route element={<PermissionRoute module="customers" action="edit" />}>
                       <Route path="customers/:id/edit" element={<CustomerEditPage />} />
+                    </Route>
+
+                    {/* Suppliers Module */}
+                    <Route element={<PermissionRoute module="suppliers" action="view" />}>
+                      <Route path="suppliers" element={<SupplierListPage />} />
+                      <Route path="suppliers/:id" element={<SupplierDetailPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="suppliers" action="create" />}>
+                      <Route path="suppliers/new" element={<SupplierCreatePage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="suppliers" action="edit" />}>
+                      <Route path="suppliers/:id/edit" element={<SupplierEditPage />} />
+                    </Route>
+                    
+                    <Route element={<PermissionRoute module="suppliers" action="view" />}>
+                      <Route path="supplier-pos" element={<SupplierPoListPage />} />
+                      <Route path="supplier-pos/:id" element={<SupplierPoDetailPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="suppliers" action="create" />}>
+                      <Route path="supplier-pos/new" element={<SupplierPoFormPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="suppliers" action="edit" />}>
+                      <Route path="supplier-pos/:id/edit" element={<SupplierPoFormPage />} />
+                    </Route>
+
+                    {/* Warehouse Module */}
+                    <Route element={<PermissionRoute module="settings" action="view" />}>
+                      <Route path="warehouses" element={<WarehouseListPage />} />
+                      <Route path="warehouses/:id" element={<WarehouseDetailPage />} />
                     </Route>
 
                     {/* Certificates Module */}
@@ -189,6 +228,9 @@ function App() {
                   <Route element={<PermissionRoute module="billing" action="view" />}>
                     <Route path="/dashboard/billing-notes/:id/print" element={<BillingNotePrintTemplate />} />
                     <Route path="/dashboard/billing-notes/:id/print-receipt" element={<ReceiptPrintTemplate />} />
+                  </Route>
+                  <Route element={<PermissionRoute module="suppliers" action="view" />}>
+                    <Route path="/dashboard/supplier-pos/:id/print" element={<SupplierPoPrintPage />} />
                   </Route>
                 </Route>
 

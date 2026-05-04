@@ -1,6 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, FileText, Receipt, Users, Clock, HelpCircle, Calendar as CalendarIcon } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, FileText, Receipt, Users, Clock, HelpCircle, Calendar as CalendarIcon, Truck } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import '../styles/OverviewPage.css';
@@ -15,6 +15,7 @@ const ReceiptTab = lazy(() => import('../components/dashboard/ReceiptTab'));
 const CustomerTab = lazy(() => import('../components/dashboard/CustomerTab'));
 const EmployeeTab = lazy(() => import('../components/dashboard/EmployeeTab'));
 const CalendarTab = lazy(() => import('../components/dashboard/CalendarTab'));
+const SupplierTab = lazy(() => import('../components/dashboard/SupplierTab'));
 
 const TabLoader = () => (
     <div className="tab-loading">
@@ -31,6 +32,7 @@ const TABS = [
     { id: 'billing', label: 'ใบวางบิล', icon: FileText, module: 'billing', action: 'view' },
     { id: 'receipt', label: 'ใบเสร็จ', icon: Receipt, module: 'billing', action: 'view' },
     { id: 'customer', label: 'ลูกค้า', icon: Users, module: 'customers', action: 'view' },
+    { id: 'supplier', label: 'ผู้ขาย', icon: Truck, module: 'suppliers', action: 'view' },
     { id: 'employee', label: 'พนักงาน', icon: Clock, module: 'employees', action: 'view' },
     { id: 'calendar', label: 'ปฏิทินงาน', icon: CalendarIcon, module: 'purchase_orders', action: 'view' },
 ];
@@ -59,6 +61,7 @@ const OverviewPage = () => {
             case 'billing': return <BillingNoteTab />;
             case 'receipt': return <ReceiptTab />;
             case 'customer': return <CustomerTab />;
+            case 'supplier': return <SupplierTab />;
             case 'employee': return <EmployeeTab />;
             case 'calendar': return <CalendarTab />;
             default: return <OverviewTab />;

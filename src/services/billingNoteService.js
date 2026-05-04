@@ -273,7 +273,8 @@ export const billingNoteService = {
         try {
             // First get all invoices for this customer and month
             const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-            const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+            const lastDay = new Date(year, month, 0).getDate();
+            const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
 
             let query = supabase
                 .from('invoices')

@@ -8,6 +8,8 @@ const MODULES = [
     { id: 'overview', label: 'ภาพรวม (Dashboard)' },
     { id: 'customers', label: 'ข้อมูลลูกค้า' },
     { id: 'suppliers', label: 'ข้อมูลผู้ขาย (Suppliers)' },
+    { id: 'supplier_pos', label: 'ใบสั่งซื้อผู้ขาย (Vendor PO)' },
+    { id: 'warehouses', label: 'คลังสินค้า (Warehouses)' },
     { id: 'certificates', label: 'เอกสาร Certificate' },
     { id: 'purchase_orders', label: 'ใบสั่งซื้อ (PO)' },
     { id: 'quotations', label: 'ใบเสนอราคา' },
@@ -305,8 +307,8 @@ const UserFormPage = () => {
                         {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
                     </button>
                 </div>
-            </form >
-        </div >
+            </form>
+        </div>
     );
 };
 

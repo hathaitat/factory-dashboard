@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Printer, Edit, ArrowLeft, CheckCircle, Clock, XCircle, Trash2, Building2, MapPin, Phone, User, Package, FileText } from 'lucide-react';
 import { supplierPoService } from '../services/supplierPoService';
 import { useDialog } from '../contexts/DialogContext';
+import { usePermissions } from '../hooks/usePermissions';
 import PageHeader from '../components/PageHeader';
 import SupplierPoPrintTemplate from '../components/SupplierPoPrintTemplate';
 
@@ -10,6 +11,7 @@ const SupplierPoDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { showConfirm, showAlert, showError } = useDialog();
+    const { hasPermission } = usePermissions();
     const [po, setPo] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -38,11 +40,12 @@ const SupplierPoDetailPage = () => {
         navigate(`/dashboard/supplier-pos/${id}/print`);
     };
 
-    const handleStatusChange = async (newStatus) => {
+    const handleStatusUpdate = async (newStatus) => {
         try {
             await supplierPoService.updateStatus(id, newStatus);
             setPo({ ...po, status: newStatus });
             showAlert(`เปลี่ยนสถานะเป็น "${newStatus}" เรียบร้อยแล้ว`);
+            loadPo(); // Reload to get updated metadata (approved_by, etc.)
         } catch (error) {
             console.error('Error updating status:', error);
             showError('เกิดข้อผิดพลาดในการเปลี่ยนสถานะ');
@@ -78,34 +81,45 @@ const SupplierPoDetailPage = () => {
 
     return (
         <div style={{ padding: '0 1rem 2rem 1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <button onClick={() => navigate('/dashboard/supplier-pos')} style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                        <ArrowLeft size={20} />
-                    </button>
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>ใบสั่งซื้อผู้ขาย</h1>
-                            {getStatusBadge(po.status)}
-                        </div>
-                        <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.2rem' }}>เลขที่: {po.po_number}</div>
-                    </div>
-                </div>
-                <div style={{ display: 'flex', gap: '0.8rem' }}>
-                    <button onClick={handlePrint} className="glass-panel" style={{ padding: '0.6rem 1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(139, 92, 246, 0.05)', border: '1px solid rgba(139, 92, 246, 0.1)', color: '#8b5cf6', cursor: 'pointer', borderRadius: '8px', fontWeight: '600' }}>
+            <PageHeader
+                title="รายละเอียดใบสั่งซื้อผู้ขาย"
+                subtitle={`เลขที่: ${po.po_number}`}
+                onBack={() => navigate('/dashboard/supplier-pos')}
+            >
+                <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
+                    {getStatusBadge(po.status)}
+                    <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', margin: '0 0.5rem' }}></div>
+                    
+                    {hasPermission('supplier_pos', 'edit') && (po.status === 'Draft' || po.status === 'Waiting') && (
+                        <button
+                            onClick={() => navigate(`/dashboard/supplier-pos/${id}/edit`)}
+                            className="btn-secondary"
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                            <Edit size={18} /> แก้ไข
+                        </button>
+                    )}
+                    <button
+                        onClick={handlePrint}
+                        className="btn-primary"
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
                         <Printer size={18} /> พิมพ์ใบสั่งซื้อ
                     </button>
-                    <button onClick={() => navigate(`/dashboard/supplier-pos/${id}/edit`)} className="btn-primary" style={{ padding: '0.6rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600' }}>
-                        <Edit size={18} /> แก้ไข
-                    </button>
-                    <div style={{ width: '1px', background: 'var(--border-color)', margin: '0 0.5rem' }}></div>
-
+                    {hasPermission('supplier_pos', 'delete') && (po.status === 'Draft' || po.status === 'Waiting') && (
+                        <button
+                            onClick={handleDelete}
+                            className="btn-secondary"
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444', borderColor: '#ef4444' }}
+                        >
+                            <Trash2 size={18} /> ลบ
+                        </button>
+                    )}
                 </div>
-            </div>
+            </PageHeader>
 
             <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '1.5rem', alignItems: 'start' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    {/* Main Content Card */}
                     <div className="glass-panel" style={{ padding: '2rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2.5rem' }}>
                             <div>
@@ -150,7 +164,6 @@ const SupplierPoDetailPage = () => {
                                             <td style={{ padding: '1.2rem 1rem', textAlign: 'right', fontWeight: '600', color: 'var(--text-main)' }}>฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                         </tr>
                                     ))}
-                                    {/* Empty rows filler */}
                                     {[...Array(Math.max(0, 3 - (po.supplier_po_items?.length || 0)))].map((_, i) => (
                                         <tr key={`empty-${i}`} style={{ borderBottom: '1px solid var(--border-color)' }}>
                                             <td colSpan="5" style={{ padding: '1.2rem 1rem' }}>&nbsp;</td>
@@ -169,7 +182,6 @@ const SupplierPoDetailPage = () => {
                     </div>
                 </div>
 
-                {/* Sidebar */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     <div className="glass-panel" style={{ padding: '1.5rem' }}>
                         <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.1rem', fontWeight: '600' }}>สรุปยอดเงิน</h3>
@@ -189,6 +201,34 @@ const SupplierPoDetailPage = () => {
                         </div>
                     </div>
 
+                    {hasPermission('supplier_pos', 'edit') && (
+                        <div className="glass-panel" style={{ padding: '1.5rem', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--primary)', fontWeight: '600' }}>เปลี่ยนสถานะรายการ:</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                {po.status === 'Waiting' && (
+                                    <button onClick={() => handleStatusUpdate('Approved')} className="btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', color: '#10b981', borderColor: '#10b981', background: 'white', padding: '1rem' }}>
+                                        <CheckCircle size={20} /> <span style={{ fontWeight: '600' }}>อนุมัติการสั่งซื้อ</span>
+                                    </button>
+                                )}
+                                {po.status === 'Approved' && (
+                                    <button onClick={() => handleStatusUpdate('Completed')} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', padding: '1rem' }}>
+                                        <CheckCircle size={20} /> <span style={{ fontWeight: '600' }}>ได้รับสินค้าครบถ้วน (นำเข้าคลัง)</span>
+                                    </button>
+                                )}
+                                {po.status === 'Draft' && (
+                                    <button onClick={() => handleStatusUpdate('Waiting')} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', padding: '1rem' }}>
+                                        <Clock size={20} /> <span style={{ fontWeight: '600' }}>ส่งขออนุมัติ</span>
+                                    </button>
+                                )}
+                                {['Waiting', 'Approved'].includes(po.status) && (
+                                    <button onClick={() => handleStatusUpdate('Cancelled')} className="btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', color: '#ef4444', borderColor: '#ef4444', background: 'white', padding: '1rem' }}>
+                                        <XCircle size={20} /> <span style={{ fontWeight: '600' }}>ยกเลิกรายการ</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="glass-panel" style={{ padding: '1.5rem' }}>
                         <h3 style={{ margin: '0 0 1.2rem 0', fontSize: '1.1rem', fontWeight: '600' }}>ข้อมูลการจัดซื้อ</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.95rem' }}>
@@ -204,32 +244,18 @@ const SupplierPoDetailPage = () => {
                                 <span style={{ color: 'var(--text-muted)' }}>เงื่อนไขเครดิต</span>
                                 <span style={{ fontWeight: '500' }}>{po.credit_term || '-'}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span style={{ color: 'var(--text-muted)' }}>เลขที่อ้างอิง</span>
                                 <span style={{ fontWeight: '500' }}>{po.reference_doc || '-'}</span>
                             </div>
 
-                            <div style={{ marginTop: '0.5rem' }}>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>การอนุมัติและสถานะ</div>
-                                <select
-                                    value={po.status}
-                                    onChange={(e) => handleStatusChange(e.target.value)}
-                                    className="glass-input"
-                                    style={{ width: '100%', padding: '0.6rem', marginBottom: '1rem' }}
-                                >
-                                    <option value="Draft">ฉบับร่าง</option>
-                                    <option value="Waiting">รออนุมัติ</option>
-                                    <option value="Approved">อนุมัติแล้ว</option>
-                                    <option value="Completed">ได้รับสินค้าแล้ว</option>
-                                    <option value="Cancelled">ยกเลิก</option>
-                                </select>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                                        <User size={14} /> ผู้สั่งซื้อ: <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>{po.purchased_by || '-'}</span>
+                            <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                        <User size={16} /> ผู้สั่งซื้อ: <span style={{ color: 'var(--text-main)', fontWeight: '600' }}>{po.purchased_by || '-'}</span>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                                        <CheckCircle size={14} /> ผู้อนุมัติ: <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>{po.approved_by || '-'}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                        <CheckCircle size={16} /> ผู้อนุมัติ: <span style={{ color: 'var(--text-main)', fontWeight: '600' }}>{po.approved_by || '-'}</span>
                                     </div>
                                 </div>
                             </div>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Edit, Trash2, FileSpreadsheet, Eye, Printer, FileText, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { supplierPoService } from '../services/supplierPoService';
 import { useDialog } from '../contexts/DialogContext';
+import { usePermissions } from '../hooks/usePermissions';
 import PageHeader from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
 import * as XLSX from 'xlsx';
@@ -10,6 +11,7 @@ import * as XLSX from 'xlsx';
 const SupplierPoListPage = () => {
     const navigate = useNavigate();
     const { showConfirm, showAlert, showError } = useDialog();
+    const { hasPermission } = usePermissions();
     const [pos, setPos] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -120,41 +122,27 @@ const SupplierPoListPage = () => {
 
     return (
         <div style={{ padding: '0 1rem' }}>
-            <PageHeader title="ใบสั่งซื้อผู้ขาย (Vendor PO)">
-                <button
-                    onClick={exportToExcel}
-                    className="glass-panel"
-                    style={{
-                        padding: '0.6rem 1rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        background: 'rgba(16, 185, 129, 0.05)',
-                        border: '1px solid rgba(16, 185, 129, 0.1)',
-                        color: 'var(--success)',
-                        cursor: 'pointer',
-                        borderRadius: '8px'
-                    }}
-                >
-                    <FileSpreadsheet size={18} /> Export Excel
-                </button>
-                <button
-                    onClick={() => navigate('/dashboard/supplier-pos/new')}
-                    style={{
-                        padding: '0.6rem 1.2rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        background: '#3b82f6',
-                        border: 'none',
-                        color: 'white',
-                        cursor: 'pointer',
-                        borderRadius: '8px',
-                        fontWeight: '500'
-                    }}
-                >
-                    <Plus size={20} /> สร้างใบสั่งซื้อ
-                </button>
+            <PageHeader title="ใบสั่งซื้อผู้ขาย (Vendor PO)" subtitle="รายการสั่งซื้อวัตถุดิบและอุปกรณ์จากผู้ขาย">
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    {hasPermission('supplier_pos', 'create') && (
+                        <button 
+                            onClick={() => navigate('/dashboard/supplier-pos/create')} 
+                            className="btn-primary" 
+                            style={{ padding: '0.6rem 1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                            <Plus size={20} />
+                            สร้างใบสั่งซื้อใหม่
+                        </button>
+                    )}
+                    <button 
+                        onClick={exportToExcel} 
+                        className="btn-excel" 
+                        style={{ padding: '0.6rem 1.2rem' }}
+                    >
+                        <FileSpreadsheet size={20} />
+                        Export Excel
+                    </button>
+                </div>
             </PageHeader>
 
             <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
@@ -235,40 +223,43 @@ const SupplierPoListPage = () => {
                                             const status = getStatusConfig(po.status);
                                             return (
                                                 <tr key={po.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s', background: 'var(--card-bg)', cursor: 'pointer' }}
-                                                    onClick={() => navigate(`/dashboard/supplier-pos/${po.id}`)}
                                                     onMouseOver={(e) => e.currentTarget.style.background = 'var(--card-hover)'}
                                                     onMouseOut={(e) => e.currentTarget.style.background = 'var(--card-bg)'}
                                                 >
                                                     <td className="actions-column">
                                                         <div className="table-actions">
                                                             <button
-                                                                className="action-view"
                                                                 onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/supplier-pos/${po.id}`); }}
+                                                                className="action-view"
                                                                 title="ดูรายละเอียด"
                                                             >
                                                                 <Eye size={18} />
                                                             </button>
+                                                            {hasPermission('supplier_pos', 'edit') && (po.status === 'Draft' || po.status === 'Waiting') && (
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/supplier-pos/${po.id}/edit`); }}
+                                                                    className="action-edit"
+                                                                    title="แก้ไข"
+                                                                >
+                                                                    <Edit size={18} />
+                                                                </button>
+                                                            )}
                                                             <button
-                                                                className="action-edit"
-                                                                onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/supplier-pos/${po.id}/edit`); }}
-                                                                title="แก้ไข"
-                                                            >
-                                                                <Edit size={18} />
-                                                            </button>
-                                                            <button
-                                                                className="action-print"
                                                                 onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/supplier-pos/${po.id}/print`); }}
+                                                                className="action-print"
                                                                 title="พิมพ์เอกสาร"
                                                             >
                                                                 <Printer size={18} />
                                                             </button>
-                                                            <button
-                                                                className="action-delete"
-                                                                onClick={(e) => { e.stopPropagation(); handleDelete(po.id, po.po_number); }}
-                                                                title="ลบ"
-                                                            >
-                                                                <Trash2 size={18} />
-                                                            </button>
+                                                            {hasPermission('supplier_pos', 'delete') && (po.status === 'Draft' || po.status === 'Waiting') && (
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); handleDelete(po.id, po.po_number); }}
+                                                                    className="action-delete"
+                                                                    title="ลบ"
+                                                                >
+                                                                    <Trash2 size={18} />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td style={{ padding: '1.2rem 1.5rem', fontWeight: '600', color: '#3b82f6', fontSize: '1.1rem', fontFamily: 'monospace' }}>

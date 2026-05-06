@@ -164,7 +164,8 @@ export const supplierPoService = {
             if (poError) throw poError;
 
             // Only add to inventory if moving to completed and wasn't completed before
-            const isNewlyCompleted = status === 'completed' && po.status !== 'completed';
+            // Note: DB and Frontend use 'Completed' (Uppercase)
+            const isNewlyCompleted = status === 'Completed' && po.status !== 'Completed';
 
             // Update the status
             const { data, error } = await supabase
@@ -180,41 +181,66 @@ export const supplierPoService = {
             if (error) throw error;
 
             // Automation: Add items to warehouse inventory
-            if (isNewlyCompleted && po.delivery_warehouse_id && po.items && po.items.length > 0) {
-                // Fetch current inventory for this warehouse to see if items exist
-                const { data: currentInventory } = await supabase
-                    .from('warehouse_inventory')
-                    .select('*')
-                    .eq('warehouse_id', po.delivery_warehouse_id);
+            if (isNewlyCompleted && po.items && po.items.length > 0) {
+                let targetWarehouseId = po.delivery_warehouse_id;
 
-                for (const item of po.items) {
-                    // Try to find if this item already exists in the warehouse
-                    const existingItem = (currentInventory || []).find(inv => 
-                        inv.product_name === item.description
-                    );
+                // Fallback to default warehouse if none specified
+                if (!targetWarehouseId) {
+                    const { data: defaultWarehouse } = await supabase
+                        .from('warehouses')
+                        .select('id')
+                        .eq('is_default', true)
+                        .single();
+                    
+                    if (defaultWarehouse) {
+                        targetWarehouseId = defaultWarehouse.id;
+                    }
+                }
 
-                    if (existingItem) {
-                        // Update quantity
-                        await supabase
-                            .from('warehouse_inventory')
-                            .update({
-                                quantity: Number(existingItem.quantity) + Number(item.quantity),
-                                last_updated: new Date().toISOString()
-                            })
-                            .eq('id', existingItem.id);
-                    } else {
-                        // Insert new inventory item
-                        await supabase
-                            .from('warehouse_inventory')
-                            .insert([{
-                                warehouse_id: po.delivery_warehouse_id,
-                                product_type: 'material', // Assuming PO items are materials
-                                product_name: item.description || 'Unknown Item',
-                                sku: null,
-                                quantity: Number(item.quantity) || 0,
-                                unit: item.unit || 'PCS',
-                                min_stock: 0
-                            }]);
+                if (targetWarehouseId) {
+                    // Fetch current inventory for this warehouse to see if items exist
+                    const { data: currentInventory } = await supabase
+                        .from('warehouse_inventory')
+                        .select('*')
+                        .eq('warehouse_id', targetWarehouseId);
+
+                    for (const item of po.items) {
+                        // Try to find if this item already exists in the warehouse
+                        const existingItem = (currentInventory || []).find(inv => 
+                            inv.product_name === item.description
+                        );
+
+                        if (existingItem) {
+                            // Update quantity
+                            const { error: updateError } = await supabase
+                                .from('warehouse_inventory')
+                                .update({
+                                    quantity: Number(existingItem.quantity) + Number(item.quantity),
+                                    last_updated: new Date().toISOString()
+                                })
+                                .eq('id', existingItem.id);
+                                
+                            if (updateError) {
+                                console.error('Error updating inventory:', updateError);
+                            }
+                        } else {
+                            // Insert new inventory item
+                            const { error: insertError } = await supabase
+                                .from('warehouse_inventory')
+                                .insert([{
+                                    warehouse_id: targetWarehouseId,
+                                    product_type: 'material', // Assuming PO items are materials
+                                    product_name: item.description || 'Unknown Item',
+                                    sku: null,
+                                    quantity: Number(item.quantity) || 0,
+                                    unit: item.unit || 'PCS',
+                                    min_stock: 0
+                                }]);
+                                
+                            if (insertError) {
+                                console.error('Error inserting inventory:', insertError);
+                            }
+                        }
                     }
                 }
             }

@@ -1,6 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, FileText, Receipt, Users, Clock, HelpCircle, Calendar as CalendarIcon, Truck } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, FileText, Receipt, Users, Clock, Calendar as CalendarIcon, Truck, Package } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import '../styles/OverviewPage.css';
@@ -16,6 +16,7 @@ const CustomerTab = lazy(() => import('../components/dashboard/CustomerTab'));
 const EmployeeTab = lazy(() => import('../components/dashboard/EmployeeTab'));
 const CalendarTab = lazy(() => import('../components/dashboard/CalendarTab'));
 const SupplierTab = lazy(() => import('../components/dashboard/SupplierTab'));
+const WarehouseTab = lazy(() => import('../components/dashboard/WarehouseTab'));
 
 const TabLoader = () => (
     <div className="tab-loading">
@@ -27,12 +28,13 @@ const TabLoader = () => (
 const TABS = [
     { id: 'overview', label: 'ภาพรวม', icon: LayoutDashboard, module: 'overview', action: 'view' },
     { id: 'po', label: 'ใบสั่งซื้อ', icon: ShoppingCart, module: 'purchase_orders', action: 'view' },
-    { id: 'quotation', label: 'ใบเสนอราคา', icon: FileText, module: 'invoices', action: 'view' },
+    { id: 'quotation', label: 'ใบเสนอราคา', icon: FileText, module: 'quotations', action: 'view' },
     { id: 'invoice', label: 'ใบกำกับภาษี', icon: FileText, module: 'invoices', action: 'view' },
     { id: 'billing', label: 'ใบวางบิล', icon: FileText, module: 'billing', action: 'view' },
     { id: 'receipt', label: 'ใบเสร็จ', icon: Receipt, module: 'billing', action: 'view' },
     { id: 'customer', label: 'ลูกค้า', icon: Users, module: 'customers', action: 'view' },
     { id: 'supplier', label: 'ผู้ขาย', icon: Truck, module: 'suppliers', action: 'view' },
+    { id: 'warehouse', label: 'คลังสินค้า', icon: Package, module: 'warehouses', action: 'view' },
     { id: 'employee', label: 'พนักงาน', icon: Clock, module: 'employees', action: 'view' },
     { id: 'calendar', label: 'ปฏิทินงาน', icon: CalendarIcon, module: 'purchase_orders', action: 'view' },
 ];
@@ -62,6 +64,7 @@ const OverviewPage = () => {
             case 'receipt': return <ReceiptTab />;
             case 'customer': return <CustomerTab />;
             case 'supplier': return <SupplierTab />;
+            case 'warehouse': return <WarehouseTab />;
             case 'employee': return <EmployeeTab />;
             case 'calendar': return <CalendarTab />;
             default: return <OverviewTab />;

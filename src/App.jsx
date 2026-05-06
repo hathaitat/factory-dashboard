@@ -106,31 +106,32 @@ function App() {
                       <Route path="suppliers/:id/edit" element={<SupplierEditPage />} />
                     </Route>
                     
-                    <Route element={<PermissionRoute module="suppliers" action="view" />}>
+                    {/* Supplier POs */}
+                    <Route element={<PermissionRoute module="supplier_pos" action="create" />}>
+                      <Route path="supplier-pos/create" element={<SupplierPoFormPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="supplier_pos" action="view" />}>
                       <Route path="supplier-pos" element={<SupplierPoListPage />} />
                       <Route path="supplier-pos/:id" element={<SupplierPoDetailPage />} />
                     </Route>
-                    <Route element={<PermissionRoute module="suppliers" action="create" />}>
-                      <Route path="supplier-pos/new" element={<SupplierPoFormPage />} />
-                    </Route>
-                    <Route element={<PermissionRoute module="suppliers" action="edit" />}>
+                    <Route element={<PermissionRoute module="supplier_pos" action="edit" />}>
                       <Route path="supplier-pos/:id/edit" element={<SupplierPoFormPage />} />
                     </Route>
 
                     {/* Warehouse Module */}
-                    <Route element={<PermissionRoute module="settings" action="view" />}>
+                    <Route element={<PermissionRoute module="warehouses" action="view" />}>
                       <Route path="warehouses" element={<WarehouseListPage />} />
                       <Route path="warehouses/:id" element={<WarehouseDetailPage />} />
                     </Route>
 
                     {/* Certificates Module */}
-                    <Route element={<PermissionRoute module="customers" action="view" />}>
+                    <Route element={<PermissionRoute module="certificates" action="view" />}>
                       <Route path="certificates" element={<CertificateListPage />} />
                     </Route>
-                    <Route element={<PermissionRoute module="customers" action="create" />}>
+                    <Route element={<PermissionRoute module="certificates" action="create" />}>
                       <Route path="certificates/new" element={<CertificateFormPage />} />
                     </Route>
-                    <Route element={<PermissionRoute module="customers" action="edit" />}>
+                    <Route element={<PermissionRoute module="certificates" action="edit" />}>
                       <Route path="certificates/:id/edit" element={<CertificateFormPage />} />
                     </Route>
 
@@ -142,14 +143,14 @@ function App() {
                     </Route>
 
                     {/* Quotations Module */}
-                    <Route element={<PermissionRoute module="invoices" action="view" />}>
+                    <Route element={<PermissionRoute module="quotations" action="view" />}>
                       <Route path="quotations" element={<QuotationListPage />} />
                       <Route path="quotations/:id" element={<QuotationFormPage />} />
                     </Route>
-                    <Route element={<PermissionRoute module="invoices" action="create" />}>
+                    <Route element={<PermissionRoute module="quotations" action="create" />}>
                       <Route path="quotations/new" element={<QuotationFormPage />} />
                     </Route>
-                    <Route element={<PermissionRoute module="invoices" action="edit" />}>
+                    <Route element={<PermissionRoute module="quotations" action="edit" />}>
                       <Route path="quotations/:id/edit" element={<QuotationFormPage />} />
                     </Route>
 
@@ -223,13 +224,15 @@ function App() {
                   {/* Print Routes (Protected + Permission Check) */}
                   <Route element={<PermissionRoute module="invoices" action="view" />}>
                     <Route path="/dashboard/invoices/:id/print" element={<InvoicePrintTemplate />} />
+                  </Route>
+                  <Route element={<PermissionRoute module="quotations" action="view" />}>
                     <Route path="/dashboard/quotations/:id/print" element={<QuotationPrintTemplate />} />
                   </Route>
                   <Route element={<PermissionRoute module="billing" action="view" />}>
                     <Route path="/dashboard/billing-notes/:id/print" element={<BillingNotePrintTemplate />} />
                     <Route path="/dashboard/billing-notes/:id/print-receipt" element={<ReceiptPrintTemplate />} />
                   </Route>
-                  <Route element={<PermissionRoute module="suppliers" action="view" />}>
+                  <Route element={<PermissionRoute module="supplier_pos" action="view" />}>
                     <Route path="/dashboard/supplier-pos/:id/print" element={<SupplierPoPrintPage />} />
                   </Route>
                 </Route>

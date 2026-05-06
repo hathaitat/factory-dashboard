@@ -27,9 +27,9 @@ const SupplierPoPrintTemplate = ({ po }) => {
                 .po-print-template table { width: 100%; border-collapse: collapse; }
                 .po-print-template th, .po-print-template td { border: 1px solid #000; padding: 6px 8px; font-size: 13px; line-height: 1.4; }
                 .po-print-template .no-border { border: none !important; }
-                .po-print-template .text-center { textAlign: center; }
-                .po-print-template .text-right { textAlign: right; }
-                .po-print-template .bold { fontWeight: 600; }
+                .po-print-template .text-center { text-align: center; }
+                .po-print-template .text-right { text-align: right; }
+                .po-print-template .bold { font-weight: 600; }
                 `}
             </style>
 
@@ -110,13 +110,6 @@ const SupplierPoPrintTemplate = ({ po }) => {
                         <div>{po.reference_doc || '-'}</div>
                     </div>
                 </div>
-            </div>
-
-            {/* Delivery Location Section */}
-            <div style={{ border: '1px solid #000', borderTop: 'none', padding: '8px 12px', fontSize: '12px', background: '#fff' }}>
-                <span style={{ fontWeight: '700' }}>สถานที่ส่งสินค้า ( SHIP TO ) : </span>
-                <span style={{ fontWeight: '600' }}>{warehouse.name || 'คลังหลัก'}</span>
-                {warehouse.address && <span style={{ marginLeft: '10px', color: '#333' }}>- {warehouse.address}</span>}
             </div>
 
             {/* Items Table */}

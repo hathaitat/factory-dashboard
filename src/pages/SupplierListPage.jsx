@@ -102,19 +102,7 @@ const SupplierListPage = () => {
             >
                 <button
                     onClick={exportToExcel}
-                    className="glass-panel"
-                    style={{
-                        padding: '0.8rem 1.5rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        background: 'rgba(16, 185, 129, 0.05)',
-                        border: '1px solid rgba(16, 185, 129, 0.1)',
-                        color: 'var(--success)',
-                        cursor: 'pointer',
-                        borderRadius: '8px',
-                        fontWeight: '500'
-                    }}
+                    className="btn-excel"
                 >
                     <FileSpreadsheet size={20} /> Export Excel
                 </button>
@@ -192,7 +180,7 @@ const SupplierListPage = () => {
                         <tbody>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    <td colSpan="7" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                                         <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
                                         กำลังโหลดข้อมูล...
                                     </td>
@@ -282,7 +270,7 @@ const SupplierListPage = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    <td colSpan="7" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                                         ไม่พบข้อมูล Supplier ลองค้นหาใหม่หรือเพิ่ม Supplier
                                     </td>
                                 </tr>

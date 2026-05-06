@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, DollarSign, FileText, ShieldAlert, ShoppingCart, ExternalLink } from 'lucide-react';
+import { Users, DollarSign, FileText, ShieldAlert, ShoppingCart, ExternalLink, Package, AlertTriangle } from 'lucide-react';
+import { warehouseService } from '../../services/warehouseService';
 import { customerService } from '../../services/customerService';
 import { invoiceService } from '../../services/invoiceService';
 import { purchaseOrderService } from '../../services/purchaseOrderService';
@@ -19,6 +20,8 @@ const OverviewTab = () => {
         topProducts: [],
         topCustomers: [],
         expiringCertificates: [],
+        lowStockItems: [],
+        totalInventoryItems: 0,
         rawInvoices: [],
         rawPurchaseOrders: [],
         rawQuotations: []
@@ -28,15 +31,23 @@ const OverviewTab = () => {
         const load = async () => {
             setIsLoading(true);
             try {
-                const [customers, invoices, purchaseOrders, quotations, topProducts, topCustomers, expiringCerts] = await Promise.all([
+                const [customers, invoices, purchaseOrders, quotations, topProducts, topCustomers, expiringCerts, warehouses] = await Promise.all([
                     customerService.getCustomers(),
                     invoiceService.getInvoices(),
                     purchaseOrderService.getPurchaseOrders(),
                     quotationService.getQuotations(),
                     invoiceService.getTopSellingProducts(5),
                     invoiceService.getTopCustomers(5),
-                    certificateService.getExpiringCertificates(30)
+                    certificateService.getExpiringCertificates(30),
+                    warehouseService.getWarehouses()
                 ]);
+
+                // Aggregate warehouse data
+                const allInventory = await Promise.all(
+                    (warehouses || []).map(wh => warehouseService.getInventoryByWarehouse(wh.id))
+                );
+                const flatInventory = allInventory.flat();
+                const lowStock = flatInventory.filter(item => item.quantity <= item.min_stock);
 
                 const now = new Date();
                 const currentMonth = now.getMonth();
@@ -74,6 +85,8 @@ const OverviewTab = () => {
                     topProducts: topProducts || [],
                     topCustomers: topCustomers || [],
                     expiringCertificates: expiringCerts || [],
+                    lowStockItems: lowStock || [],
+                    totalInventoryItems: flatInventory.length,
                     rawInvoices: invoices || [],
                     rawPurchaseOrders: purchaseOrders || [],
                     rawQuotations: quotations || []
@@ -132,6 +145,39 @@ const OverviewTab = () => {
                         )}
                     </div>
                 </div>
+
+                {/* Low Stock Alert */}
+                <div className="glass-panel" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '340px' }}>
+                    <div className="panel-header" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: data.lowStockItems.length > 0 ? 'rgba(239, 68, 68, 0.05)' : undefined }}>
+                        <h3 style={{ margin: 0, fontSize: '1rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <AlertTriangle size={16} /> สินค้าใกล้หมด/ต้องสั่งเพิ่ม
+                        </h3>
+                        <button onClick={() => navigate('/dashboard?tab=warehouse')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem' }}>
+                            ดูคลังสินค้า <ExternalLink size={14} />
+                        </button>
+                    </div>
+                    <div style={{ overflowY: 'auto', flex: 1, padding: '0.5rem 0' }}>
+                        {data.lowStockItems.map((item, index) => (
+                            <div key={index} style={{ padding: '0.8rem 1.5rem', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => navigate('/dashboard/warehouses')} className="hover-row">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div>
+                                        <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '0.9rem' }}>{item.product_name}</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>SKU: {item.sku || '-'}</div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontWeight: '700', color: '#ef4444', fontSize: '0.9rem' }}>{item.quantity.toLocaleString()} {item.unit}</div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Min: {item.min_stock}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        {data.lowStockItems.length === 0 && (
+                            <div style={{ padding: '2rem', textAlign: 'center', color: '#10b981' }}>
+                                สินค้าในคลังเพียงพอทุกรายการ 👍
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             <div className="kpi-grid">
@@ -142,6 +188,23 @@ const OverviewTab = () => {
                     <div className="kpi-content">
                         <span className="kpi-label">ลูกค้าทั้งหมด</span>
                         <span className="kpi-value">{data.totalCustomers.toLocaleString()} <span className="unit">ราย</span></span>
+                    </div>
+                </div>
+
+                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard?tab=warehouse')} style={{ cursor: 'pointer', borderLeft: data.lowStockItems.length > 0 ? '4px solid #ef4444' : undefined }}>
+                    <div className="kpi-icon-wrapper red">
+                        <Package size={24} />
+                    </div>
+                    <div className="kpi-content">
+                        <span className="kpi-label">รายการสินค้าในคลัง</span>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span className="kpi-value">{data.totalInventoryItems.toLocaleString()} <span className="unit">รายการ</span></span>
+                            {data.lowStockItems.length > 0 && (
+                                <span className="kpi-sub-value" style={{ fontSize: '0.8rem', color: '#ef4444', fontWeight: '600', marginTop: '0.2rem' }}>
+                                    ใกล้หมด {data.lowStockItems.length} รายการ
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
 

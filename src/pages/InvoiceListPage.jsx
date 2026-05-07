@@ -6,6 +6,7 @@ import { companyService } from '../services/companyService';
 import { usePermissions } from '../hooks/usePermissions';
 import XLSX from 'xlsx-js-style';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
 
@@ -275,7 +276,7 @@ const InvoiceListPage = () => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Invoice_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+            a.download = `Invoice_Export_${getLocalDateString()}.xlsx`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

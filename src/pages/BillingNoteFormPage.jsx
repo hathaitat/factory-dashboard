@@ -4,6 +4,7 @@ import { Save, ArrowLeft, Plus, Trash2, Calendar, FileText, X } from 'lucide-rea
 import { billingNoteService } from '../services/billingNoteService';
 import { customerService } from '../services/customerService';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const BillingNoteFormPage = () => {
     const { id } = useParams();
@@ -24,7 +25,7 @@ const BillingNoteFormPage = () => {
     // Form state
     const [formData, setFormData] = useState({
         billingNoteNo: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateString(),
         customerId: '',
         customerSnapshot: null,
         totalAmount: 0,

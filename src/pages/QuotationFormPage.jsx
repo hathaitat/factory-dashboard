@@ -5,6 +5,7 @@ import { quotationService } from '../services/quotationService';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 
 // Safe formula evaluator: supports +, -, *, /, parentheses, and numbers
 const evaluateFormula = (expr) => {
@@ -39,7 +40,7 @@ const QuotationFormPage = () => {
 
     const [formData, setFormData] = useState({
         quotationNo: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateString(),
         customerId: '',
         attnName: '',
         validityDays: 15,

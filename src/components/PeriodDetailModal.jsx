@@ -3,6 +3,7 @@ import { X, Clock, AlertCircle } from 'lucide-react';
 import EditLogModal from './EditLogModal';
 import { employeeService } from '../services/employeeService';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const DiligenceInput = ({ value, isOverridden, onCommit }) => {
     const [localValue, setLocalValue] = React.useState(value);
@@ -84,7 +85,7 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
         if (!confirmed) return;
 
         try {
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = getLocalDateString(date);
             const log = logs.find(l => l.work_date.split('T')[0] === dateStr);
             console.log('Delete target:', log);
 
@@ -164,7 +165,7 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
         const isSunday = date.getDay() === 0;
         if (isSunday) return; // Sunday is never absent
 
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = getLocalDateString(date);
         const dailyLog = logs.find(l => l.work_date.split('T')[0] === dateStr);
 
         if (!dailyLog) {
@@ -284,7 +285,7 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
                             {/* Row 1: Dates */}
                             <tr>
                                 {allDates.map((date) => (
-                                    <th key={date.toISOString()} colSpan="2" style={{
+                                    <th key={getLocalDateString(date)} colSpan="2" style={{
                                         padding: '0.5rem', border: '1px solid #cbd5e1', background: '#f1f5f9',
                                         textAlign: 'center', whiteSpace: 'nowrap', minWidth: '120px',
                                         color: date.getDay() === 0 ? '#ef4444' : '#334155'
@@ -296,7 +297,7 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
                             {/* Row 2: In/Out Labels */}
                             <tr>
                                 {allDates.map((date) => (
-                                    <React.Fragment key={date.toISOString()}>
+                                    <React.Fragment key={getLocalDateString(date)}>
                                         <th style={{
                                             padding: '0.4rem', border: '1px solid #cbd5e1', background: '#f8fafc',
                                             textAlign: 'center', fontSize: '0.8rem', color: '#64748b', width: '60px'
@@ -317,7 +318,7 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
                             {/* Row 3: Time Data */}
                             <tr>
                                 {allDates.map((date) => {
-                                    const dateStr = date.toISOString().split('T')[0];
+                                    const dateStr = getLocalDateString(date);
                                     const isSunday = date.getDay() === 0;
                                     const log = logs.find(l => l.work_date.split('T')[0] === dateStr);
 

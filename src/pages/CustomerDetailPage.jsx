@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, MapPin, Phone, Mail, User, Building, Calendar, Package, Plus, X, History, FileText, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, MapPin, Phone, Mail, User, Building, Calendar, Package, Plus, X, History, FileText, ShoppingCart, ChevronDown, ChevronUp, Printer, List } from 'lucide-react';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
 import { purchaseOrderService } from '../services/purchaseOrderService';
@@ -22,6 +22,11 @@ const CustomerDetailPage = () => {
     const [historyData, setHistoryData] = useState([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [expandedMonths, setExpandedMonths] = useState({});
+
+    // Product History tab state
+    const [productHistoryData, setProductHistoryData] = useState([]);
+    const [isLoadingProductHistory, setIsLoadingProductHistory] = useState(false);
+    const [expandedProductMonths, setExpandedProductMonths] = useState({});
 
     // Product Form State
     const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -55,6 +60,8 @@ const CustomerDetailPage = () => {
     useEffect(() => {
         if (activeTab === 'history' && historyData.length === 0) {
             loadHistory();
+        } else if (activeTab === 'product_history' && productHistoryData.length === 0) {
+            loadProductHistory();
         }
     }, [activeTab]);
 
@@ -112,8 +119,71 @@ const CustomerDetailPage = () => {
         }
     };
 
+    const loadProductHistory = async () => {
+        setIsLoadingProductHistory(true);
+        try {
+            const items = await invoiceService.getInvoiceItemsByCustomer(id);
+            
+            // Group by month
+            const monthlyMap = {};
+            
+            items.forEach(item => {
+                if (!item.date) return;
+                const date = new Date(item.date);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (!monthlyMap[monthKey]) {
+                    monthlyMap[monthKey] = {
+                        month: monthKey,
+                        products: {},
+                        totalAmount: 0,
+                        totalQuantity: 0
+                    };
+                }
+                
+                // Group by product name AND unit price to accurately show price per unit
+                const prodKey = `${item.productName || 'Unknown Product'}_${item.unitPrice}`;
+                if (!monthlyMap[monthKey].products[prodKey]) {
+                    monthlyMap[monthKey].products[prodKey] = {
+                        name: item.productName || 'Unknown Product',
+                        quantity: 0,
+                        unitPrice: item.unitPrice,
+                        unit: item.unit || '',
+                        totalPrice: 0
+                    };
+                }
+                
+                monthlyMap[monthKey].products[prodKey].quantity += item.quantity;
+                monthlyMap[monthKey].products[prodKey].totalPrice += item.totalPrice;
+                
+                monthlyMap[monthKey].totalAmount += item.totalPrice;
+                monthlyMap[monthKey].totalQuantity += item.quantity;
+            });
+            
+            // Convert products map to array and sort
+            const sortedData = Object.values(monthlyMap).map(m => ({
+                ...m,
+                products: Object.values(m.products).sort((a, b) => b.totalPrice - a.totalPrice)
+            })).sort((a, b) => b.month.localeCompare(a.month)); // Sort months descending
+            
+            setProductHistoryData(sortedData);
+            
+            if (sortedData.length > 0) {
+                setExpandedProductMonths({ [sortedData[0].month]: true });
+            }
+        } catch (error) {
+            console.error('Error loading product history:', error);
+        } finally {
+            setIsLoadingProductHistory(false);
+        }
+    };
+
     const toggleMonth = (month) => {
         setExpandedMonths(prev => ({ ...prev, [month]: !prev[month] }));
+    };
+
+    const toggleProductMonth = (month) => {
+        setExpandedProductMonths(prev => ({ ...prev, [month]: !prev[month] }));
     };
 
     const formatMonthName = (monthKey) => {
@@ -316,7 +386,27 @@ const CustomerDetailPage = () => {
                         transition: 'all 0.2s'
                     }}
                 >
-                    <History size={18} /> ประวัติการซื้อ
+                    <History size={18} /> ประวัติการซื้อ (เอกสาร)
+                </button>
+                <button
+                    onClick={() => setActiveTab('product_history')}
+                    style={{
+                        padding: '0.8rem 1.5rem',
+                        background: 'none',
+                        border: 'none',
+                        borderBottom: activeTab === 'product_history' ? '2px solid #10b981' : '2px solid transparent',
+                        marginBottom: '-2px',
+                        color: activeTab === 'product_history' ? '#10b981' : 'var(--text-muted)',
+                        fontWeight: activeTab === 'product_history' ? '600' : '400',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        fontSize: '1rem',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <List size={18} /> ประวัติการซื้อ (สินค้า)
                 </button>
             </div>
 
@@ -739,6 +829,140 @@ const CustomerDetailPage = () => {
                                                     ))}
                                                 </div>
                                             )}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
+            </div>
+            )}
+
+            {/* Tab: Product History */}
+            {activeTab === 'product_history' && (
+            <div>
+                {isLoadingProductHistory ? (
+                    <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>กำลังโหลดประวัติการซื้อสินค้า...</div>
+                ) : productHistoryData.length === 0 ? (
+                    <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <List size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+                        <div style={{ fontSize: '1.1rem' }}>ยังไม่มีประวัติการซื้อสินค้าจากใบกำกับภาษี</div>
+                    </div>
+                ) : (
+                    <>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+                            <button
+                                onClick={() => window.open(`/dashboard/customers/${id}/print-product-history`, '_blank')}
+                                style={{
+                                    padding: '0.6rem 1.2rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #10b981',
+                                    background: 'rgba(16, 185, 129, 0.1)',
+                                    color: '#10b981',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontWeight: '500'
+                                }}
+                            >
+                                <Printer size={18} /> พิมพ์รายงานทั้งหมด
+                            </button>
+                        </div>
+
+                        {/* Monthly product breakdown */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {productHistoryData.map(monthData => (
+                                <div key={monthData.month} className="glass-panel" style={{ overflow: 'hidden' }}>
+                                    {/* Month Header - Clickable */}
+                                    <div
+                                        onClick={() => toggleProductMonth(monthData.month)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '1rem 1.5rem',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            color: 'var(--text-main)',
+                                            borderBottom: expandedProductMonths[monthData.month] ? '1px solid var(--border-color)' : 'none'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                {expandedProductMonths[monthData.month] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                                <span style={{ fontWeight: '600', fontSize: '1.05rem' }}>{formatMonthName(monthData.month)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.85rem', padding: '0.2rem 0.6rem', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                                                    {monthData.products.length} รายการสินค้า
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                                            <div style={{ fontWeight: '600', color: '#10b981', fontSize: '1.1rem' }}>
+                                                ฿{monthData.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </div>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(`/dashboard/customers/${id}/print-product-history?month=${monthData.month}`, '_blank');
+                                                }}
+                                                style={{
+                                                    padding: '0.4rem 0.8rem',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid #e5e7eb',
+                                                    background: 'white',
+                                                    color: 'var(--text-main)',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.4rem',
+                                                    fontSize: '0.85rem'
+                                                }}
+                                            >
+                                                <Printer size={14} /> พิมพ์เดือนนี้
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Expanded Content: Product List Table */}
+                                    {expandedProductMonths[monthData.month] && (
+                                        <div style={{ padding: '0' }}>
+                                            <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                                    <thead>
+                                                        <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-main)' }}>
+                                                            <th style={{ padding: '0.8rem 1.5rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อสินค้า</th>
+                                                            <th style={{ padding: '0.8rem 1.5rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: '500' }}>จำนวนที่ซื้อรวม</th>
+                                                            <th style={{ padding: '0.8rem 1.5rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: '500' }}>ราคา/หน่วย</th>
+                                                            <th style={{ padding: '0.8rem 1.5rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: '500' }}>มูลค่ารวม</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {monthData.products.map((prod, idx) => (
+                                                            <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                                                <td style={{ padding: '0.8rem 1.5rem', fontWeight: '500', color: 'var(--text-main)' }}>
+                                                                    {prod.name}
+                                                                </td>
+                                                                <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right' }}>
+                                                                    <span style={{ fontWeight: '600', color: '#3b82f6' }}>{prod.quantity.toLocaleString()}</span>
+                                                                    <span style={{ color: 'var(--text-muted)', marginLeft: '0.3rem', fontSize: '0.85rem' }}>{prod.unit}</span>
+                                                                </td>
+                                                                <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right', color: 'var(--text-main)' }}>
+                                                                    ฿{prod.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                </td>
+                                                                <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right', fontWeight: '600', color: '#10b981' }}>
+                                                                    ฿{prod.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     )}
                                 </div>

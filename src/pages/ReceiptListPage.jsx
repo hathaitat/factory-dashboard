@@ -7,6 +7,7 @@ import { companyService } from '../services/companyService';
 import { settingService } from '../services/settingService';
 import { documentNumberHelper } from '../utils/documentNumbering';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
 
@@ -232,7 +233,7 @@ const ReceiptListPage = () => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Receipt_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+            a.download = `Receipt_Export_${getLocalDateString()}.xlsx`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

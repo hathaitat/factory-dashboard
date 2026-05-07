@@ -15,6 +15,7 @@ const CustomerListPage = React.lazy(() => import('./pages/CustomerListPage'));
 const CustomerCreatePage = React.lazy(() => import('./pages/CustomerCreatePage'));
 const CustomerEditPage = React.lazy(() => import('./pages/CustomerEditPage'));
 const CustomerDetailPage = React.lazy(() => import('./pages/CustomerDetailPage'));
+const CustomerProductHistoryPrint = React.lazy(() => import('./pages/CustomerProductHistoryPrint'));
 const CompanyInfoPage = React.lazy(() => import('./pages/CompanyInfoPage'));
 const UserListPage = React.lazy(() => import('./pages/UserListPage'));
 const UserFormPage = React.lazy(() => import('./pages/UserFormPage'));
@@ -189,6 +190,9 @@ function App() {
                   <Route element={<PermissionRoute module="billing" action="view" />}>
                     <Route path="/dashboard/billing-notes/:id/print" element={<BillingNotePrintTemplate />} />
                     <Route path="/dashboard/billing-notes/:id/print-receipt" element={<ReceiptPrintTemplate />} />
+                  </Route>
+                  <Route element={<PermissionRoute module="customers" action="view" />}>
+                    <Route path="/dashboard/customers/:id/print-product-history" element={<CustomerProductHistoryPrint />} />
                   </Route>
                 </Route>
 

@@ -43,6 +43,50 @@ export const invoiceService = {
         }
     },
 
+    // Get product purchase history (invoice items) by customer
+    getInvoiceItemsByCustomer: async (customerId) => {
+        try {
+            // First get all non-cancelled invoices for this customer
+            const { data: invoices, error: invError } = await supabase
+                .from('invoices')
+                .select('id, date, status')
+                .eq('customer_id', customerId)
+                .neq('status', 'Cancelled');
+
+            if (invError) throw invError;
+            
+            if (!invoices || invoices.length === 0) return [];
+
+            const invoiceIds = invoices.map(inv => inv.id);
+
+            // Get all items for these invoices
+            const { data: items, error: itemsError } = await supabase
+                .from('invoice_items')
+                .select('*')
+                .in('invoice_id', invoiceIds);
+
+            if (itemsError) throw itemsError;
+
+            // Combine data
+            return items.map(item => {
+                const invoice = invoices.find(inv => inv.id === item.invoice_id);
+                return {
+                    id: item.id,
+                    invoiceId: item.invoice_id,
+                    date: invoice?.date,
+                    productName: item.product_name,
+                    quantity: Number(item.quantity),
+                    unitPrice: Number(item.price_per_unit || 0),
+                    totalPrice: Number(item.amount || 0),
+                    unit: item.unit
+                };
+            });
+        } catch (error) {
+            console.error('Error fetching invoice items:', error);
+            return [];
+        }
+    },
+
     // Get single invoice with items
     getInvoiceById: async (id) => {
         try {

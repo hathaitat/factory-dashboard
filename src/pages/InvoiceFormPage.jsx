@@ -6,6 +6,7 @@ import { purchaseOrderService } from '../services/purchaseOrderService';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const InvoiceFormPage = () => {
     const { id } = useParams();
@@ -27,7 +28,7 @@ const InvoiceFormPage = () => {
 
     const [formData, setFormData] = useState({
         invoiceNo: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateString(),
         customerId: '',
         referenceNo: '',
         purchaseOrderId: '',
@@ -60,7 +61,7 @@ const InvoiceFormPage = () => {
         if (formData.date && formData.creditDays !== undefined) {
             const date = new Date(formData.date);
             date.setDate(date.getDate() + parseInt(formData.creditDays || 0));
-            setFormData(prev => ({ ...prev, dueDate: date.toISOString().split('T')[0] }));
+            setFormData(prev => ({ ...prev, dueDate: getLocalDateString(date) }));
         }
     }, [formData.date, formData.creditDays]);
 

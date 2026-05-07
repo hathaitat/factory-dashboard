@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export const certificateService = {
   // Upload a file to the certificates bucket
@@ -70,7 +71,7 @@ export const certificateService = {
     try {
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + days);
-      const targetDateString = targetDate.toISOString().split('T')[0];
+      const targetDateString = getLocalDateString(targetDate);
       
       const { data, error } = await supabase
         .from('certificates')

@@ -5,6 +5,7 @@ import { purchaseOrderService } from '../services/purchaseOrderService';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const PurchaseOrderFormPage = () => {
     const { id } = useParams();
@@ -24,7 +25,7 @@ const PurchaseOrderFormPage = () => {
 
     const [formData, setFormData] = useState({
         po_number: '',
-        issue_date: new Date().toISOString().split('T')[0],
+        issue_date: getLocalDateString(),
         due_date: '',
         customer_id: '',
         status: 'Pending',

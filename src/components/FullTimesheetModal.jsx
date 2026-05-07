@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, FileText, Clock, AlertCircle } from 'lucide-react';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const DiligenceInput = ({ value, isOverridden, onCommit }) => {
     const [localValue, setLocalValue] = React.useState(value);
@@ -270,7 +271,7 @@ const FullTimesheetModal = ({ isOpen, onClose, period, employees, logs, stats, w
                                 {allDates.map(date => {
                                     const isSunday = date.getDay() === 0;
                                     return (
-                                        <th key={date.toISOString()} style={{
+                                        <th key={getLocalDateString(date)} style={{
                                             padding: '0.5rem', borderBottom: '2px solid #e2e8f0', borderRight: '1px solid #e2e8f0',
                                             background: isSunday ? '#fee2e2' : '#f8fafc',
                                             color: isSunday ? '#991b1b' : '#475569',
@@ -380,7 +381,7 @@ const FullTimesheetModal = ({ isOpen, onClose, period, employees, logs, stats, w
                                         </div>
                                     </td>
                                     {allDates.map(date => {
-                                        const dateStr = date.toISOString().split('T')[0];
+                                        const dateStr = getLocalDateString(date);
                                         const isSunday = date.getDay() === 0;
                                         const log = logMap[`${emp.id}_${dateStr}`];
 

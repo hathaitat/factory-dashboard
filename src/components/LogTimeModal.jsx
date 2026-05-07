@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { X, Save, Clock, Calendar } from 'lucide-react';
 import { employeeService } from '../services/employeeService';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const LogTimeModal = ({ employee, onClose, onSuccess }) => {
     const { showAlert } = useDialog();
     const [isSaving, setIsSaving] = useState(false);
     const [formData, setFormData] = useState({
-        work_date: new Date().toISOString().split('T')[0],
+        work_date: getLocalDateString(),
         work_days: '1',
         ot_hours: '0',
         note: ''

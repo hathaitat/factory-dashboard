@@ -6,6 +6,7 @@ import { billingNoteService } from '../services/billingNoteService';
 import { companyService } from '../services/companyService';
 import { usePermissions } from '../hooks/usePermissions';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
 
@@ -219,7 +220,7 @@ const BillingNoteListPage = () => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `BillingNote_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+            a.download = `BillingNote_Export_${getLocalDateString()}.xlsx`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

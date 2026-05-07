@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Save, ArrowLeft, User, DollarSign, Calendar, MapPin, Phone, Clock, Plus, Trash2, Heart, ChevronDown, ChevronRight } from 'lucide-react';
 import { employeeService } from '../services/employeeService';
+import { getLocalDateString } from '../utils/dateUtils';
 import { useDialog } from '../contexts/DialogContext';
 
 const EmployeeFormPage = () => {
@@ -20,7 +21,7 @@ const EmployeeFormPage = () => {
         phone: '',
         position: '',
         employment_type: 'Full-time',
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: getLocalDateString(),
         status: 'Active',
         emergency_contact_name: '',
         emergency_contact_phone: '',
@@ -31,7 +32,7 @@ const EmployeeFormPage = () => {
     const [workLogs, setWorkLogs] = useState([]);
     const [expandedLogs, setExpandedLogs] = useState(new Set()); // Track expanded rows
     const [logForm, setLogForm] = useState({
-        work_date: new Date().toISOString().split('T')[0],
+        work_date: getLocalDateString(),
         work_days: '1',
         ot_hours: '0',
         note: ''
@@ -59,7 +60,7 @@ const EmployeeFormPage = () => {
 
             // If today is within range, use today. Else use start of period.
             if (today >= start && today <= end) {
-                setLogForm(prev => ({ ...prev, work_date: today.toISOString().split('T')[0] }));
+                setLogForm(prev => ({ ...prev, work_date: getLocalDateString(today) }));
             } else {
                 setLogForm(prev => ({ ...prev, work_date: periodStart }));
             }

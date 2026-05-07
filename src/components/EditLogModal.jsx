@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Trash2 } from 'lucide-react';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const EditLogModal = ({ cell, onClose, onSave, onDelete }) => {
     const { emp, date, log } = cell;
@@ -13,7 +14,7 @@ const EditLogModal = ({ cell, onClose, onSave, onDelete }) => {
             employee_code: emp.code,
             employee_name: emp.name || emp.full_name, // Handle both naming conventions
             employee_id: emp.id,
-            work_date: date.toISOString(),
+            work_date: getLocalDateString(date),
         };
 
         if (isAbsent) {

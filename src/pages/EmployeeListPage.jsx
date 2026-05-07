@@ -10,6 +10,7 @@ import FullTimesheetModal from '../components/FullTimesheetModal';
 import AddPeriodModal from '../components/AddPeriodModal';
 import * as XLSX from 'xlsx';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 
 import { settingService } from '../services/settingService';
@@ -141,7 +142,7 @@ const EmployeeListPage = () => {
             // Calculate Absent Days
             let absentDays = 0;
             daysInPeriod.forEach(date => {
-                const dateStr = date.toISOString().split('T')[0];
+                const dateStr = getLocalDateString(date);
                 const isSunday = date.getDay() === 0;
 
                 // Sunday is never counted as absent (even if log exists as absent)
@@ -622,7 +623,7 @@ const EmployeeListPage = () => {
                     if (day < periodStartDate.getDate()) {
                         candidate.setMonth(candidate.getMonth() + 1);
                     }
-                    workDate = candidate.toISOString().split('T')[0];
+                    workDate = getLocalDateString(candidate);
                 }
 
                 if (!workDate) return;
@@ -800,7 +801,7 @@ const EmployeeListPage = () => {
         if (dateObj && !isNaN(dateObj.getTime())) {
             const year = dateObj.getFullYear();
             if (year < 2020 || year > 2030) return null;
-            return dateObj.toISOString().split('T')[0];
+            return getLocalDateString(dateObj);
         }
         return null;
     };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, FileText, Save } from 'lucide-react';
+import { X, Calendar, Save } from 'lucide-react';
 import { periodService } from '../services/periodService';
 
 const AddPeriodModal = ({ isOpen, onClose, onSuccess }) => {

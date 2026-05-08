@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Activity, Settings, LogOut, Hexagon, Users, Building, Building2, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle, Truck, Package, ChevronDown, ChevronUp } from 'lucide-react';
+import { LayoutDashboard, Activity, Settings, LogOut, Hexagon, Users, Building, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle, Truck, Package, ChevronDown, ChevronUp } from 'lucide-react';
 import { userService } from '../services/userService';
 import { usePermissions } from '../hooks/usePermissions';
 import '../styles/DashboardLayout.css';

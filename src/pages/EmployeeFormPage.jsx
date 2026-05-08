@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Save, ArrowLeft, User, DollarSign, Calendar, MapPin, Phone, Clock, Plus, Trash2, Heart, ChevronDown, ChevronRight, FileSpreadsheet } from 'lucide-react';
+import { Save, ArrowLeft, User, DollarSign, Calendar, MapPin, Phone, Clock, Plus, Heart, ChevronDown, ChevronRight, FileSpreadsheet } from 'lucide-react';
 import { employeeService } from '../services/employeeService';
 import { getLocalDateString } from '../utils/dateUtils';
 import { useDialog } from '../contexts/DialogContext';
@@ -476,32 +476,32 @@ const EmployeeFormPage = () => {
                         </div>
 
                         <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                            <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>ค่าแรงรายวัน (บาท)</label>
-                                <input
-                                    type="number"
-                                    name="daily_wage"
-                                    value={formData.daily_wage || ''}
-                                    onChange={handleChange}
-                                    className="glass-input"
-                                    placeholder="เช่น 350"
-                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
-                                />
+                            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                                <div className="form-group">
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>ค่าแรงรายวัน (บาท)</label>
+                                    <input
+                                        type="number"
+                                        name="daily_wage"
+                                        value={formData.daily_wage || ''}
+                                        onChange={handleChange}
+                                        className="glass-input"
+                                        placeholder="เช่น 350"
+                                        style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>เบี้ยขยัน (บาท/งวด)</label>
+                                    <input
+                                        type="number"
+                                        name="diligence_allowance"
+                                        value={formData.diligence_allowance || ''}
+                                        onChange={handleChange}
+                                        className="glass-input"
+                                        placeholder="เช่น 500"
+                                        style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                    />
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>เบี้ยขยัน (บาท/งวด)</label>
-                                <input
-                                    type="number"
-                                    name="diligence_allowance"
-                                    value={formData.diligence_allowance || ''}
-                                    onChange={handleChange}
-                                    className="glass-input"
-                                    placeholder="เช่น 500"
-                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
-                                />
-                            </div>
-                        </div>
                         </div>
 
                         <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
@@ -666,7 +666,7 @@ const EmployeeFormPage = () => {
                                         <div style={{ background: 'rgba(139, 92, 246, 0.05)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                 <span style={{ fontWeight: '700', color: 'var(--text-main)' }}>งวดวันที่ 16 - สิ้นเดือน</span>
-                                                <button 
+                                                <button
                                                     onClick={() => exportTimesheetToExcel(monthKey, groupedLogs[monthKey].second, '16-end')}
                                                     style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.2)', background: 'rgba(16, 185, 129, 0.05)', color: '#10b981', cursor: 'pointer', display: 'flex' }}
                                                     title="Export Excel งวดนี้"
@@ -679,68 +679,68 @@ const EmployeeFormPage = () => {
                                             </div>
                                         </div>
                                         <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                                            <thead>
-                                                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'left', color: '#888', fontWeight: '500' }}>วันที่</th>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'center', color: '#888', fontWeight: '500' }}>วันทำงาน</th>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'center', color: '#888', fontWeight: '500' }}>OT</th>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'left', color: '#888', fontWeight: '500' }}>หมายเหตุ</th>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                                <thead>
+                                                    <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                                        <th style={{ padding: '0.8rem', textAlign: 'left', color: '#888', fontWeight: '500' }}>วันที่</th>
+                                                        <th style={{ padding: '0.8rem', textAlign: 'center', color: '#888', fontWeight: '500' }}>วันทำงาน</th>
+                                                        <th style={{ padding: '0.8rem', textAlign: 'center', color: '#888', fontWeight: '500' }}>OT</th>
+                                                        <th style={{ padding: '0.8rem', textAlign: 'left', color: '#888', fontWeight: '500' }}>หมายเหตุ</th>
 
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {groupedLogs[monthKey].second.map(log => (
-                                                    <React.Fragment key={log.id}>
-                                                        <tr onClick={() => toggleExpand(log.id)} style={{ borderBottom: expandedLogs.has(log.id) ? 'none' : '1px solid var(--border-color)', cursor: 'pointer', background: expandedLogs.has(log.id) ? '#f8fafc' : 'transparent' }}>
-                                                            <td style={{ padding: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                {expandedLogs.has(log.id) ? <ChevronDown size={16} color="#6b7280" /> : <ChevronRight size={16} color="#6b7280" />}
-                                                                {log.work_date}
-                                                            </td>
-                                                            <td style={{ padding: '0.8rem', textAlign: 'center' }}>
-                                                                <span style={{
-                                                                    padding: '0.2rem 0.6rem', borderRadius: '10px',
-                                                                    background: log.work_days == 1 ? '#d1fae5' : '#fee2e2',
-                                                                    color: log.work_days == 1 ? '#047857' : '#b91c1c'
-                                                                }}>
-                                                                    {log.work_days}
-                                                                </span>
-                                                            </td>
-                                                            <td style={{ padding: '0.8rem', textAlign: 'center', color: log.ot_hours > 0 ? '#8b5cf6' : '#ccc' }}>
-                                                                {log.ot_hours > 0 ? log.ot_hours : '-'}
-                                                            </td>
-                                                            <td style={{ padding: '0.8rem', color: '#6b7280' }}>{log.note || '-'}</td>
-
-                                                        </tr>
-                                                        {expandedLogs.has(log.id) && (
-                                                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
-                                                                <td colSpan="5" style={{ padding: '0 1rem 1rem 2.8rem' }}>
-                                                                    <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#4b5563' }}>
-                                                                        <div>
-                                                                            <span style={{ color: '#9ca3af', marginRight: '8px' }}>เวลาเข้า:</span>
-                                                                            <span style={{ fontFamily: 'monospace', fontWeight: '500' }}>{log.start_time ? log.start_time.slice(0, 5) : '-'}</span>
-                                                                        </div>
-                                                                        <div>
-                                                                            <span style={{ color: '#9ca3af', marginRight: '8px' }}>เวลาออก:</span>
-                                                                            <span style={{ fontFamily: 'monospace', fontWeight: '500' }}>{log.end_time ? log.end_time.slice(0, 5) : '-'}</span>
-                                                                        </div>
-                                                                        {Number(log.late_hours) > 0 && (
-                                                                            <div style={{ color: '#d97706', fontWeight: '500' }}>
-                                                                                สาย: {Math.round(log.late_hours * 60)} นาที
-                                                                            </div>
-                                                                        )}
-                                                                        {log.is_early && (
-                                                                            <div style={{ color: '#ea580c', fontWeight: '500' }}>ออกก่อน</div>
-                                                                        )}
-                                                                    </div>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {groupedLogs[monthKey].second.map(log => (
+                                                        <React.Fragment key={log.id}>
+                                                            <tr onClick={() => toggleExpand(log.id)} style={{ borderBottom: expandedLogs.has(log.id) ? 'none' : '1px solid var(--border-color)', cursor: 'pointer', background: expandedLogs.has(log.id) ? '#f8fafc' : 'transparent' }}>
+                                                                <td style={{ padding: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                    {expandedLogs.has(log.id) ? <ChevronDown size={16} color="#6b7280" /> : <ChevronRight size={16} color="#6b7280" />}
+                                                                    {log.work_date}
                                                                 </td>
+                                                                <td style={{ padding: '0.8rem', textAlign: 'center' }}>
+                                                                    <span style={{
+                                                                        padding: '0.2rem 0.6rem', borderRadius: '10px',
+                                                                        background: log.work_days == 1 ? '#d1fae5' : '#fee2e2',
+                                                                        color: log.work_days == 1 ? '#047857' : '#b91c1c'
+                                                                    }}>
+                                                                        {log.work_days}
+                                                                    </span>
+                                                                </td>
+                                                                <td style={{ padding: '0.8rem', textAlign: 'center', color: log.ot_hours > 0 ? '#8b5cf6' : '#ccc' }}>
+                                                                    {log.ot_hours > 0 ? log.ot_hours : '-'}
+                                                                </td>
+                                                                <td style={{ padding: '0.8rem', color: '#6b7280' }}>{log.note || '-'}</td>
+
                                                             </tr>
-                                                        )}
-                                                    </React.Fragment>
-                                                ))}
-                                            </tbody>
-                                        </table>
-</div>
+                                                            {expandedLogs.has(log.id) && (
+                                                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
+                                                                    <td colSpan="5" style={{ padding: '0 1rem 1rem 2.8rem' }}>
+                                                                        <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#4b5563' }}>
+                                                                            <div>
+                                                                                <span style={{ color: '#9ca3af', marginRight: '8px' }}>เวลาเข้า:</span>
+                                                                                <span style={{ fontFamily: 'monospace', fontWeight: '500' }}>{log.start_time ? log.start_time.slice(0, 5) : '-'}</span>
+                                                                            </div>
+                                                                            <div>
+                                                                                <span style={{ color: '#9ca3af', marginRight: '8px' }}>เวลาออก:</span>
+                                                                                <span style={{ fontFamily: 'monospace', fontWeight: '500' }}>{log.end_time ? log.end_time.slice(0, 5) : '-'}</span>
+                                                                            </div>
+                                                                            {Number(log.late_hours) > 0 && (
+                                                                                <div style={{ color: '#d97706', fontWeight: '500' }}>
+                                                                                    สาย: {Math.round(log.late_hours * 60)} นาที
+                                                                                </div>
+                                                                            )}
+                                                                            {log.is_early && (
+                                                                                <div style={{ color: '#ea580c', fontWeight: '500' }}>ออกก่อน</div>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </React.Fragment>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 )}
 
@@ -750,7 +750,7 @@ const EmployeeFormPage = () => {
                                         <div style={{ background: 'rgba(139, 92, 246, 0.05)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                 <span style={{ fontWeight: '700', color: 'var(--text-main)' }}>งวดวันที่ 1 - 15</span>
-                                                <button 
+                                                <button
                                                     onClick={() => exportTimesheetToExcel(monthKey, groupedLogs[monthKey].first, '01-15')}
                                                     style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.2)', background: 'rgba(16, 185, 129, 0.05)', color: '#10b981', cursor: 'pointer', display: 'flex' }}
                                                     title="Export Excel งวดนี้"
@@ -763,68 +763,68 @@ const EmployeeFormPage = () => {
                                             </div>
                                         </div>
                                         <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                                            <thead>
-                                                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'left', color: '#888', fontWeight: '500' }}>วันที่</th>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'center', color: '#888', fontWeight: '500' }}>วันทำงาน</th>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'center', color: '#888', fontWeight: '500' }}>OT</th>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'left', color: '#888', fontWeight: '500' }}>หมายเหตุ</th>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                                <thead>
+                                                    <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                                        <th style={{ padding: '0.8rem', textAlign: 'left', color: '#888', fontWeight: '500' }}>วันที่</th>
+                                                        <th style={{ padding: '0.8rem', textAlign: 'center', color: '#888', fontWeight: '500' }}>วันทำงาน</th>
+                                                        <th style={{ padding: '0.8rem', textAlign: 'center', color: '#888', fontWeight: '500' }}>OT</th>
+                                                        <th style={{ padding: '0.8rem', textAlign: 'left', color: '#888', fontWeight: '500' }}>หมายเหตุ</th>
 
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {groupedLogs[monthKey].first.map(log => (
-                                                    <React.Fragment key={log.id}>
-                                                        <tr onClick={() => toggleExpand(log.id)} style={{ borderBottom: expandedLogs.has(log.id) ? 'none' : '1px solid var(--border-color)', cursor: 'pointer', background: expandedLogs.has(log.id) ? '#f8fafc' : 'transparent' }}>
-                                                            <td style={{ padding: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                {expandedLogs.has(log.id) ? <ChevronDown size={16} color="#6b7280" /> : <ChevronRight size={16} color="#6b7280" />}
-                                                                {log.work_date}
-                                                            </td>
-                                                            <td style={{ padding: '0.8rem', textAlign: 'center' }}>
-                                                                <span style={{
-                                                                    padding: '0.2rem 0.6rem', borderRadius: '10px',
-                                                                    background: log.work_days == 1 ? '#d1fae5' : '#fee2e2',
-                                                                    color: log.work_days == 1 ? '#047857' : '#b91c1c'
-                                                                }}>
-                                                                    {log.work_days}
-                                                                </span>
-                                                            </td>
-                                                            <td style={{ padding: '0.8rem', textAlign: 'center', color: log.ot_hours > 0 ? '#8b5cf6' : '#ccc' }}>
-                                                                {log.ot_hours > 0 ? log.ot_hours : '-'}
-                                                            </td>
-                                                            <td style={{ padding: '0.8rem', color: '#6b7280' }}>{log.note || '-'}</td>
-
-                                                        </tr>
-                                                        {expandedLogs.has(log.id) && (
-                                                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
-                                                                <td colSpan="5" style={{ padding: '0 1rem 1rem 2.8rem' }}>
-                                                                    <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#4b5563' }}>
-                                                                        <div>
-                                                                            <span style={{ color: '#9ca3af', marginRight: '8px' }}>เวลาเข้า:</span>
-                                                                            <span style={{ fontFamily: 'monospace', fontWeight: '500' }}>{log.start_time ? log.start_time.slice(0, 5) : '-'}</span>
-                                                                        </div>
-                                                                        <div>
-                                                                            <span style={{ color: '#9ca3af', marginRight: '8px' }}>เวลาออก:</span>
-                                                                            <span style={{ fontFamily: 'monospace', fontWeight: '500' }}>{log.end_time ? log.end_time.slice(0, 5) : '-'}</span>
-                                                                        </div>
-                                                                        {Number(log.late_hours) > 0 && (
-                                                                            <div style={{ color: '#d97706', fontWeight: '500' }}>
-                                                                                สาย: {Math.round(log.late_hours * 60)} นาที
-                                                                            </div>
-                                                                        )}
-                                                                        {log.is_early && (
-                                                                            <div style={{ color: '#ea580c', fontWeight: '500' }}>ออกก่อน</div>
-                                                                        )}
-                                                                    </div>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {groupedLogs[monthKey].first.map(log => (
+                                                        <React.Fragment key={log.id}>
+                                                            <tr onClick={() => toggleExpand(log.id)} style={{ borderBottom: expandedLogs.has(log.id) ? 'none' : '1px solid var(--border-color)', cursor: 'pointer', background: expandedLogs.has(log.id) ? '#f8fafc' : 'transparent' }}>
+                                                                <td style={{ padding: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                    {expandedLogs.has(log.id) ? <ChevronDown size={16} color="#6b7280" /> : <ChevronRight size={16} color="#6b7280" />}
+                                                                    {log.work_date}
                                                                 </td>
+                                                                <td style={{ padding: '0.8rem', textAlign: 'center' }}>
+                                                                    <span style={{
+                                                                        padding: '0.2rem 0.6rem', borderRadius: '10px',
+                                                                        background: log.work_days == 1 ? '#d1fae5' : '#fee2e2',
+                                                                        color: log.work_days == 1 ? '#047857' : '#b91c1c'
+                                                                    }}>
+                                                                        {log.work_days}
+                                                                    </span>
+                                                                </td>
+                                                                <td style={{ padding: '0.8rem', textAlign: 'center', color: log.ot_hours > 0 ? '#8b5cf6' : '#ccc' }}>
+                                                                    {log.ot_hours > 0 ? log.ot_hours : '-'}
+                                                                </td>
+                                                                <td style={{ padding: '0.8rem', color: '#6b7280' }}>{log.note || '-'}</td>
+
                                                             </tr>
-                                                        )}
-                                                    </React.Fragment>
-                                                ))}
-                                            </tbody>
-                                        </table>
-</div>
+                                                            {expandedLogs.has(log.id) && (
+                                                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
+                                                                    <td colSpan="5" style={{ padding: '0 1rem 1rem 2.8rem' }}>
+                                                                        <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#4b5563' }}>
+                                                                            <div>
+                                                                                <span style={{ color: '#9ca3af', marginRight: '8px' }}>เวลาเข้า:</span>
+                                                                                <span style={{ fontFamily: 'monospace', fontWeight: '500' }}>{log.start_time ? log.start_time.slice(0, 5) : '-'}</span>
+                                                                            </div>
+                                                                            <div>
+                                                                                <span style={{ color: '#9ca3af', marginRight: '8px' }}>เวลาออก:</span>
+                                                                                <span style={{ fontFamily: 'monospace', fontWeight: '500' }}>{log.end_time ? log.end_time.slice(0, 5) : '-'}</span>
+                                                                            </div>
+                                                                            {Number(log.late_hours) > 0 && (
+                                                                                <div style={{ color: '#d97706', fontWeight: '500' }}>
+                                                                                    สาย: {Math.round(log.late_hours * 60)} นาที
+                                                                                </div>
+                                                                            )}
+                                                                            {log.is_early && (
+                                                                                <div style={{ color: '#ea580c', fontWeight: '500' }}>ออกก่อน</div>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </React.Fragment>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 )}
                             </div>

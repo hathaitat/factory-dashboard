@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Search, Edit2, Trash2, User, Clock, CheckCircle, XCircle, MoreVertical, ChevronRight, ArrowLeft, Upload, FileSpreadsheet, FileText } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, User, Clock, CheckCircle, XCircle, ChevronRight, ArrowLeft, Upload, FileSpreadsheet, FileText } from 'lucide-react';
 import { employeeService } from '../services/employeeService';
 import { usePermissions } from '../hooks/usePermissions';
 import LogTimeModal from '../components/LogTimeModal';
@@ -20,7 +20,6 @@ const EmployeeListPage = () => {
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
     const { showConfirm, showAlert } = useDialog();
-    const fileInputRef = useRef(null);
     const [employees, setEmployees] = useState([]);
     const [filteredEmployees, setFilteredEmployees] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -169,7 +168,7 @@ const EmployeeListPage = () => {
 
     const exportPeriodSummaryToExcel = () => {
         if (!selectedPeriod || !employees.length) return;
-        
+
         const data = filteredEmployees.map(emp => {
             const stats = periodStats[emp.id] || { workDays: 0, lateHours: 0, otHours: 0, absentDays: 0, diligence: 0 };
             return {
@@ -1130,7 +1129,7 @@ const EmployeeListPage = () => {
                     {/* Employee Table */}
                     <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
                         <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                                         <th style={{ padding: '1.2rem', color: '#6b7280', fontWeight: '500' }}>รหัส</th>
@@ -1239,7 +1238,7 @@ const EmployeeListPage = () => {
                                     )}
                                 </tbody>
                             </table>
-</div>
+                        </div>
                     </div>
                 </>
             )
@@ -1345,7 +1344,7 @@ const EmployeeListPage = () => {
                         // Set calculated fields
                         payload.late_hours = lateHours;
                         payload.is_late = lateHours > 0;
-                        
+
                         // OT and Early Leave calculation usually happens at backend or bulk-import.
                         // Here we at least reset them so they aren't stale if previous log had them.
                         payload.ot_hours = null;

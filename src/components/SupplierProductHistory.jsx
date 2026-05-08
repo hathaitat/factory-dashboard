@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { TrendingUp, TrendingDown, Calendar, Filter, ArrowLeft, Info } from 'lucide-react';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { TrendingUp, TrendingDown, Calendar, ArrowLeft, Info } from 'lucide-react';
 import { supplierProductService } from '../services/supplierProductService';
 
 const SupplierProductHistory = ({ product, onBack }) => {
@@ -29,7 +29,7 @@ const SupplierProductHistory = ({ product, onBack }) => {
 
     const stats = useMemo(() => {
         if (history.length < 2) return null;
-        
+
         const latest = history[history.length - 1].price;
         const previous = history[history.length - 2].price;
         const diff = latest - previous;
@@ -61,7 +61,7 @@ const SupplierProductHistory = ({ product, onBack }) => {
         <div className="glass-panel" style={{ padding: '1.5rem', animation: 'fadeIn 0.3s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <button 
+                    <button
                         onClick={onBack}
                         style={{ background: 'var(--card-hover)', border: 'none', padding: '0.5rem', borderRadius: '50%', cursor: 'pointer', color: 'var(--text-main)', display: 'flex', alignItems: 'center' }}
                     >
@@ -76,16 +76,16 @@ const SupplierProductHistory = ({ product, onBack }) => {
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--card-hover)', padding: '0.4rem 0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                         <Calendar size={14} color="var(--text-muted)" />
-                        <input 
-                            type="date" 
-                            value={dateRange.start} 
+                        <input
+                            type="date"
+                            value={dateRange.start}
                             onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
                             style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none' }}
                         />
                         <span style={{ color: 'var(--text-muted)' }}>-</span>
-                        <input 
-                            type="date" 
-                            value={dateRange.end} 
+                        <input
+                            type="date"
+                            value={dateRange.end}
                             onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
                             style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none' }}
                         />
@@ -106,35 +106,35 @@ const SupplierProductHistory = ({ product, onBack }) => {
                                 <AreaChart data={chartData}>
                                     <defs>
                                         <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.1}/>
-                                            <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                                            <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.1} />
+                                            <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.5} />
-                                    <XAxis 
-                                        dataKey="date" 
-                                        axisLine={false} 
-                                        tickLine={false} 
+                                    <XAxis
+                                        dataKey="date"
+                                        axisLine={false}
+                                        tickLine={false}
                                         tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
                                     />
-                                    <YAxis 
-                                        axisLine={false} 
-                                        tickLine={false} 
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
                                         tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
                                         tickFormatter={(value) => `฿${value.toLocaleString()}`}
                                     />
-                                    <Tooltip 
+                                    <Tooltip
                                         contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px' }}
                                         labelStyle={{ color: 'var(--text-main)', fontWeight: '600', marginBottom: '4px' }}
                                         formatter={(value) => [`฿${value.toLocaleString()}`, 'ราคา']}
                                     />
-                                    <Area 
-                                        type="monotone" 
-                                        dataKey="price" 
-                                        stroke="var(--primary)" 
+                                    <Area
+                                        type="monotone"
+                                        dataKey="price"
+                                        stroke="var(--primary)"
                                         strokeWidth={3}
-                                        fillOpacity={1} 
-                                        fill="url(#colorPrice)" 
+                                        fillOpacity={1}
+                                        fill="url(#colorPrice)"
                                         animationDuration={1500}
                                     />
                                 </AreaChart>
@@ -157,7 +157,7 @@ const SupplierProductHistory = ({ product, onBack }) => {
                                         const prev = arr[idx + 1];
                                         const diff = prev ? h.price - prev.price : 0;
                                         const percent = prev ? (diff / prev.price) * 100 : 0;
-                                        
+
                                         return (
                                             <tr key={h.id} style={{ borderBottom: '1px solid var(--border-color)', background: idx === 0 ? 'rgba(var(--primary-rgb), 0.03)' : 'transparent' }}>
                                                 <td style={{ padding: '1rem' }}>{new Date(h.effectiveDate).toLocaleDateString('th-TH')}</td>
@@ -198,9 +198,9 @@ const SupplierProductHistory = ({ product, onBack }) => {
                                 <div className="glass-panel" style={{ padding: '1.2rem', background: 'var(--card-hover)' }}>
                                     <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>การเปลี่ยนแปลงล่าสุด</div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <div style={{ 
-                                            padding: '0.4rem', 
-                                            borderRadius: '8px', 
+                                        <div style={{
+                                            padding: '0.4rem',
+                                            borderRadius: '8px',
                                             background: stats.diff > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
                                             color: stats.diff > 0 ? 'var(--error)' : 'var(--success)'
                                         }}>
@@ -220,9 +220,9 @@ const SupplierProductHistory = ({ product, onBack }) => {
                                 <div className="glass-panel" style={{ padding: '1.2rem', background: 'var(--card-hover)' }}>
                                     <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>ภาพรวมทั้งปี</div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <div style={{ 
-                                            padding: '0.4rem', 
-                                            borderRadius: '8px', 
+                                        <div style={{
+                                            padding: '0.4rem',
+                                            borderRadius: '8px',
                                             background: stats.totalDiff > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
                                             color: stats.totalDiff > 0 ? 'var(--error)' : 'var(--success)'
                                         }}>

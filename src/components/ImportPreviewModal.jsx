@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, AlertCircle, Loader, FileText, Trash2, Save } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Loader, FileText } from 'lucide-react';
 import EditLogModal from './EditLogModal';
 import { getLocalDateString } from '../utils/dateUtils';
 

@@ -34,8 +34,6 @@ const BillingNotePrintTemplate = () => {
     if (isLoading) return <div style={{ padding: '2rem' }}>กำลังโหลด...</div>;
     if (!bn || !company) return <div style={{ padding: '2rem' }}>ไม่พบข้อมูล</div>;
 
-    const bahtText = bn.bahtText || ''; // Assuming the service provides it or we calculate it
-
     return (
         <div className="print-container">
             <div className="no-print" style={{ padding: '1rem', display: 'flex', gap: '1rem', background: '#111', borderBottom: '1px solid #333' }}>

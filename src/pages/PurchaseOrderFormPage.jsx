@@ -109,6 +109,13 @@ const PurchaseOrderFormPage = () => {
         }
     };
 
+    const handleCustomerChange = async (customerId) => {
+        if (!customerId) {
+            setFormData(prev => ({ ...prev, customer_id: '' }));
+            setAllProducts([]);
+            return;
+        }
+
         const selectedCustomer = customers.find(c => String(c.id) === String(customerId));
         setFormData(prev => ({ ...prev, customer_id: customerId }));
 

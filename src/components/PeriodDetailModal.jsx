@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Clock, AlertCircle } from 'lucide-react';
+import { X } from 'lucide-react';
 import EditLogModal from './EditLogModal';
 import { employeeService } from '../services/employeeService';
 import { useDialog } from '../contexts/DialogContext';
@@ -192,7 +192,7 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
                 </div>
 
                 {/* Summary Cards */}
-                <div 
+                <div
                     className="grid-mobile-stack"
                     style={{
                         display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '1rem',

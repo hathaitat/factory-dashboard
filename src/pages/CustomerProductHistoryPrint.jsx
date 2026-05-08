@@ -26,21 +26,21 @@ const CustomerProductHistoryPrint = () => {
                 companyService.getCompanyInfo(),
                 invoiceService.getInvoiceItemsByCustomer(id)
             ]);
-            
+
             setCustomer(customerData);
             setCompany(companyData);
-            
+
             const queryParams = new URLSearchParams(location.search);
             const targetMonth = queryParams.get('month');
 
             // Group by month
             const monthlyMap = {};
-            
+
             items.forEach(item => {
                 if (!item.date) return;
                 const date = new Date(item.date);
                 const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                
+
                 // If a specific month is requested, skip other months
                 if (targetMonth && monthKey !== targetMonth) return;
 
@@ -52,7 +52,7 @@ const CustomerProductHistoryPrint = () => {
                         totalQuantity: 0
                     };
                 }
-                
+
                 // Group by product name AND unit price
                 const prodKey = `${item.productName || 'Unknown Product'}_${item.unitPrice}`;
                 if (!monthlyMap[monthKey].products[prodKey]) {
@@ -64,20 +64,20 @@ const CustomerProductHistoryPrint = () => {
                         totalPrice: 0
                     };
                 }
-                
+
                 monthlyMap[monthKey].products[prodKey].quantity += item.quantity;
                 monthlyMap[monthKey].products[prodKey].totalPrice += item.totalPrice;
-                
+
                 monthlyMap[monthKey].totalAmount += item.totalPrice;
                 monthlyMap[monthKey].totalQuantity += item.quantity;
             });
-            
+
             // Convert products map to array and sort
             const sortedData = Object.values(monthlyMap).map(m => ({
                 ...m,
                 products: Object.values(m.products).sort((a, b) => b.totalPrice - a.totalPrice)
             })).sort((a, b) => b.month.localeCompare(a.month)); // Sort months descending
-            
+
             setProductHistoryData(sortedData);
 
         } catch (error) {
@@ -112,17 +112,14 @@ const CustomerProductHistoryPrint = () => {
         );
     }
 
-    // Calculate Grand Total across all months
-    const grandTotalAmount = productHistoryData.reduce((sum, month) => sum + month.totalAmount, 0);
-    const grandTotalQuantity = productHistoryData.reduce((sum, month) => sum + month.totalQuantity, 0);
 
     return (
         <div className="print-container">
-            <div className="no-print" style={{ 
+            <div className="no-print" style={{
                 position: 'fixed', top: 0, left: 0, right: 0,
                 padding: '0.75rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 background: 'rgba(17, 24, 39, 0.95)', backdropFilter: 'blur(8px)',
-                borderBottom: '1px solid #374151', zIndex: 1000 
+                borderBottom: '1px solid #374151', zIndex: 1000
             }}>
                 <div style={{ color: 'white', fontWeight: '500' }}>ตัวอย่างก่อนพิมพ์: รายงานประวัติการซื้อสินค้า</div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -184,7 +181,7 @@ const CustomerProductHistoryPrint = () => {
                                         รายการสินค้าทั้งหมด {monthData.products.length} รายการ
                                     </div>
                                 </div>
-                                
+
                                 <table className="items-table-print" style={{ marginBottom: '5px' }}>
                                     <thead>
                                         <tr style={{ backgroundColor: '#f3f4f6' }}>

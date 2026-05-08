@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, X, Upload } from 'lucide-react';
+import { Save, X } from 'lucide-react';
 import { certificateService } from '../services/certificateService';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
@@ -70,7 +70,7 @@ const CertificateFormPage = () => {
 
     const handleProductChange = (e) => {
         const value = e.target.value; // Product IDs are UUIDs, do NOT parse as Int
-        setSelectedProducts(prev => 
+        setSelectedProducts(prev =>
             e.target.checked ? [...prev, value] : prev.filter(p => p !== value)
         );
     };
@@ -95,7 +95,7 @@ const CertificateFormPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!formData.name) {
             return showError('กรุณากรอกชื่อ Certificate');
         }
@@ -164,15 +164,15 @@ const CertificateFormPage = () => {
 
             <div className="glass-panel" style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
                 <form onSubmit={handleSubmit}>
-                    
+
                     {/* Basic Info */}
                     <div style={{ marginBottom: '1.5rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>ชื่อเอกสาร Certificate <span style={{color:'red'}}>*</span></label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>ชื่อเอกสาร Certificate <span style={{ color: 'red' }}>*</span></label>
                         <input
                             type="text"
                             className="glass-input"
                             value={formData.name}
-                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             required
                             style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-hover)', color: 'var(--text-main)' }}
                         />
@@ -185,7 +185,7 @@ const CertificateFormPage = () => {
                                 type="date"
                                 className="glass-input"
                                 value={formData.issue_date}
-                                onChange={(e) => setFormData({...formData, issue_date: e.target.value})}
+                                onChange={(e) => setFormData({ ...formData, issue_date: e.target.value })}
                                 style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-hover)', color: 'var(--text-main)' }}
                             />
                         </div>
@@ -195,7 +195,7 @@ const CertificateFormPage = () => {
                                 type="date"
                                 className="glass-input"
                                 value={formData.expiry_date}
-                                onChange={(e) => setFormData({...formData, expiry_date: e.target.value})}
+                                onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
                                 style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-hover)', color: 'var(--text-main)' }}
                             />
                         </div>
@@ -216,7 +216,7 @@ const CertificateFormPage = () => {
 
                     <div style={{ marginBottom: '1.5rem' }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>
-                            อัปโหลดไฟล์ Certificate {isEditMode && formData.file_url ? `(มีไฟล์อยู่แล้ว สามารถอัปโหลดใหม่เพื่อเปลี่ยน)` : <span style={{color:'red'}}>*</span>}
+                            อัปโหลดไฟล์ Certificate {isEditMode && formData.file_url ? `(มีไฟล์อยู่แล้ว สามารถอัปโหลดใหม่เพื่อเปลี่ยน)` : <span style={{ color: 'red' }}>*</span>}
                         </label>
                         <input
                             type="file"
@@ -240,9 +240,9 @@ const CertificateFormPage = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                         {/* Select Customers (Moved to Left) */}
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>เลือกลูกค้า (Customers) <span style={{color:'var(--text-muted)', fontSize:'0.9rem', fontWeight:'normal'}}>(เลือกก่อน)</span></label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>เลือกลูกค้า (Customers) <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 'normal' }}>(เลือกก่อน)</span></label>
                             <div style={{ maxHeight: '200px', overflowY: 'auto', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--card-bg)' }}>
-                                {customers.length === 0 ? <div style={{color:'var(--text-muted)'}}>ไม่มีข้อมูลลูกค้า</div> : customers.map(c => (
+                                {customers.length === 0 ? <div style={{ color: 'var(--text-muted)' }}>ไม่มีข้อมูลลูกค้า</div> : customers.map(c => (
                                     <div key={`c-${c.id}`} style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         <input
                                             type="checkbox"
@@ -262,10 +262,10 @@ const CertificateFormPage = () => {
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>เลือกสินค้าที่เกี่ยวข้อง (Products)</label>
                             <div style={{ maxHeight: '200px', overflowY: 'auto', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--card-bg)' }}>
                                 {selectedCustomers.length === 0 ? (
-                                    <div style={{color:'var(--text-muted)'}}>กรุณาเลือกลูกค้าก่อน</div>
+                                    <div style={{ color: 'var(--text-muted)' }}>กรุณาเลือกลูกค้าก่อน</div>
                                 ) : (
                                     products.filter(p => selectedCustomers.includes(p.customerId)).length === 0 ? (
-                                        <div style={{color:'var(--text-muted)'}}>ไม่มีสินค้าสำหรับลูกค้าที่เลือก</div>
+                                        <div style={{ color: 'var(--text-muted)' }}>ไม่มีสินค้าสำหรับลูกค้าที่เลือก</div>
                                     ) : (
                                         products.filter(p => selectedCustomers.includes(p.customerId)).map(p => (
                                             <div key={`p-${p.id}`} style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

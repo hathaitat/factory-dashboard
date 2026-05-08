@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ComposedChart, Area, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LabelList, ReferenceLine } from 'recharts';
-import { TrendingUp, TrendingDown, Users, Check, ChevronDown, X, Table, FileDigit, Activity, BarChart3, Lightbulb, Download, Layers, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Check, ChevronDown, X, Table, FileDigit, Activity, BarChart3, Lightbulb, Layers, Info } from 'lucide-react';
 import { calcMovingAverage, calcCumulative, calcPrevPeriodData, generateInsights, formatDisplayValue } from './chartHelpers';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f43f5e', '#6366f1'];
@@ -9,7 +9,6 @@ const CustomLineChart = ({
     metrics = [],
     defaultMetric = '',
     title = 'แนวโน้มและสถิติ (Analytics Chart)',
-    allowMultiSelect = true,
     maxMultiSelect = 100,
     enableGroupBy = false,
     groupByLabel = 'ลูกค้า',
@@ -87,7 +86,7 @@ const CustomLineChart = ({
     const availableGroups = useMemo(() => {
         if (!enableGroupBy) return [];
         const groupMap = {};
-        
+
         // Initialize with allGroups if provided
         if (allGroups && Array.isArray(allGroups)) {
             allGroups.forEach(name => {
@@ -106,7 +105,7 @@ const CustomLineChart = ({
                 }
             }
         });
-        
+
         return Object.keys(groupMap).sort((a, b) => groupMap[b] - groupMap[a]);
     }, [enableGroupBy, groupByData, groupByField, groupByValueField, groupByDateField, dateBounds, allGroups]);
 
@@ -143,7 +142,7 @@ const CustomLineChart = ({
                 color: COLORS[index % COLORS.length],
                 valuePrefix: groupByPrefix,
                 valueSuffix: groupBySuffix,
-                chartType: 'line', 
+                chartType: 'line',
                 yAxisId: 'left'
             }));
         } else {
@@ -162,7 +161,7 @@ const CustomLineChart = ({
         const isYearly = period === 'yearly';
         const isMonthly = period === 'monthly' || (period === 'custom' && (endDate - startDate) > 90 * 24 * 60 * 60 * 1000);
         const isWeekly = period === 'weekly';
-        
+
         const finalDataMap = {};
 
         if (isYearly) {
@@ -285,9 +284,9 @@ const CustomLineChart = ({
                     {payload.map((entry, index) => {
                         const config = chartDataObj.configs.find(c => c.id === entry.dataKey);
                         if (!config) return null;
-                        
+
                         const val = formatDisplayValue(entry.value, config.valuePrefix || '', config.valueSuffix || '');
-                        
+
                         return (
                             <p key={index} style={{ margin: '0.3rem 0', color: entry.color, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -352,7 +351,7 @@ const CustomLineChart = ({
                                     <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '0.5rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.5rem', width: '250px', maxHeight: '350px', overflowY: 'auto', zIndex: 100, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
                                         {availableGroups.length > 0 && (
                                             <div style={{ display: 'flex', gap: '0.5rem', padding: '0.5rem', borderBottom: '1px solid var(--border-color)', marginBottom: '0.5rem' }}>
-                                                <button 
+                                                <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setSelectedGroups(availableGroups.slice(0, maxMultiSelect));
@@ -361,7 +360,7 @@ const CustomLineChart = ({
                                                 >
                                                     เลือกทั้งหมด
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setSelectedGroups(availableGroups.slice(0, 1));
@@ -401,12 +400,12 @@ const CustomLineChart = ({
 
                 <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     <div style={{ display: 'flex', background: 'rgba(0,0,0,0.1)', borderRadius: '8px', padding: '0.2rem', flexWrap: 'wrap' }}>
-                        {[{ key: 'labels', icon: <FileDigit size={14}/>, label: 'ตัวเลข', val: showLabels, set: setShowLabels, tooltip: 'แสดงตัวเลขระบุค่าของแต่ละจุดบนกราฟ เพื่อให้อ่านค่าได้ชัดเจน' },
-                          { key: 'table', icon: <Table size={14}/>, label: 'ตาราง', val: showTable, set: setShowTable, tooltip: 'แสดงข้อมูลสรุปในรูปแบบตารางที่ด้านล่างกราฟ แบ่งตามรายการและค่าเฉลี่ย' },
-                          { key: 'ma', icon: <Activity size={14}/>, label: 'เส้นเฉลี่ยเคลื่อนที่', val: showMA, set: setShowMA, tooltip: 'เส้นที่ช่วยลดความผันผวนของข้อมูลรายวัน เพื่อให้เห็นแนวโน้ม (Trend) ที่แท้จริง' },
-                          { key: 'avg', icon: <BarChart3 size={14}/>, label: 'เส้นค่าเฉลี่ย', val: showAvgLine, set: setShowAvgLine, tooltip: 'เส้นตรงที่ระบุค่าเฉลี่ยกลางของข้อมูลทั้งหมด เพื่อใช้เปรียบเทียบว่าวันไหนสูงหรือต่ำกว่าปกติ' },
-                          { key: 'cum', icon: <Layers size={14}/>, label: 'สะสม', val: showCumulative, set: setShowCumulative, tooltip: 'แสดงกราฟแบบยอดรวมสะสมเพิ่มขึ้นเรื่อยๆ ตั้งแต่จุดเริ่มต้น เพื่อดูการเติบโตในภาพรวม' },
-                          { key: 'insights', icon: <Lightbulb size={14}/>, label: 'วิเคราะห์', val: showInsights, set: setShowInsights, tooltip: 'แสดงข้อมูลสรุปผลการวิเคราะห์ เช่น วันที่ยอดสูงสุด และข้อสังเกตที่น่าสนใจ' }
+                        {[{ key: 'labels', icon: <FileDigit size={14} />, label: 'ตัวเลข', val: showLabels, set: setShowLabels, tooltip: 'แสดงตัวเลขระบุค่าของแต่ละจุดบนกราฟ เพื่อให้อ่านค่าได้ชัดเจน' },
+                        { key: 'table', icon: <Table size={14} />, label: 'ตาราง', val: showTable, set: setShowTable, tooltip: 'แสดงข้อมูลสรุปในรูปแบบตารางที่ด้านล่างกราฟ แบ่งตามรายการและค่าเฉลี่ย' },
+                        { key: 'ma', icon: <Activity size={14} />, label: 'เส้นเฉลี่ยเคลื่อนที่', val: showMA, set: setShowMA, tooltip: 'เส้นที่ช่วยลดความผันผวนของข้อมูลรายวัน เพื่อให้เห็นแนวโน้ม (Trend) ที่แท้จริง' },
+                        { key: 'avg', icon: <BarChart3 size={14} />, label: 'เส้นค่าเฉลี่ย', val: showAvgLine, set: setShowAvgLine, tooltip: 'เส้นตรงที่ระบุค่าเฉลี่ยกลางของข้อมูลทั้งหมด เพื่อใช้เปรียบเทียบว่าวันไหนสูงหรือต่ำกว่าปกติ' },
+                        { key: 'cum', icon: <Layers size={14} />, label: 'สะสม', val: showCumulative, set: setShowCumulative, tooltip: 'แสดงกราฟแบบยอดรวมสะสมเพิ่มขึ้นเรื่อยๆ ตั้งแต่จุดเริ่มต้น เพื่อดูการเติบโตในภาพรวม' },
+                        { key: 'insights', icon: <Lightbulb size={14} />, label: 'วิเคราะห์', val: showInsights, set: setShowInsights, tooltip: 'แสดงข้อมูลสรุปผลการวิเคราะห์ เช่น วันที่ยอดสูงสุด และข้อสังเกตที่น่าสนใจ' }
                         ].map(btn => (
                             <div key={btn.key} className="tooltip-container">
                                 <button onClick={() => btn.set(!btn.val)} style={{ padding: '0.35rem 0.5rem', borderRadius: '6px', border: 'none', background: btn.val ? 'var(--card-hover)' : 'transparent', color: btn.val ? 'var(--text-main)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>{btn.icon} {btn.label}</button>
@@ -447,7 +446,7 @@ const CustomLineChart = ({
                                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>เฉลี่ย: {formatDisplayValue(kpi.avg, kpi.valuePrefix)}</span>
                                     {kpi.comparison && kpi.comparison.change !== 0 && (
                                         <span style={{ fontSize: '0.7rem', fontWeight: '600', color: kpi.comparison.change > 0 ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
-                                            {kpi.comparison.change > 0 ? <TrendingUp size={11}/> : <TrendingDown size={11}/>}
+                                            {kpi.comparison.change > 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
                                             {kpi.comparison.change > 0 ? '+' : ''}{kpi.comparison.change.toFixed(1)}%
                                         </span>
                                     )}
@@ -475,7 +474,7 @@ const CustomLineChart = ({
                     <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
                         {insights.map((ins, i) => (
                             <div key={i} style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: `${ins.color}10`, border: `1px solid ${ins.color}25`, fontSize: '0.75rem', color: ins.color, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                <Lightbulb size={12}/> {ins.text}
+                                <Lightbulb size={12} /> {ins.text}
                             </div>
                         ))}
                     </div>
@@ -499,10 +498,10 @@ const CustomLineChart = ({
                         {hasRightAxis && <YAxis yAxisId="right" orientation="right" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => formatYAxis(v, rightConfigs[0])} width={45} />}
                         <Tooltip content={renderCustomTooltip} />
                         {chartDataObj.configs.map((config) => {
-                            if (config.chartType === 'bar') return ( <Bar key={config.id} yAxisId={config.yAxisId} dataKey={config.id} name={config.label} fill={config.color} radius={[4, 4, 0, 0]} barSize={30}>{showLabels && <LabelList dataKey={config.id} position="top" fill={config.color} fontSize={10} formatter={(val) => customLabelFormatter(val, config)} />}</Bar> );
-                            return ( <Line key={config.id} yAxisId={config.yAxisId} type="monotone" dataKey={config.id} name={config.label} stroke={config.color} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: 'var(--card-bg)', stroke: config.color }} activeDot={{ r: 6, strokeWidth: 0, fill: config.color }}>{showLabels && <LabelList dataKey={config.id} position="top" fill={config.color} fontSize={10} formatter={(val) => customLabelFormatter(val, config)} />}</Line> );
+                            if (config.chartType === 'bar') return (<Bar key={config.id} yAxisId={config.yAxisId} dataKey={config.id} name={config.label} fill={config.color} radius={[4, 4, 0, 0]} barSize={30}>{showLabels && <LabelList dataKey={config.id} position="top" fill={config.color} fontSize={10} formatter={(val) => customLabelFormatter(val, config)} />}</Bar>);
+                            return (<Line key={config.id} yAxisId={config.yAxisId} type="monotone" dataKey={config.id} name={config.label} stroke={config.color} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: 'var(--card-bg)', stroke: config.color }} activeDot={{ r: 6, strokeWidth: 0, fill: config.color }}>{showLabels && <LabelList dataKey={config.id} position="top" fill={config.color} fontSize={10} formatter={(val) => customLabelFormatter(val, config)} />}</Line>);
                         })}
-                        {showAvgLine && chartDataObj.configs.map(config => ( avgValues[config.id] > 0 && <ReferenceLine key={`avg-${config.id}`} yAxisId={config.yAxisId} y={avgValues[config.id]} stroke={config.color} strokeDasharray="6 4" strokeOpacity={0.6} /> ))}
+                        {showAvgLine && chartDataObj.configs.map(config => (avgValues[config.id] > 0 && <ReferenceLine key={`avg-${config.id}`} yAxisId={config.yAxisId} y={avgValues[config.id]} stroke={config.color} strokeDasharray="6 4" strokeOpacity={0.6} />))}
                         {showMA && chartDataObj.configs.map(config => <Line key={`ma-${config.id}`} yAxisId={config.yAxisId} type="monotone" dataKey={`${config.id}_ma`} name={`MA(3) ${config.label}`} stroke={config.color} strokeWidth={2} strokeDasharray="5 3" dot={false} connectNulls={true} />)}
                         {showCumulative && chartDataObj.configs.map(config => <Area key={`cum-${config.id}`} yAxisId={config.yAxisId} type="monotone" dataKey={`${config.id}_cum`} name={`สะสม ${config.label}`} stroke={config.color} strokeWidth={1} fillOpacity={0.15} fill={config.color} strokeDasharray="3 2" dot={false} />)}
                     </ComposedChart>

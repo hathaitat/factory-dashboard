@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Save, Clock, Calendar } from 'lucide-react';
+import { X, Save, Calendar } from 'lucide-react';
 import { employeeService } from '../services/employeeService';
 import { useDialog } from '../contexts/DialogContext';
 import { getLocalDateString } from '../utils/dateUtils';

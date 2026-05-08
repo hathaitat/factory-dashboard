@@ -4,7 +4,6 @@ import { Printer, ArrowLeft } from 'lucide-react';
 import { billingNoteService } from '../services/billingNoteService';
 import { companyService } from '../services/companyService';
 import { settingService } from '../services/settingService';
-import { documentNumberHelper } from '../utils/documentNumbering';
 import '../styles/InvoicePrint.css';
 
 const ReceiptPrintTemplate = () => {

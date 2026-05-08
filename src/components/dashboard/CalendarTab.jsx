@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    ChevronLeft, ChevronRight, Calendar as CalendarIcon, 
-    Clock, AlertCircle, CheckCircle2, ShoppingCart, Filter,
-    Search, LayoutGrid, List as ListIcon, Info
+import {
+    ChevronLeft, ChevronRight, Calendar as CalendarIcon, List as ListIcon
 } from 'lucide-react';
 import { purchaseOrderService } from '../../services/purchaseOrderService';
 import { useNavigate } from 'react-router-dom';
@@ -54,11 +52,11 @@ const CalendarTab = () => {
 
     const getStatusColor = (po) => {
         if (po.status === 'Completed') return 'completed'; // Green
-        
+
         const dueDate = new Date(po.due_date);
         const today = new Date();
-        today.setHours(0,0,0,0);
-        
+        today.setHours(0, 0, 0, 0);
+
         if (dueDate < today) return 'overdue'; // Red
         return 'upcoming'; // Orange
     };
@@ -76,9 +74,9 @@ const CalendarTab = () => {
         // Actual days
         for (let d = 1; d <= daysInMonth; d++) {
             const pos = getPOsForDate(d, currentDate.getMonth(), currentDate.getFullYear());
-            const isToday = d === new Date().getDate() && 
-                          currentDate.getMonth() === new Date().getMonth() && 
-                          currentDate.getFullYear() === new Date().getFullYear();
+            const isToday = d === new Date().getDate() &&
+                currentDate.getMonth() === new Date().getMonth() &&
+                currentDate.getFullYear() === new Date().getFullYear();
 
             days.push(
                 <div key={d} className={`calendar-day ${isToday ? 'today' : ''}`}>
@@ -88,8 +86,8 @@ const CalendarTab = () => {
                     </div>
                     <div className="day-events">
                         {pos.map(po => (
-                            <div 
-                                key={po.id} 
+                            <div
+                                key={po.id}
                                 className={`event-pill ${getStatusColor(po)}`}
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -128,11 +126,11 @@ const CalendarTab = () => {
 
     if (isLoading) return <div className="tab-loading">กำลังโหลดปฏิทินงาน...</div>;
 
-    const formattedToday = new Intl.DateTimeFormat('th-TH', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+    const formattedToday = new Intl.DateTimeFormat('th-TH', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
     }).format(new Date());
 
     return (

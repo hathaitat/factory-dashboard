@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import XLSX from 'xlsx-js-style';
-import { Plus, Search, FileText, Edit, Trash2, Printer, Eye, FileSpreadsheet, TrendingUp, CheckCircle, Clock, XCircle, Calendar, DollarSign } from 'lucide-react';
+import { Plus, Search, FileText, Edit, Trash2, Printer, Eye, FileSpreadsheet, TrendingUp, CheckCircle, Clock, XCircle, Calendar } from 'lucide-react';
 import { billingNoteService } from '../services/billingNoteService';
 import { companyService } from '../services/companyService';
 import { usePermissions } from '../hooks/usePermissions';
@@ -21,7 +21,6 @@ const BillingNoteListPage = () => {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [dateFilterType, setDateFilterType] = useState('date');
-    const [statusFilter, setStatusFilter] = useState('');
 
     useEffect(() => {
         loadBillingNotes();
@@ -55,7 +54,7 @@ const BillingNoteListPage = () => {
             const company = await companyService.getCompanyInfo();
             const bnIds = filteredNotes.map(bn => bn.id);
             const fullBNs = [];
-            
+
             // Fetch in batches of 5 to avoid potential Rate Limits and browser stalls
             const batchSize = 5;
             for (let i = 0; i < bnIds.length; i += batchSize) {
@@ -194,15 +193,15 @@ const BillingNoteListPage = () => {
                 // === Totals section ===
                 const notesStartRow = r;
                 setCell(r, 0, `หมายเหตุ: ${bn.notes || ''}`, { font: normal(9), alignment: { horizontal: 'left', vertical: 'top', wrapText: true }, border: border('all') });
-                
+
                 setCell(r, 4, 'จำนวนเงินรวมทั้งสิ้น', { font: bold(11), alignment: alignR, border: border('all') });
                 setCell(r, 5, fmtNum(bn.totalAmount), { font: bold(11), alignment: alignR, border: border('all') });
-                
+
                 // Baht Text
                 r++;
                 setCell(r, 0, bn.bahtText ? `(${bn.bahtText})` : '', { font: bold(10), border: border('blr') });
-                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } }); 
-                
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+
                 // Merge notes cell vertically across the total row
                 merges.push({ s: { r: notesStartRow, c: 0 }, e: { r: notesStartRow, c: 2 } });
                 merges.push({ s: { r: notesStartRow, c: 3 }, e: { r: r, c: 3 } }); // Empty cell next to notes
@@ -381,7 +380,7 @@ const BillingNoteListPage = () => {
     const filteredNotes = billingNotes.filter(bn => {
         const matchSearch = bn.billingNoteNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
             bn.customerName.toLowerCase().includes(searchTerm.toLowerCase());
-            
+
         const targetDate = bn.date;
         const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
         const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
@@ -518,11 +517,11 @@ const BillingNoteListPage = () => {
 
             <ListFilter
                 filters={[
-                    { 
-                        type: 'date-range', 
-                        dateFrom, 
-                        dateTo, 
-                        onDateFromChange: setDateFrom, 
+                    {
+                        type: 'date-range',
+                        dateFrom,
+                        dateTo,
+                        onDateFromChange: setDateFrom,
                         onDateToChange: setDateTo,
                         value: dateFilterType,
                         onChange: setDateFilterType,
@@ -535,139 +534,139 @@ const BillingNoteListPage = () => {
 
             <div className="glass-panel" style={{ padding: '0', overflowX: 'auto' }}>
                 <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                            <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ใบวางบิล</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อลูกค้า</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>วันที่</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวนเงินสุทธิ</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {isLoading ? (
-                            <tr>
-                                <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                    <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
-                                    กำลังโหลดข้อมูล...
-                                </td>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
+                                <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
+                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ใบวางบิล</th>
+                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อลูกค้า</th>
+                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>วันที่</th>
+                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวนเงินสุทธิ</th>
+                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
                             </tr>
-                        ) : filteredNotes.length > 0 ? (
-                            monthYearGroups.map((group) => (
-                                <React.Fragment key={group}>
-                                    <tr style={{ background: 'rgba(59, 130, 246, 0.02)' }}>
-                                        <td colSpan="6" style={{ padding: '1rem 1.5rem', fontWeight: '700', color: '#37477C', borderBottom: '1px solid var(--border-color)', borderTop: 'none', fontSize: '1rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                    <Calendar size={18} color="#3b82f6" />
-                                                    <span>{group}</span>
-                                                    <span style={{ fontSize: '0.8rem', fontWeight: '400', color: 'var(--text-muted)', background: 'white', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{groupedNotes[group].length} รายการ</span>
-                                                </div>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); exportMonthToExcel(group, groupedNotes[group]); }}
-                                                    disabled={isExporting}
-                                                    title={`Export Excel เดือน${group}`}
-                                                    style={{
-                                                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                                                        padding: '0.3rem 0.7rem', borderRadius: '6px',
-                                                        border: '1px solid rgba(16, 185, 129, 0.2)',
-                                                        background: 'rgba(16, 185, 129, 0.05)',
-                                                        color: 'var(--success)', cursor: isExporting ? 'not-allowed' : 'pointer',
-                                                        fontSize: '0.8rem', fontWeight: '500',
-                                                        opacity: isExporting ? 0.5 : 1
-                                                    }}
-                                                >
-                                                    <FileSpreadsheet size={14} /> Export
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {groupedNotes[group].map((bn) => (
-                                        <tr key={bn.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s', background: 'var(--card-bg)' }}>
-                                            <td className="actions-column">
-                                                <div className="table-actions">
+                        </thead>
+                        <tbody>
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+                                        กำลังโหลดข้อมูล...
+                                    </td>
+                                </tr>
+                            ) : filteredNotes.length > 0 ? (
+                                monthYearGroups.map((group) => (
+                                    <React.Fragment key={group}>
+                                        <tr style={{ background: 'rgba(59, 130, 246, 0.02)' }}>
+                                            <td colSpan="6" style={{ padding: '1rem 1.5rem', fontWeight: '700', color: '#37477C', borderBottom: '1px solid var(--border-color)', borderTop: 'none', fontSize: '1rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                        <Calendar size={18} color="#3b82f6" />
+                                                        <span>{group}</span>
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: '400', color: 'var(--text-muted)', background: 'white', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{groupedNotes[group].length} รายการ</span>
+                                                    </div>
                                                     <button
-                                                        className="action-view"
-                                                        onClick={() => window.open(`/dashboard/billing-notes/${bn.id}`, '_blank')}
-                                                        title="View"
+                                                        onClick={(e) => { e.stopPropagation(); exportMonthToExcel(group, groupedNotes[group]); }}
+                                                        disabled={isExporting}
+                                                        title={`Export Excel เดือน${group}`}
+                                                        style={{
+                                                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                                            padding: '0.3rem 0.7rem', borderRadius: '6px',
+                                                            border: '1px solid rgba(16, 185, 129, 0.2)',
+                                                            background: 'rgba(16, 185, 129, 0.05)',
+                                                            color: 'var(--success)', cursor: isExporting ? 'not-allowed' : 'pointer',
+                                                            fontSize: '0.8rem', fontWeight: '500',
+                                                            opacity: isExporting ? 0.5 : 1
+                                                        }}
                                                     >
-                                                        <Eye size={18} />
+                                                        <FileSpreadsheet size={14} /> Export
                                                     </button>
-                                                    <button
-                                                        className="action-print"
-                                                        onClick={() => window.open(`/dashboard/billing-notes/${bn.id}/print`, '_blank')}
-                                                        title="Print"
-                                                    >
-                                                        <Printer size={18} />
-                                                    </button>
-                                                    {hasPermission('billing', 'edit') && (
-                                                        <button
-                                                            className="action-edit"
-                                                            onClick={() => navigate(`/dashboard/billing-notes/${bn.id}/edit`)}
-                                                            title="Edit"
-                                                        >
-                                                            <Edit size={18} />
-                                                        </button>
-                                                    )}
-                                                    {hasPermission('billing', 'delete') && (
-                                                        <button
-                                                            className="action-delete"
-                                                            onClick={() => handleDelete(bn.id, bn.billingNoteNo)}
-                                                            title="Delete"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    )}
                                                 </div>
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem', fontWeight: '600', color: '#3b82f6', fontSize: '1.1rem', fontFamily: 'monospace' }}>
-                                                <Link to={`/dashboard/billing-notes/${bn.id}`} style={{ color: '#3b82f6', textDecoration: 'none' }}>
-                                                    {bn.billingNoteNo}
-                                                </Link>
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem' }}>{bn.customerName}</td>
-                                            <td style={{ padding: '1.2rem 1.5rem' }}>{new Date(bn.date).toLocaleDateString('th-TH')}</td>
-                                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
-                                                ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
-                                                <span style={{
-                                                    padding: '0.4rem 0.8rem',
-                                                    borderRadius: '20px',
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: '600',
-                                                    whiteSpace: 'nowrap',
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: '4px',
-                                                    background: bn.status === 'Draft' ? '#f3f4f6' : 
-                                                               bn.status === 'Paid' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                                                    color: bn.status === 'Draft' ? '#6b7280' : 
-                                                           bn.status === 'Paid' ? '#059669' : '#dc2626',
-                                                    border: bn.status === 'Draft' ? '1px solid #e5e7eb' : 
-                                                           bn.status === 'Paid' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
-                                                }}>
-                                                    {bn.status === 'Draft' && <Clock size={14} />}
-                                                    {bn.status === 'Paid' && <CheckCircle size={14} />}
-                                                    {bn.status === 'Cancelled' && <XCircle size={14} />}
-                                                    {bn.status === 'Draft' ? 'รอชำระ' : 
-                                                     bn.status === 'Paid' ? 'ชำระแล้ว' : 'ยกเลิก'}
-                                                </span>
                                             </td>
                                         </tr>
-                                    ))}
-                                </React.Fragment>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>ไม่พบรายการใบวางบิล</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-</div>
+                                        {groupedNotes[group].map((bn) => (
+                                            <tr key={bn.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s', background: 'var(--card-bg)' }}>
+                                                <td className="actions-column">
+                                                    <div className="table-actions">
+                                                        <button
+                                                            className="action-view"
+                                                            onClick={() => window.open(`/dashboard/billing-notes/${bn.id}`, '_blank')}
+                                                            title="View"
+                                                        >
+                                                            <Eye size={18} />
+                                                        </button>
+                                                        <button
+                                                            className="action-print"
+                                                            onClick={() => window.open(`/dashboard/billing-notes/${bn.id}/print`, '_blank')}
+                                                            title="Print"
+                                                        >
+                                                            <Printer size={18} />
+                                                        </button>
+                                                        {hasPermission('billing', 'edit') && (
+                                                            <button
+                                                                className="action-edit"
+                                                                onClick={() => navigate(`/dashboard/billing-notes/${bn.id}/edit`)}
+                                                                title="Edit"
+                                                            >
+                                                                <Edit size={18} />
+                                                            </button>
+                                                        )}
+                                                        {hasPermission('billing', 'delete') && (
+                                                            <button
+                                                                className="action-delete"
+                                                                onClick={() => handleDelete(bn.id, bn.billingNoteNo)}
+                                                                title="Delete"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '1.2rem 1.5rem', fontWeight: '600', color: '#3b82f6', fontSize: '1.1rem', fontFamily: 'monospace' }}>
+                                                    <Link to={`/dashboard/billing-notes/${bn.id}`} style={{ color: '#3b82f6', textDecoration: 'none' }}>
+                                                        {bn.billingNoteNo}
+                                                    </Link>
+                                                </td>
+                                                <td style={{ padding: '1.2rem 1.5rem' }}>{bn.customerName}</td>
+                                                <td style={{ padding: '1.2rem 1.5rem' }}>{new Date(bn.date).toLocaleDateString('th-TH')}</td>
+                                                <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
+                                                    ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </td>
+                                                <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
+                                                    <span style={{
+                                                        padding: '0.4rem 0.8rem',
+                                                        borderRadius: '20px',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: '600',
+                                                        whiteSpace: 'nowrap',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px',
+                                                        background: bn.status === 'Draft' ? '#f3f4f6' :
+                                                            bn.status === 'Paid' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                                                        color: bn.status === 'Draft' ? '#6b7280' :
+                                                            bn.status === 'Paid' ? '#059669' : '#dc2626',
+                                                        border: bn.status === 'Draft' ? '1px solid #e5e7eb' :
+                                                            bn.status === 'Paid' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
+                                                    }}>
+                                                        {bn.status === 'Draft' && <Clock size={14} />}
+                                                        {bn.status === 'Paid' && <CheckCircle size={14} />}
+                                                        {bn.status === 'Cancelled' && <XCircle size={14} />}
+                                                        {bn.status === 'Draft' ? 'รอชำระ' :
+                                                            bn.status === 'Paid' ? 'ชำระแล้ว' : 'ยกเลิก'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </React.Fragment>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>ไม่พบรายการใบวางบิล</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

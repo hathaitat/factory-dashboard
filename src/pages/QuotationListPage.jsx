@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit, Trash2, Printer, FileSpreadsheet, Eye } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Printer, FileSpreadsheet, Eye, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, FileText, Calendar } from 'lucide-react';
 import { quotationService } from '../services/quotationService';
 import { usePermissions } from '../hooks/usePermissions';
 import XLSX from 'xlsx-js-style';
@@ -89,6 +89,23 @@ const QuotationListPage = () => {
         }
     };
 
+    // Export only a specific month's quotations
+    const exportMonthToExcel = (group, monthQuotations) => {
+        const dataToExport = monthQuotations.map(qt => ({
+            'เลขที่ใบเสนอราคา': qt.quotationNo,
+            'วันที่': qt.date ? new Date(qt.date).toLocaleDateString('th-TH') : '',
+            'ลูกค้า': qt.customerName,
+            'ATTN': qt.attnName || '',
+            'มูลค่าสุทธิ': qt.grandTotal,
+            'สถานะ': qt.status
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Quotations');
+        XLSX.writeFile(wb, `Quotation_${group.replace(/ /g, '_')}.xlsx`);
+    };
+
     const hasActiveFilters = dateFrom || dateTo;
     const clearFilters = () => { setDateFrom(''); setDateTo(''); setDateFilterType('date'); };
 
@@ -117,27 +134,49 @@ const QuotationListPage = () => {
         return dateB - dateA;
     });
 
+    // KPI Calculations
+    const kpis = React.useMemo(() => {
+        const draft = quotations.filter(q => q.status === 'Draft').length;
+        const sent = quotations.filter(q => q.status === 'Sent').length;
+        const approved = quotations.filter(q => q.status === 'Approved').length;
+        const totalValue = quotations
+            .filter(q => q.status === 'Approved')
+            .reduce((sum, q) => sum + (Number(q.grandTotal) || 0), 0);
+
+        return { draft, sent, approved, totalValue };
+    }, [quotations]);
+
     const getStatusBlock = (status) => {
         const styles = {
-            Draft: { background: 'var(--card-hover)', color: 'var(--text-muted)' },
-            Sent: { background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' },
-            Approved: { background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)' },
-            Rejected: { background: 'rgba(248, 113, 113, 0.1)', color: 'var(--error)' },
-            Cancelled: { background: 'var(--card-hover)', color: 'var(--text-muted)' }
+            Draft: { background: '#f3f4f6', color: '#6b7280', icon: <FileText size={14} /> },
+            Sent: { background: 'rgba(59, 130, 246, 0.08)', color: '#2563eb', icon: <Clock size={14} /> },
+            Approved: { background: 'rgba(16, 185, 129, 0.08)', color: '#059669', icon: <CheckCircle size={14} /> },
+            Rejected: { background: 'rgba(239, 68, 68, 0.08)', color: '#dc2626', icon: <XCircle size={14} /> },
+            Cancelled: { background: '#f3f4f6', color: '#6b7280', icon: <AlertCircle size={14} /> }
         };
 
-        const currentStyle = styles[status] || styles.Draft;
+        const config = styles[status] || styles.Draft;
 
         return (
             <span style={{
-                padding: '0.3rem 0.8rem',
+                padding: '0.4rem 0.8rem',
                 borderRadius: '20px',
-                fontSize: '0.85rem',
-                fontWeight: '500',
+                fontSize: '0.8rem',
+                fontWeight: '600',
                 whiteSpace: 'nowrap',
-                ...currentStyle
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: config.background,
+                color: config.color,
+                border: `1px solid ${config.color}22`
             }}>
-                {status}
+                {config.icon}
+                {status === 'Draft' ? 'ฉบับร่าง' : 
+                 status === 'Sent' ? 'ส่งแล้ว' : 
+                 status === 'Approved' ? 'อนุมัติแล้ว' : 
+                 status === 'Rejected' ? 'ปฏิเสธ' : 
+                 status === 'Cancelled' ? 'ยกเลิก' : status}
             </span>
         );
     };
@@ -145,48 +184,85 @@ const QuotationListPage = () => {
     return (
         <div style={{ padding: '0 1rem' }}>
             <PageHeader
-                title="รายการใบเสนอราคา (Quotations)"
+                title="รายการใบเสนอราคา"
                 helpContent={HELP_CONTENT?.quotations || "จัดการใบเสนอราคาสำหรับส่งให้ลูกค้าพิจารณา"}
             >
-                <button
-                    onClick={exportToExcel}
-                    disabled={isExporting}
-                    className="glass-panel"
-                    style={{
-                        padding: '0.6rem 1rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        background: 'rgba(16, 185, 129, 0.05)',
-                        border: '1px solid rgba(16, 185, 129, 0.1)',
-                        color: 'var(--success)',
-                        cursor: isExporting ? 'not-allowed' : 'pointer',
-                        borderRadius: '8px',
-                        opacity: isExporting ? 0.7 : 1
-                    }}
-                >
-                    <FileSpreadsheet size={18} /> {isExporting ? 'กำลัง Export...' : 'Export Excel'}
-                </button>
-                {hasPermission('invoices', 'create') && (
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button
-                        onClick={() => navigate('/dashboard/quotations/new')}
+                        onClick={exportToExcel}
+                        disabled={isExporting}
+                        className="glass-panel"
                         style={{
-                            padding: '0.6rem 1.2rem',
+                            padding: '0.6rem 1rem',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem',
-                            background: '#3b82f6',
-                            border: 'none',
-                            color: 'white',
-                            cursor: 'pointer',
+                            background: 'white',
+                            border: '1px solid #e2e8f0',
+                            color: 'var(--success)',
+                            cursor: isExporting ? 'not-allowed' : 'pointer',
                             borderRadius: '8px',
-                            fontWeight: '500'
+                            fontWeight: '500',
+                            fontSize: '0.9rem',
+                            opacity: isExporting ? 0.7 : 1
                         }}
                     >
-                        <Plus size={20} /> สร้างใบเสนอราคา
+                        <FileSpreadsheet size={18} /> {isExporting ? 'กำลัง Export...' : 'Export All'}
                     </button>
-                )}
+                    {hasPermission('invoices', 'create') && (
+                        <button
+                            onClick={() => navigate('/dashboard/quotations/new')}
+                            style={{
+                                padding: '0.6rem 1.2rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                background: '#3b82f6',
+                                border: 'none',
+                                color: 'white',
+                                cursor: 'pointer',
+                                borderRadius: '8px',
+                                fontWeight: '600',
+                                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)'
+                            }}
+                        >
+                            <Plus size={20} /> สร้างใบเสนอราคา
+                        </button>
+                    )}
+                </div>
             </PageHeader>
+
+            {/* KPI Cards */}
+            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(107, 114, 128, 0.1)', background: 'rgba(107, 114, 128, 0.02)' }}>
+                    <div style={{ background: '#f3f4f6', padding: '0.7rem', borderRadius: '10px', color: '#6b7280' }}><FileText size={20} /></div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ฉบับร่าง</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#6b7280' }}>{kpis.draft}</div>
+                    </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(59, 130, 246, 0.1)', background: 'rgba(59, 130, 246, 0.02)' }}>
+                    <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#3b82f6' }}><Clock size={20} /></div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ส่งแล้ว/รอพิจารณา</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#3b82f6' }}>{kpis.sent}</div>
+                    </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(16, 185, 129, 0.1)', background: 'rgba(16, 185, 129, 0.02)' }}>
+                    <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#10b981' }}><CheckCircle size={20} /></div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>อนุมัติแล้ว</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#10b981' }}>{kpis.approved}</div>
+                    </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(59, 130, 246, 0.1)', background: 'rgba(59, 130, 246, 0.02)' }}>
+                    <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#3b82f6' }}><TrendingUp size={20} /></div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>มูลค่าอนุมัติรวม</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#3b82f6' }}>฿{kpis.totalValue.toLocaleString()}</div>
+                    </div>
+                </div>
+            </div>
 
             {/* Search and Filter */}
             <div style={{ marginBottom: '1rem', position: 'relative' }}>
@@ -257,9 +333,33 @@ const QuotationListPage = () => {
                             ) : (
                                 monthYearGroups.map(group => (
                                     <React.Fragment key={group}>
-                                        <tr style={{ background: 'rgba(0,0,0,0.01)', borderBottom: '1px solid var(--border-color)', borderTop: '1px solid var(--border-color)' }}>
-                                            <td colSpan="5" style={{ padding: '0.75rem 1rem', fontWeight: 'bold', color: 'var(--text-main)', fontSize: '0.9rem' }}>
-                                                {group}
+                                        <tr style={{ background: 'rgba(59, 130, 246, 0.02)' }}>
+                                            <td colSpan="5" style={{ padding: '1rem 1.5rem', fontWeight: '700', color: '#37477C', borderBottom: '1px solid var(--border-color)', borderTop: 'none', fontSize: '1rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                        <Calendar size={18} color="#3b82f6" />
+                                                        <span>{group}</span>
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: '400', color: 'var(--text-muted)', background: 'white', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{groupedQuotations[group].length} รายการ</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); exportMonthToExcel(group, groupedQuotations[group]); }}
+                                                        title={`Export Excel ${group}`}
+                                                        style={{
+                                                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                                            padding: '0.4rem 0.8rem', borderRadius: '6px',
+                                                            border: '1px solid rgba(16, 185, 129, 0.2)',
+                                                            background: 'white',
+                                                            color: 'var(--success)', cursor: 'pointer',
+                                                            fontSize: '0.8rem', fontWeight: '600',
+                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                        onMouseOver={e => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.05)'}
+                                                        onMouseOut={e => e.currentTarget.style.background = 'white'}
+                                                    >
+                                                        <FileSpreadsheet size={14} /> ส่งออก Excel
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                         {groupedQuotations[group].map((qt) => (

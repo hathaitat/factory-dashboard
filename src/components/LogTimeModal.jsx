@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { X, Save, Clock, Calendar } from 'lucide-react';
 import { employeeService } from '../services/employeeService';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const LogTimeModal = ({ employee, onClose, onSuccess }) => {
     const { showAlert } = useDialog();
     const [isSaving, setIsSaving] = useState(false);
     const [formData, setFormData] = useState({
-        work_date: new Date().toISOString().split('T')[0],
+        work_date: getLocalDateString(),
         work_days: '1',
         ot_hours: '0',
         note: ''
@@ -30,10 +31,22 @@ const LogTimeModal = ({ employee, onClose, onSuccess }) => {
         e.preventDefault();
         setIsSaving(true);
         try {
-            await employeeService.addWorkLog({
+            const payload = {
                 employee_id: employee.id,
-                ...formData
-            });
+                work_date: formData.work_date,
+                work_days: Number(formData.work_days),
+                ot_hours: Number(formData.ot_hours),
+                note: formData.note,
+                not_scan: false, // Manually entered
+                // Reset times if using quick log
+                start_time: null,
+                end_time: null,
+                late_hours: 0,
+                is_late: false,
+                is_early: false
+            };
+
+            await employeeService.upsertWorkLog(payload);
             onSuccess();
             onClose();
         } catch (error) {

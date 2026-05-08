@@ -15,6 +15,7 @@ const CustomerListPage = React.lazy(() => import('./pages/CustomerListPage'));
 const CustomerCreatePage = React.lazy(() => import('./pages/CustomerCreatePage'));
 const CustomerEditPage = React.lazy(() => import('./pages/CustomerEditPage'));
 const CustomerDetailPage = React.lazy(() => import('./pages/CustomerDetailPage'));
+const CustomerProductHistoryPrint = React.lazy(() => import('./pages/CustomerProductHistoryPrint'));
 const CompanyInfoPage = React.lazy(() => import('./pages/CompanyInfoPage'));
 const UserListPage = React.lazy(() => import('./pages/UserListPage'));
 const UserFormPage = React.lazy(() => import('./pages/UserFormPage'));
@@ -105,7 +106,7 @@ function App() {
                     <Route element={<PermissionRoute module="suppliers" action="edit" />}>
                       <Route path="suppliers/:id/edit" element={<SupplierEditPage />} />
                     </Route>
-                    
+
                     {/* Supplier POs */}
                     <Route element={<PermissionRoute module="supplier_pos" action="create" />}>
                       <Route path="supplier-pos/create" element={<SupplierPoFormPage />} />
@@ -234,6 +235,9 @@ function App() {
                   </Route>
                   <Route element={<PermissionRoute module="supplier_pos" action="view" />}>
                     <Route path="/dashboard/supplier-pos/:id/print" element={<SupplierPoPrintPage />} />
+                  </Route>
+                  <Route element={<PermissionRoute module="customers" action="view" />}>
+                    <Route path="/dashboard/customers/:id/print-product-history" element={<CustomerProductHistoryPrint />} />
                   </Route>
                 </Route>
 

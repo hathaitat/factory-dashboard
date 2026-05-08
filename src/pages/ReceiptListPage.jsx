@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import XLSX from 'xlsx-js-style';
-import { Search, Printer, Eye, FileSpreadsheet } from 'lucide-react';
+import { Search, Printer, Eye, FileSpreadsheet, TrendingUp, CheckCircle, Clock, XCircle, Calendar, DollarSign } from 'lucide-react';
 import { billingNoteService } from '../services/billingNoteService';
 import { companyService } from '../services/companyService';
 import { settingService } from '../services/settingService';
 import { documentNumberHelper } from '../utils/documentNumbering';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
 
@@ -232,7 +233,7 @@ const ReceiptListPage = () => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Receipt_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+            a.download = `Receipt_Export_${getLocalDateString()}.xlsx`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -240,6 +241,133 @@ const ReceiptListPage = () => {
             await showAlert(`ส่งออก Excel เรียบร้อย (${fullBNs.filter(Boolean).length} ใบ)`);
         } catch (error) {
             console.error('Export error:', error);
+            await showError('ไม่สามารถส่งออก Excel ได้: ' + (error.message || ''));
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    // Export only a specific month's receipts
+    const exportMonthToExcel = async (group, monthNotes) => {
+        setIsExporting(true);
+        try {
+            const company = await companyService.getCompanyInfo();
+            const fullBNs = await Promise.all(
+                monthNotes.map(bn => billingNoteService.getBillingNoteById(bn.id))
+            );
+
+            const border = (sides = 'all') => {
+                const b = { style: 'thin', color: { rgb: '000000' } };
+                if (sides === 'all') return { top: b, bottom: b, left: b, right: b };
+                const r = {};
+                if (sides.includes('t')) r.top = b;
+                if (sides.includes('b')) r.bottom = b;
+                if (sides.includes('l')) r.left = b;
+                if (sides.includes('r')) r.right = b;
+                return r;
+            };
+            const bold = (sz = 11) => ({ bold: true, sz, name: 'Tahoma' });
+            const normal = (sz = 11) => ({ sz, name: 'Tahoma' });
+            const alignR = { horizontal: 'right' };
+            const alignC = { horizontal: 'center' };
+            const alignL = { horizontal: 'left' };
+
+            const wb = XLSX.utils.book_new();
+
+            fullBNs.filter(Boolean).forEach((bn) => {
+                const cust = bn.customer || bn.customerSnapshot || {};
+                const ws = {};
+                const merges = [];
+                let r = 0;
+
+                const setCell = (row, col, value, style = {}) => {
+                    const ref = XLSX.utils.encode_cell({ r: row, c: col });
+                    ws[ref] = { v: value, t: typeof value === 'number' ? 'n' : 's', s: style };
+                };
+
+                setCell(r, 0, company?.name || '', { font: bold(14) });
+                merges.push({ s: { r, c: 0 }, e: { r, c: 4 } }); r++;
+                setCell(r, 0, company?.address || '', { font: normal(10) });
+                merges.push({ s: { r, c: 0 }, e: { r, c: 4 } }); r++;
+                setCell(r, 0, `TEL: ${company?.phone || ''} FAX: ${company?.fax || ''}`, { font: normal(10) });
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } }); r++;
+                setCell(r, 0, `E-mail: ${company?.email || ''}`, { font: normal(10) });
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } }); r++;
+                setCell(r, 0, `เลขประจำตัวผู้เสียภาษี: ${company?.taxId || ''}`, { font: normal(10) });
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } }); r++;
+                r++;
+                setCell(r, 3, 'ใบเสร็จรับเงิน', { font: bold(14), alignment: alignC });
+                merges.push({ s: { r, c: 3 }, e: { r, c: 5 } }); r++;
+                r++;
+
+                setCell(r, 0, 'ลูกค้า', { font: bold(10) });
+                setCell(r, 1, cust.code || '', { font: normal(10) });
+                setCell(r, 4, 'เลขที่ใบเสร็จ', { font: bold(10), alignment: alignR });
+                setCell(r, 5, getReceiptNumber(bn.billingNoteNo, bn.date), { font: normal(10) }); r++;
+                setCell(r, 1, cust.name || '', { font: bold(11) });
+                merges.push({ s: { r, c: 1 }, e: { r, c: 3 } });
+                setCell(r, 4, 'วันที่', { font: bold(10), alignment: alignR });
+                setCell(r, 5, fmtDate(bn.date), { font: normal(10) }); r++;
+                setCell(r, 0, `เลขประจำตัวผู้เสียภาษี: ${cust.taxId || ''}`, { font: normal(9) });
+                setCell(r, 2, `สาขา ${cust.branch || '-'}`, { font: normal(9) });
+                setCell(r, 4, 'อ้างอิงใบวางบิล', { font: bold(10), alignment: alignR });
+                setCell(r, 5, bn.billingNoteNo, { font: normal(10) }); r++;
+                setCell(r, 0, cust.address || '', { font: normal(9) });
+                merges.push({ s: { r, c: 0 }, e: { r, c: 3 } }); r++;
+                setCell(r, 0, `TEL: ${cust.phone || ''}`, { font: normal(9) });
+                setCell(r, 1, `FAX: ${cust.fax || '-'}`, { font: normal(9) }); r++;
+                r++;
+
+                const headerStyle = { font: bold(10), alignment: alignC, border: border('all'), fill: { fgColor: { rgb: 'E8E8E8' } } };
+                const headers = ['ลำดับ', 'เลขที่ใบกำกับภาษี', 'วันที่เอกสาร', 'ครบกำหนด', '', 'จำนวนเงิน'];
+                headers.forEach((h, c) => setCell(r, c, h, headerStyle));
+                merges.push({ s: { r, c: 3 }, e: { r, c: 4 } }); r++;
+
+                (bn.invoices || []).forEach((inv, idx) => {
+                    setCell(r, 0, idx + 1, { font: normal(10), alignment: alignC, border: border('all') });
+                    setCell(r, 1, inv.invoiceNo, { font: normal(10), alignment: alignL, border: border('all') });
+                    setCell(r, 2, fmtDate(inv.date), { font: normal(10), alignment: alignC, border: border('all') });
+                    setCell(r, 3, fmtDate(inv.dueDate), { font: normal(10), alignment: alignC, border: border('all') });
+                    setCell(r, 4, '', { font: normal(10), border: border('all') });
+                    setCell(r, 5, fmtNum(inv.grandTotal), { font: normal(10), alignment: alignR, border: border('all') });
+                    merges.push({ s: { r, c: 3 }, e: { r, c: 4 } }); r++;
+                });
+
+                const emptyCount = Math.max(0, 6 - (bn.invoices || []).length);
+                for (let i = 0; i < emptyCount; i++) {
+                    for (let c = 0; c <= 5; c++) setCell(r, c, '', { border: border('all') });
+                    merges.push({ s: { r, c: 3 }, e: { r, c: 4 } }); r++;
+                }
+
+                const notesStartRow = r;
+                setCell(r, 0, `หมายเหตุ: ${bn.notes || ''}`, { font: normal(9), alignment: { horizontal: 'left', vertical: 'top', wrapText: true }, border: border('all') });
+                setCell(r, 4, 'จำนวนเงินรวมทั้งสิ้น', { font: bold(11), alignment: alignR, border: border('all') });
+                setCell(r, 5, fmtNum(bn.totalAmount), { font: bold(11), alignment: alignR, border: border('all') }); r++;
+                setCell(r, 0, bn.bahtText ? `(${bn.bahtText})` : '', { font: bold(10), border: border('blr') });
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+                merges.push({ s: { r: notesStartRow, c: 0 }, e: { r: notesStartRow, c: 2 } });
+                merges.push({ s: { r: notesStartRow, c: 3 }, e: { r: r, c: 3 } });
+
+                ws['!cols'] = [{ wch: 8 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 8 }, { wch: 18 }];
+                ws['!merges'] = merges;
+                ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r, c: 5 } });
+                const receiptNo = getReceiptNumber(bn.billingNoteNo, bn.date);
+                XLSX.utils.book_append_sheet(wb, ws, (receiptNo || 'Sheet').substring(0, 31));
+            });
+
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Receipt_${group.replace(/ /g, '_')}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            await showAlert(`ส่งออก Excel เดือน${group} เรียบร้อย (${fullBNs.filter(Boolean).length} ใบ)`);
+        } catch (error) {
+            console.error('Export month error:', error);
             await showError('ไม่สามารถส่งออก Excel ได้: ' + (error.message || ''));
         } finally {
             setIsExporting(false);
@@ -284,30 +412,81 @@ const ReceiptListPage = () => {
         return dateB - dateA;
     });
 
+    // KPI Calculations
+    const kpis = React.useMemo(() => {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const monthReceipts = billingNotes.filter(bn => {
+            const d = new Date(bn.date);
+            return d.getMonth() === currentMonth && d.getFullYear() === currentYear && bn.status === 'Paid';
+        });
+
+        const revenueThisMonth = monthReceipts.reduce((sum, bn) => sum + (Number(bn.totalAmount) || 0), 0);
+        const totalPaidCount = billingNotes.filter(bn => bn.status === 'Paid').length;
+        const totalRevenue = billingNotes
+            .filter(bn => bn.status === 'Paid')
+            .reduce((sum, bn) => sum + (Number(bn.totalAmount) || 0), 0);
+
+        return { revenueThisMonth, totalPaidCount, totalRevenue };
+    }, [billingNotes]);
+
     return (
         <div style={{ padding: '0 1rem' }}>
             <PageHeader
                 title="รายการใบเสร็จรับเงิน (Receipts)"
                 helpContent={HELP_CONTENT.receipts}
             >
-                <button
-                    onClick={exportToExcel}
-                    disabled={isExporting}
-                    className="glass-panel"
-                    style={{
-                        padding: '0.6rem 1rem',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        background: 'rgba(16, 185, 129, 0.05)',
-                        border: '1px solid rgba(16, 185, 129, 0.1)',
-                        color: 'var(--success)', 
-                        cursor: isExporting ? 'not-allowed' : 'pointer', 
-                        borderRadius: '8px',
-                        opacity: isExporting ? 0.6 : 1
-                    }}
-                >
-                    <FileSpreadsheet size={18} /> {isExporting ? 'กำลังสร้างไฟล์...' : 'Export Excel'}
-                </button>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button
+                        onClick={exportToExcel}
+                        disabled={isExporting}
+                        className="glass-panel"
+                        style={{
+                            padding: '0.6rem 1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            background: 'white',
+                            border: '1px solid #e2e8f0',
+                            color: 'var(--success)',
+                            cursor: isExporting ? 'not-allowed' : 'pointer',
+                            borderRadius: '8px',
+                            fontWeight: '500',
+                            fontSize: '0.9rem',
+                            opacity: isExporting ? 0.6 : 1
+                        }}
+                    >
+                        <FileSpreadsheet size={18} /> {isExporting ? 'กำลังสร้างไฟล์...' : 'Export All'}
+                    </button>
+                </div>
             </PageHeader>
+
+            {/* KPI Cards */}
+            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(16, 185, 129, 0.1)', background: 'rgba(16, 185, 129, 0.02)' }}>
+                    <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#10b981' }}><TrendingUp size={20} /></div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>รายรับเดือนนี้</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#10b981' }}>฿{kpis.revenueThisMonth.toLocaleString()}</div>
+                    </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(59, 130, 246, 0.1)', background: 'rgba(59, 130, 246, 0.02)' }}>
+                    <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#3b82f6' }}><CheckCircle size={20} /></div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>จำนวนบิลที่ชำระแล้ว</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#3b82f6' }}>{kpis.totalPaidCount} ใบ</div>
+                    </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(16, 185, 129, 0.1)', background: 'rgba(16, 185, 129, 0.02)' }}>
+                    <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#10b981' }}><DollarSign size={20} /></div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>รายรับสะสมทั้งหมด</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#10b981' }}>฿{kpis.totalRevenue.toLocaleString()}</div>
+                    </div>
+                </div>
+            </div>
 
             <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
                 <Search size={20} style={{ color: 'var(--text-muted)' }} />
@@ -361,9 +540,31 @@ const ReceiptListPage = () => {
                         ) : filteredNotes.length > 0 ? (
                             monthYearGroups.map((group) => (
                                 <React.Fragment key={group}>
-                                    <tr style={{ background: 'var(--bg-main)' }}>
-                                        <td colSpan="6" style={{ padding: '0.8rem 1.5rem', fontWeight: '600', color: 'var(--text-main)', borderBottom: '1px solid var(--border-color)', borderTop: 'none' }}>
-                                            เดือน {group}
+                                    <tr style={{ background: 'rgba(59, 130, 246, 0.02)' }}>
+                                        <td colSpan="6" style={{ padding: '1rem 1.5rem', fontWeight: '700', color: '#37477C', borderBottom: '1px solid var(--border-color)', borderTop: 'none', fontSize: '1rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                    <Calendar size={18} color="#3b82f6" />
+                                                    <span>{group}</span>
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: '400', color: 'var(--text-muted)', background: 'white', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{groupedNotes[group].length} รายการ</span>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); exportMonthToExcel(group, groupedNotes[group]); }}
+                                                    disabled={isExporting}
+                                                    title={`Export Excel เดือน${group}`}
+                                                    style={{
+                                                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                                        padding: '0.3rem 0.7rem', borderRadius: '6px',
+                                                        border: '1px solid rgba(16, 185, 129, 0.2)',
+                                                        background: 'rgba(16, 185, 129, 0.05)',
+                                                        color: 'var(--success)', cursor: isExporting ? 'not-allowed' : 'pointer',
+                                                        fontSize: '0.8rem', fontWeight: '500',
+                                                        opacity: isExporting ? 0.5 : 1
+                                                    }}
+                                                >
+                                                    <FileSpreadsheet size={14} /> Export
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                     {groupedNotes[group].map((bn) => (
@@ -398,18 +599,26 @@ const ReceiptListPage = () => {
                                             </td>
                                             <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
                                                 <span style={{
-                                                    padding: '0.3rem 0.8rem',
+                                                    padding: '0.4rem 0.8rem',
                                                     borderRadius: '20px',
-                                                    fontSize: '0.85rem',
-                                                    fontWeight: '500',
+                                                    fontSize: '0.8rem',
+                                                    fontWeight: '600',
                                                     whiteSpace: 'nowrap',
-                                                    background: bn.status === 'Draft' ? 'var(--card-hover)' : 
-                                                               bn.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(248, 113, 113, 0.1)',
-                                                    color: bn.status === 'Draft' ? 'var(--text-muted)' : 
-                                                           bn.status === 'Paid' ? 'var(--success)' : 'var(--error)'
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px',
+                                                    background: bn.status === 'Draft' ? '#f3f4f6' : 
+                                                               bn.status === 'Paid' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                                                    color: bn.status === 'Draft' ? '#6b7280' : 
+                                                           bn.status === 'Paid' ? '#059669' : '#dc2626',
+                                                    border: bn.status === 'Draft' ? '1px solid #e5e7eb' : 
+                                                           bn.status === 'Paid' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
                                                 }}>
-                                                    {bn.status === 'Draft' ? 'Draft' : 
-                                                     bn.status === 'Paid' ? 'Paid' : 'Cancelled'}
+                                                    {bn.status === 'Draft' && <Clock size={14} />}
+                                                    {bn.status === 'Paid' && <CheckCircle size={14} />}
+                                                    {bn.status === 'Cancelled' && <XCircle size={14} />}
+                                                    {bn.status === 'Draft' ? 'ฉบับร่าง' : 
+                                                     bn.status === 'Paid' ? 'ชำระเงินแล้ว' : 'ยกเลิก'}
                                                 </span>
                                             </td>
                                         </tr>

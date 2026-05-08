@@ -5,6 +5,7 @@ import { purchaseOrderService } from '../services/purchaseOrderService';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const PurchaseOrderFormPage = () => {
     const { id } = useParams();
@@ -24,7 +25,7 @@ const PurchaseOrderFormPage = () => {
 
     const [formData, setFormData] = useState({
         po_number: '',
-        issue_date: new Date().toISOString().split('T')[0],
+        issue_date: getLocalDateString(),
         due_date: '',
         customer_id: '',
         status: 'Waiting',
@@ -108,14 +109,13 @@ const PurchaseOrderFormPage = () => {
         }
     };
 
-    const handleCustomerChange = async (customerId) => {
-        if (!customerId) {
-            setFormData(prev => ({ ...prev, customer_id: '' }));
-            setAllProducts([]);
-            return;
-        }
-
+        const selectedCustomer = customers.find(c => String(c.id) === String(customerId));
         setFormData(prev => ({ ...prev, customer_id: customerId }));
+
+        // Proactive: Show customer PO note immediately
+        if (selectedCustomer?.poNote) {
+            showToast(`📌 หมายเหตุการสั่งซื้อ: ${selectedCustomer.poNote}`, 8000);
+        }
 
         const customerProducts = await productService.getProductsByCustomerId(customerId);
         setAllProducts(customerProducts || []);
@@ -366,17 +366,30 @@ const PurchaseOrderFormPage = () => {
                                     onDragLeave={handleDragLeave}
                                     onDrop={handleDrop}
                                     style={{
-                                        padding: '1.5rem', background: isDragging ? 'rgba(59, 130, 246, 0.1)' : 'var(--card-hover)',
-                                        border: `2px dashed ${isDragging ? '#3b82f6' : 'var(--border-color)'}`, borderRadius: '8px',
-                                        cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                                        color: isDragging ? '#3b82f6' : 'var(--text-main)', transition: 'all 0.2s',
-                                        width: '100%', minHeight: '100px', textAlign: 'center'
+                                        padding: '2rem', 
+                                        background: isDragging ? 'rgba(59, 130, 246, 0.05)' : 'white',
+                                        border: `2px dashed ${isDragging ? '#3b82f6' : '#e2e8f0'}`, 
+                                        borderRadius: '12px',
+                                        cursor: 'pointer', 
+                                        display: 'flex', 
+                                        flexDirection: 'column', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center', 
+                                        gap: '0.75rem',
+                                        color: isDragging ? '#3b82f6' : 'var(--text-main)', 
+                                        transition: 'all 0.3s ease',
+                                        width: '100%', 
+                                        minHeight: '120px', 
+                                        textAlign: 'center',
+                                        boxShadow: isDragging ? '0 0 0 4px rgba(59, 130, 246, 0.1)' : 'none'
                                     }}>
-                                    <UploadCloud size={24} style={{ color: isDragging ? '#3b82f6' : 'var(--text-muted)' }} />
-                                    <div style={{ fontSize: '0.95rem' }}>
-                                        {uploadingFile ? 'กำลังอัปโหลด...' : 'ลากไฟล์มาวางที่นี่ หรือ คลิกเพื่อเลือกไฟล์'}
+                                    <div style={{ background: isDragging ? 'rgba(59, 130, 246, 0.1)' : '#f8fafc', padding: '1rem', borderRadius: '50%', color: isDragging ? '#3b82f6' : '#94a3b8', transition: 'all 0.3s' }}>
+                                        <UploadCloud size={32} />
                                     </div>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>รองรับ PDF และ รูปภาพ (สูงสุด 5MB)</div>
+                                    <div style={{ fontWeight: '600', fontSize: '1rem' }}>
+                                        {uploadingFile ? 'กำลังอัปโหลด...' : 'ลากไฟล์ใบสั่งซื้อมาวางที่นี่'}
+                                    </div>
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>หรือคลิกเพื่อเลือกไฟล์ (PDF, JPG, PNG)</div>
                                     <input type="file" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e.target.files[0])} accept="image/*,.pdf" />
                                 </label>
                             </div>
@@ -559,11 +572,16 @@ const PurchaseOrderFormPage = () => {
 
                         <div style={{ borderTop: '1px dashed var(--border-color)', margin: '0.5rem 0' }}></div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '1.2rem', fontWeight: '600', color: 'var(--text-main)' }}>จำนวนเงินรวมทั้งสิ้น</span>
-                            <span style={{ fontSize: '1.8rem', fontWeight: '700', color: 'var(--success)' }}>
-                                ฿{formData.grand_total?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
+                        <div style={{ padding: '1.5rem 0', borderTop: '2px solid #e2e8f0', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(to right, transparent, rgba(16, 185, 129, 0.05))', paddingRight: '1rem', borderRadius: '0 0 12px 12px' }}>
+                            <div style={{ textAlign: 'right', flex: 1 }}>
+                                <div style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-main)' }}>จำนวนเงินรวมทั้งสิ้น</div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '400' }}>(Grand Total)</div>
+                            </div>
+                            <div style={{ textAlign: 'right', marginLeft: '2rem' }}>
+                                <span style={{ fontSize: '2.2rem', fontWeight: '800', color: '#10b981', letterSpacing: '-0.5px' }}>
+                                    ฿{formData.grand_total?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>

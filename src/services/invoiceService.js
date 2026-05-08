@@ -43,6 +43,90 @@ export const invoiceService = {
         }
     },
 
+    // Get all invoices for a specific customer
+    getInvoicesByCustomer: async (customerId) => {
+        try {
+            const { data, error } = await supabase
+                .from('invoices')
+                .select(`
+                    *,
+                    customer:customers(name)
+                `)
+                .eq('customer_id', customerId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            return data.map(inv => ({
+                id: inv.id,
+                invoiceNo: inv.invoice_no,
+                date: inv.date,
+                customerId: inv.customer_id,
+                customerName: inv.customer?.name || inv.customer_snapshot?.name || 'Unknown',
+                customerSnapshot: inv.customer_snapshot,
+                referenceNo: inv.reference_no,
+                purchaseOrderId: inv.purchase_order_id,
+                creditDays: inv.credit_days,
+                dueDate: inv.due_date,
+                subtotal: Number(inv.subtotal),
+                discount: Number(inv.discount),
+                vatRate: Number(inv.vat_rate),
+                vatAmount: Number(inv.vat_amount),
+                grandTotal: Number(inv.grand_total),
+                status: inv.status,
+                adjustments: inv.adjustments || [],
+                createdAt: inv.created_at
+            }));
+        } catch (error) {
+            console.error('Error fetching invoices by customer:', error);
+            return [];
+        }
+    },
+
+    // Get product purchase history (invoice items) by customer
+    getInvoiceItemsByCustomer: async (customerId) => {
+        try {
+            // First get all non-cancelled invoices for this customer
+            const { data: invoices, error: invError } = await supabase
+                .from('invoices')
+                .select('id, date, status')
+                .eq('customer_id', customerId)
+                .neq('status', 'Cancelled');
+
+            if (invError) throw invError;
+            
+            if (!invoices || invoices.length === 0) return [];
+
+            const invoiceIds = invoices.map(inv => inv.id);
+
+            // Get all items for these invoices
+            const { data: items, error: itemsError } = await supabase
+                .from('invoice_items')
+                .select('*')
+                .in('invoice_id', invoiceIds);
+
+            if (itemsError) throw itemsError;
+
+            // Combine data
+            return items.map(item => {
+                const invoice = invoices.find(inv => inv.id === item.invoice_id);
+                return {
+                    id: item.id,
+                    invoiceId: item.invoice_id,
+                    date: invoice?.date,
+                    productName: item.product_name,
+                    quantity: Number(item.quantity),
+                    unitPrice: Number(item.price_per_unit || 0),
+                    totalPrice: Number(item.amount || 0),
+                    unit: item.unit
+                };
+            });
+        } catch (error) {
+            console.error('Error fetching invoice items:', error);
+            return [];
+        }
+    },
+
     // Get single invoice with items
     getInvoiceById: async (id) => {
         try {
@@ -279,6 +363,71 @@ export const invoiceService = {
         } catch (error) {
             console.error('Error deleting invoice:', error);
             return false;
+        }
+    },
+
+    // Update invoice status only (e.g. mark as Paid)
+    updateInvoiceStatus: async (id, status) => {
+        try {
+            const { error } = await supabase
+                .from('invoices')
+                .update({ 
+                    status,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', id);
+
+            if (error) throw error;
+            return true;
+        } catch (error) {
+            console.error('Error updating invoice status:', error);
+            return false;
+        }
+    },
+
+    // Get invoice summary stats for dashboard
+    getInvoiceStats: async () => {
+        try {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+
+            const { data, error } = await supabase
+                .from('invoices')
+                .select('id, grand_total, status, date');
+
+            if (error) throw error;
+
+            const stats = {
+                totalSalesThisMonth: 0,
+                pendingAmount: 0,
+                invoiceCountThisMonth: 0,
+                totalPaidThisMonth: 0
+            };
+
+            data.forEach(inv => {
+                if (inv.status === 'Cancelled') return;
+
+                const invDate = new Date(inv.date);
+                const isCurrentMonth = invDate.getMonth() === currentMonth && invDate.getFullYear() === currentYear;
+
+                if (isCurrentMonth) {
+                    stats.totalSalesThisMonth += Number(inv.grand_total || 0);
+                    stats.invoiceCountThisMonth += 1;
+                    if (inv.status === 'Paid') {
+                        stats.totalPaidThisMonth += Number(inv.grand_total || 0);
+                    }
+                }
+
+                if (inv.status === 'Unpaid' || inv.status === 'Overdue' || inv.status === 'Draft') {
+                    stats.pendingAmount += Number(inv.grand_total || 0);
+                }
+            });
+
+            return stats;
+        } catch (error) {
+            console.error('Error fetching invoice stats:', error);
+            return { totalSalesThisMonth: 0, pendingAmount: 0, invoiceCountThisMonth: 0, totalPaidThisMonth: 0 };
         }
     },
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Trash2 } from 'lucide-react';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const EditLogModal = ({ cell, onClose, onSave, onDelete }) => {
     const { emp, date, log } = cell;
@@ -11,9 +12,9 @@ const EditLogModal = ({ cell, onClose, onSave, onDelete }) => {
         let newLog = {
             ...log,
             employee_code: emp.code,
-            employee_name: emp.name || emp.full_name, // Handle both naming conventions
+            employee_name: emp.full_name || emp.name, // Prioritize full name for official logs
             employee_id: emp.id,
-            work_date: date.toISOString(),
+            work_date: getLocalDateString(date),
         };
 
         if (isAbsent) {
@@ -24,9 +25,24 @@ const EditLogModal = ({ cell, onClose, onSave, onDelete }) => {
             newLog.late_hours = 0;
             newLog.is_late = false;
             newLog.is_early = false;
+            newLog.not_scan = false;
         } else {
-            newLog.start_time = startTime ? (startTime.length === 5 ? startTime + ':00' : startTime) : null;
-            newLog.end_time = endTime ? (endTime.length === 5 ? endTime + ':00' : endTime) : null;
+            const newStart = startTime ? (startTime.length === 5 ? startTime + ':00' : startTime) : null;
+            const newEnd = endTime ? (endTime.length === 5 ? endTime + ':00' : endTime) : null;
+
+            // If time is changed, reset calculated fields so the system can re-process them
+            if (newStart !== log?.start_time) {
+                newLog.late_hours = null;
+                newLog.is_late = null;
+            }
+            if (newEnd !== log?.end_time) {
+                newLog.ot_hours = null;
+                newLog.is_early = null;
+            }
+
+            newLog.start_time = newStart;
+            newLog.end_time = newEnd;
+            newLog.not_scan = false; // Manually edited, so not "not scanned"
 
             if (newLog.start_time && newLog.end_time) {
                 newLog.work_days = 1;

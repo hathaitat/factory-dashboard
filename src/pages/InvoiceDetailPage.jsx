@@ -4,7 +4,7 @@ import { Printer, ArrowLeft, FileSpreadsheet, Edit, FileText, Clock } from 'luci
 import { invoiceService } from '../services/invoiceService';
 import { companyService } from '../services/companyService';
 import { usePermissions } from '../hooks/usePermissions';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 
 const InvoiceDetailPage = () => {
     const { id } = useParams();

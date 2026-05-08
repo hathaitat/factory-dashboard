@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, MapPin, Phone, Mail, User, Building, Calendar, Package, Plus, X, History, FileText, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, MapPin, Phone, Mail, User, Building, Calendar, Package, Plus, X, History, FileText, ShoppingCart, ChevronDown, ChevronUp, Printer, List, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx-js-style';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
 import { purchaseOrderService } from '../services/purchaseOrderService';
@@ -22,6 +23,11 @@ const CustomerDetailPage = () => {
     const [historyData, setHistoryData] = useState([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [expandedMonths, setExpandedMonths] = useState({});
+
+    // Product History tab state
+    const [productHistoryData, setProductHistoryData] = useState([]);
+    const [isLoadingProductHistory, setIsLoadingProductHistory] = useState(false);
+    const [expandedProductMonths, setExpandedProductMonths] = useState({});
 
     // Product Form State
     const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -55,20 +61,19 @@ const CustomerDetailPage = () => {
     useEffect(() => {
         if (activeTab === 'history' && historyData.length === 0) {
             loadHistory();
+        } else if (activeTab === 'product_history' && productHistoryData.length === 0) {
+            loadProductHistory();
         }
     }, [activeTab]);
 
     const loadHistory = async () => {
         setIsLoadingHistory(true);
         try {
-            // Fetch all POs and Invoices for this customer
-            const [allPOs, allInvoices] = await Promise.all([
+            // Fetch all POs and Invoices for this customer efficiently
+            const [allPOs, customerInvoices] = await Promise.all([
                 purchaseOrderService.getPurchaseOrdersByCustomer(id),
-                invoiceService.getInvoices()
+                invoiceService.getInvoicesByCustomer(id)
             ]);
-
-            // Filter invoices for this customer
-            const customerInvoices = allInvoices.filter(inv => String(inv.customerId) === String(id));
 
             // Group by month
             const monthlyMap = {};
@@ -112,8 +117,146 @@ const CustomerDetailPage = () => {
         }
     };
 
+    const loadProductHistory = async () => {
+        setIsLoadingProductHistory(true);
+        try {
+            const items = await invoiceService.getInvoiceItemsByCustomer(id);
+            
+            // Group by month
+            const monthlyMap = {};
+            
+            items.forEach(item => {
+                if (!item.date) return;
+                const date = new Date(item.date);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (!monthlyMap[monthKey]) {
+                    monthlyMap[monthKey] = {
+                        month: monthKey,
+                        products: {},
+                        totalAmount: 0,
+                        totalQuantity: 0
+                    };
+                }
+                
+                // Group by product name AND unit price to accurately show price per unit
+                const prodKey = `${item.productName || 'Unknown Product'}_${item.unitPrice}`;
+                if (!monthlyMap[monthKey].products[prodKey]) {
+                    monthlyMap[monthKey].products[prodKey] = {
+                        name: item.productName || 'Unknown Product',
+                        quantity: 0,
+                        unitPrice: item.unitPrice,
+                        unit: item.unit || '',
+                        totalPrice: 0
+                    };
+                }
+                
+                monthlyMap[monthKey].products[prodKey].quantity += item.quantity;
+                monthlyMap[monthKey].products[prodKey].totalPrice += item.totalPrice;
+                
+                monthlyMap[monthKey].totalAmount += item.totalPrice;
+                monthlyMap[monthKey].totalQuantity += item.quantity;
+            });
+            
+            // Convert products map to array and sort
+            const sortedData = Object.values(monthlyMap).map(m => ({
+                ...m,
+                products: Object.values(m.products).sort((a, b) => b.totalPrice - a.totalPrice)
+            })).sort((a, b) => b.month.localeCompare(a.month)); // Sort months descending
+            
+            setProductHistoryData(sortedData);
+            
+            if (sortedData.length > 0) {
+                setExpandedProductMonths({ [sortedData[0].month]: true });
+            }
+        } catch (error) {
+            console.error('Error loading product history:', error);
+        } finally {
+            setIsLoadingProductHistory(false);
+        }
+    };
+
+    const exportProductHistoryToExcel = () => {
+        if (!productHistoryData.length) return;
+        
+        const wb = XLSX.utils.book_new();
+        
+        // Prepare data for export
+        const data = [];
+        productHistoryData.forEach(month => {
+            month.products.forEach(p => {
+                data.push({
+                    'เดือน': formatMonthName(month.month),
+                    'ชื่อสินค้า': p.name,
+                    'จำนวน': p.quantity,
+                    'หน่วย': p.unit,
+                    'ราคา/หน่วย': p.unitPrice,
+                    'มูลค่ารวม': p.totalPrice
+                });
+            });
+        });
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, "Product History");
+        XLSX.writeFile(wb, `ProductHistory_${customer.name}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
+    const exportMonthlyProductToExcel = (monthData) => {
+        const wb = XLSX.utils.book_new();
+        const data = monthData.products.map(p => ({
+            'ชื่อสินค้า': p.name,
+            'จำนวน': p.quantity,
+            'หน่วย': p.unit,
+            'ราคา/หน่วย': p.unitPrice,
+            'มูลค่ารวม': p.totalPrice
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, monthData.month);
+        XLSX.writeFile(wb, `ProductHistory_${customer.name}_${monthData.month}.xlsx`);
+    };
+
+    const exportDocumentHistoryToExcel = () => {
+        if (!historyData.length) return;
+        
+        const data = [];
+        historyData.forEach(month => {
+            // Add POs
+            month.pos.forEach(po => {
+                data.push({
+                    'เดือน': formatMonthName(month.month),
+                    'ประเภท': 'PO',
+                    'เลขที่เอกสาร': po.po_number,
+                    'วันที่': new Date(po.issue_date).toLocaleDateString('th-TH'),
+                    'สถานะ': po.status,
+                    'จำนวนเงิน': po.grand_total
+                });
+            });
+            // Add Invoices
+            month.invoices.forEach(inv => {
+                data.push({
+                    'เดือน': formatMonthName(month.month),
+                    'ประเภท': 'INV',
+                    'เลขที่เอกสาร': inv.invoiceNo,
+                    'วันที่': new Date(inv.date).toLocaleDateString('th-TH'),
+                    'สถานะ': inv.status,
+                    'จำนวนเงิน': inv.grandTotal
+                });
+            });
+        });
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Document History");
+        XLSX.writeFile(wb, `DocumentHistory_${customer.name}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
     const toggleMonth = (month) => {
         setExpandedMonths(prev => ({ ...prev, [month]: !prev[month] }));
+    };
+
+    const toggleProductMonth = (month) => {
+        setExpandedProductMonths(prev => ({ ...prev, [month]: !prev[month] }));
     };
 
     const formatMonthName = (monthKey) => {
@@ -316,7 +459,27 @@ const CustomerDetailPage = () => {
                         transition: 'all 0.2s'
                     }}
                 >
-                    <History size={18} /> ประวัติการซื้อ
+                    <History size={18} /> ประวัติการซื้อ (เอกสาร)
+                </button>
+                <button
+                    onClick={() => setActiveTab('product_history')}
+                    style={{
+                        padding: '0.8rem 1.5rem',
+                        background: 'none',
+                        border: 'none',
+                        borderBottom: activeTab === 'product_history' ? '2px solid #10b981' : '2px solid transparent',
+                        marginBottom: '-2px',
+                        color: activeTab === 'product_history' ? '#10b981' : 'var(--text-muted)',
+                        fontWeight: activeTab === 'product_history' ? '600' : '400',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        fontSize: '1rem',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <List size={18} /> ประวัติการซื้อ (สินค้า)
                 </button>
             </div>
 
@@ -580,24 +743,40 @@ const CustomerDetailPage = () => {
                     <>
                         {/* Summary Cards */}
                         <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                            <div className="glass-panel" style={{ padding: '1.2rem', textAlign: 'center' }}>
-                                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.3rem' }}>ยอดซื้อรวมทั้งหมด</div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#10b981' }}>
+                            <div className="glass-panel" style={{ padding: '1.5rem', textAlign: 'center', background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.05))', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '500' }}>ยอดซื้อรวมทั้งหมด</div>
+                                <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#10b981' }}>
                                     ฿{historyData.reduce((sum, m) => sum + m.totalInvAmount, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
                             </div>
-                            <div className="glass-panel" style={{ padding: '1.2rem', textAlign: 'center' }}>
-                                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.3rem' }}>จำนวน PO ทั้งหมด</div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#3b82f6' }}>
-                                    {historyData.reduce((sum, m) => sum + m.pos.length, 0)} ฉบับ
+                            <div className="glass-panel" style={{ padding: '1.5rem', textAlign: 'center', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(37, 99, 235, 0.05))', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '500' }}>จำนวน PO ทั้งหมด</div>
+                                <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#3b82f6' }}>
+                                    {historyData.reduce((sum, m) => sum + m.pos.length, 0)} <span style={{ fontSize: '1rem', fontWeight: '500', opacity: 0.8 }}>ฉบับ</span>
                                 </div>
                             </div>
-                            <div className="glass-panel" style={{ padding: '1.2rem', textAlign: 'center' }}>
-                                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.3rem' }}>จำนวน INV ทั้งหมด</div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#f59e0b' }}>
-                                    {historyData.reduce((sum, m) => sum + m.invoices.length, 0)} ฉบับ
+                            <div className="glass-panel" style={{ padding: '1.5rem', textAlign: 'center', background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(217, 119, 6, 0.05))', border: '1px solid rgba(245, 158, 11, 0.1)' }}>
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '500' }}>จำนวน INV ทั้งหมด</div>
+                                <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#f59e0b' }}>
+                                    {historyData.reduce((sum, m) => sum + m.invoices.length, 0)} <span style={{ fontSize: '1rem', fontWeight: '500', opacity: 0.8 }}>ฉบับ</span>
                                 </div>
                             </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                            <button
+                                onClick={exportDocumentHistoryToExcel}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                    padding: '0.5rem 1rem', borderRadius: '8px',
+                                    border: '1px solid var(--border-color)',
+                                    background: 'var(--card-bg)',
+                                    color: 'var(--text-main)', cursor: 'pointer',
+                                    fontSize: '0.9rem', fontWeight: '500'
+                                }}
+                            >
+                                <FileSpreadsheet size={16} color="#10b981" /> Export History (Excel)
+                            </button>
                         </div>
 
                         {/* Monthly breakdown */}
@@ -739,6 +918,175 @@ const CustomerDetailPage = () => {
                                                     ))}
                                                 </div>
                                             )}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
+            </div>
+            )}
+
+            {/* Tab: Product History */}
+            {activeTab === 'product_history' && (
+            <div>
+                {isLoadingProductHistory ? (
+                    <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>กำลังโหลดประวัติการซื้อสินค้า...</div>
+                ) : productHistoryData.length === 0 ? (
+                    <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <List size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+                        <div style={{ fontSize: '1.1rem' }}>ยังไม่มีประวัติการซื้อสินค้าจากใบกำกับภาษี</div>
+                    </div>
+                ) : (
+                    <>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginBottom: '1.5rem' }}>
+                            <button
+                                onClick={exportProductHistoryToExcel}
+                                style={{
+                                    padding: '0.6rem 1.2rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #10b981',
+                                    background: 'rgba(16, 185, 129, 0.05)',
+                                    color: '#10b981',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontWeight: '500'
+                                }}
+                            >
+                                <FileSpreadsheet size={18} /> Export Excel
+                            </button>
+                            <button
+                                onClick={() => window.open(`/dashboard/customers/${id}/print-product-history`, '_blank')}
+                                style={{
+                                    padding: '0.6rem 1.2rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #3b82f6',
+                                    background: 'rgba(59, 130, 246, 0.05)',
+                                    color: '#3b82f6',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontWeight: '500'
+                                }}
+                            >
+                                <Printer size={18} /> พิมพ์รายงานทั้งหมด
+                            </button>
+                        </div>
+
+                        {/* Monthly product breakdown */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {productHistoryData.map(monthData => (
+                                <div key={monthData.month} className="glass-panel" style={{ overflow: 'hidden' }}>
+                                    {/* Month Header - Clickable */}
+                                    <div
+                                        onClick={() => toggleProductMonth(monthData.month)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '1rem 1.5rem',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            color: 'var(--text-main)',
+                                            borderBottom: expandedProductMonths[monthData.month] ? '1px solid var(--border-color)' : 'none'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                {expandedProductMonths[monthData.month] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                                <span style={{ fontWeight: '600', fontSize: '1.05rem' }}>{formatMonthName(monthData.month)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.85rem', padding: '0.2rem 0.6rem', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                                                    {monthData.products.length} รายการสินค้า
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <div style={{ fontWeight: '600', color: '#10b981', fontSize: '1.1rem', marginRight: '0.5rem' }}>
+                                                ฿{monthData.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </div>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    exportMonthlyProductToExcel(monthData);
+                                                }}
+                                                title="Export Excel เดือนนี้"
+                                                style={{
+                                                    padding: '0.4rem',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid rgba(16, 185, 129, 0.2)',
+                                                    background: 'rgba(16, 185, 129, 0.05)',
+                                                    color: 'var(--success)',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center'
+                                                }}
+                                            >
+                                                <FileSpreadsheet size={14} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(`/dashboard/customers/${id}/print-product-history?month=${monthData.month}`, '_blank');
+                                                }}
+                                                title="พิมพ์รายงานเดือนนี้"
+                                                style={{
+                                                    padding: '0.4rem',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid rgba(59, 130, 246, 0.2)',
+                                                    background: 'rgba(59, 130, 246, 0.05)',
+                                                    color: '#3b82f6',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center'
+                                                }}
+                                            >
+                                                <Printer size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Expanded Content: Product List Table */}
+                                    {expandedProductMonths[monthData.month] && (
+                                        <div style={{ padding: '0' }}>
+                                            <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                                    <thead>
+                                                        <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-main)' }}>
+                                                            <th style={{ padding: '0.8rem 1.5rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อสินค้า</th>
+                                                            <th style={{ padding: '0.8rem 1.5rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: '500' }}>จำนวนที่ซื้อรวม</th>
+                                                            <th style={{ padding: '0.8rem 1.5rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: '500' }}>ราคา/หน่วย</th>
+                                                            <th style={{ padding: '0.8rem 1.5rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: '500' }}>มูลค่ารวม</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {monthData.products.map((prod, idx) => (
+                                                            <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                                                <td style={{ padding: '0.8rem 1.5rem', fontWeight: '500', color: 'var(--text-main)' }}>
+                                                                    {prod.name}
+                                                                </td>
+                                                                <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right' }}>
+                                                                    <span style={{ fontWeight: '600', color: '#3b82f6' }}>{prod.quantity.toLocaleString()}</span>
+                                                                    <span style={{ color: 'var(--text-muted)', marginLeft: '0.3rem', fontSize: '0.85rem' }}>{prod.unit}</span>
+                                                                </td>
+                                                                <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right', color: 'var(--text-main)' }}>
+                                                                    ฿{prod.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                </td>
+                                                                <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right', fontWeight: '600', color: '#10b981' }}>
+                                                                    ฿{prod.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     )}
                                 </div>

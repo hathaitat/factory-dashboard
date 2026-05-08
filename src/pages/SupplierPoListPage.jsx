@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit, Trash2, FileSpreadsheet, Eye, Printer, FileText, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, FileSpreadsheet, Eye, Printer, FileText, CheckCircle, Clock, XCircle, AlertCircle, Calendar, ShoppingCart, TrendingUp } from 'lucide-react';
 import { supplierPoService } from '../services/supplierPoService';
 import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
 import PageHeader from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 
 const SupplierPoListPage = () => {
     const navigate = useNavigate();
@@ -67,15 +67,33 @@ const SupplierPoListPage = () => {
         XLSX.writeFile(wb, `Vendor_PO_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
+    // Export only a specific month's vendor POs
+    const exportMonthToExcel = (group, monthPOs) => {
+        const dataToExport = monthPOs.map(po => ({
+            'เลขที่ PO': po.po_number,
+            'วันที่สั่งซื้อ': po.date,
+            'กำหนดส่ง': po.delivery_date || '-',
+            'ผู้ขาย': po.suppliers?.name || '-',
+            'ยอดเงินสุทธิ': po.grand_total || 0,
+            'สถานะ': po.status,
+            'หมายเหตุ': po.remark || ''
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Vendor_POs');
+        XLSX.writeFile(wb, `VendorPO_${group.replace(/ /g, '_')}.xlsx`);
+    };
+
     const getStatusConfig = (status) => {
-        switch (status) {
-            case 'Draft': return { color: 'var(--text-muted)', bg: 'var(--card-hover)', text: 'ฉบับร่าง' };
-            case 'Waiting': return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', text: 'รออนุมัติ' };
-            case 'Approved': return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', text: 'อนุมัติแล้ว' };
-            case 'Completed': return { color: 'var(--primary)', bg: 'rgba(59, 130, 246, 0.1)', text: 'ได้รับสินค้าแล้ว' };
-            case 'Cancelled': return { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', text: 'ยกเลิก' };
-            default: return { color: 'var(--text-muted)', bg: 'var(--card-hover)', text: status };
-        }
+        const styles = {
+            Draft: { color: '#6b7280', bg: '#f3f4f6', text: 'ฉบับร่าง', icon: <FileText size={14} /> },
+            Waiting: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)', text: 'รออนุมัติ', icon: <Clock size={14} /> },
+            Approved: { color: '#10b981', bg: 'rgba(16, 185, 129, 0.08)', text: 'อนุมัติแล้ว', icon: <CheckCircle size={14} /> },
+            Completed: { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)', text: 'ได้รับสินค้าแล้ว', icon: <ShoppingCart size={14} /> },
+            Cancelled: { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)', text: 'ยกเลิก', icon: <XCircle size={14} /> }
+        };
+        return styles[status] || styles.Draft;
     };
 
     const hasActiveFilters = dateFrom || dateTo || statusFilter;
@@ -120,30 +138,99 @@ const SupplierPoListPage = () => {
         return dateB - dateA;
     });
 
+    // KPI Calculations
+    const kpis = React.useMemo(() => {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const pending = pos.filter(p => (p.status === 'Approved' || p.status === 'Waiting')).length;
+        const overdue = pos.filter(p => 
+            p.status !== 'Completed' && 
+            p.status !== 'Cancelled' && 
+            p.delivery_date && 
+            new Date(p.delivery_date) < now
+        ).length;
+
+        const monthPOs = pos.filter(p => {
+            const d = new Date(p.date);
+            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+        });
+        const monthSpending = monthPOs.reduce((sum, p) => sum + (Number(p.grand_total) || 0), 0);
+
+        return { pending, overdue, monthSpending };
+    }, [pos]);
+
     return (
         <div style={{ padding: '0 1rem' }}>
-            <PageHeader title="ใบสั่งซื้อผู้ขาย (Vendor PO)" subtitle="รายการสั่งซื้อวัตถุดิบและอุปกรณ์จากผู้ขาย">
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <PageHeader title="ใบสั่งซื้อผู้ขาย (Vendor PO)" subtitle="จัดการการจัดซื้อวัตถุดิบและอุปกรณ์">
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button 
+                        onClick={exportToExcel} 
+                        className="glass-panel" 
+                        style={{ 
+                            padding: '0.6rem 1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            background: 'white',
+                            border: '1px solid #e2e8f0',
+                            color: 'var(--success)',
+                            cursor: 'pointer',
+                            borderRadius: '8px',
+                            fontWeight: '500',
+                            fontSize: '0.9rem'
+                        }}
+                    >
+                        <FileSpreadsheet size={18} /> Export All
+                    </button>
                     {hasPermission('supplier_pos', 'create') && (
                         <button 
                             onClick={() => navigate('/dashboard/supplier-pos/create')} 
-                            className="btn-primary" 
-                            style={{ padding: '0.6rem 1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                            style={{ 
+                                padding: '0.6rem 1.2rem', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '0.5rem',
+                                background: '#3b82f6',
+                                border: 'none',
+                                color: 'white',
+                                cursor: 'pointer',
+                                borderRadius: '8px',
+                                fontWeight: '600',
+                                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)'
+                            }}
                         >
-                            <Plus size={20} />
-                            สร้างใบสั่งซื้อใหม่
+                            <Plus size={20} /> สร้างใบสั่งซื้อใหม่
                         </button>
                     )}
-                    <button 
-                        onClick={exportToExcel} 
-                        className="btn-excel" 
-                        style={{ padding: '0.6rem 1.2rem' }}
-                    >
-                        <FileSpreadsheet size={20} />
-                        Export Excel
-                    </button>
                 </div>
             </PageHeader>
+
+            {/* KPI Cards */}
+            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(16, 185, 129, 0.1)', background: 'rgba(16, 185, 129, 0.02)' }}>
+                    <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#10b981' }}><TrendingUp size={20} /></div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ยอดสั่งซื้อเดือนนี้</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#10b981' }}>฿{kpis.monthSpending.toLocaleString()}</div>
+                    </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(59, 130, 246, 0.1)', background: 'rgba(59, 130, 246, 0.02)' }}>
+                    <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#3b82f6' }}><Clock size={20} /></div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>รอดำเนินการ/ส่งสินค้า</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#3b82f6' }}>{kpis.pending} รายการ</div>
+                    </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(239, 68, 68, 0.1)', background: 'rgba(239, 68, 68, 0.02)' }}>
+                    <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#ef4444' }}><AlertCircle size={20} /></div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>เกินกำหนดส่ง</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#ef4444' }}>{kpis.overdue} รายการ</div>
+                    </div>
+                </div>
+            </div>
 
             <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
                 <Search size={20} style={{ color: 'var(--text-muted)' }} />
@@ -214,9 +301,33 @@ const SupplierPoListPage = () => {
                             ) : filteredPos.length > 0 ? (
                                 monthYearGroups.map((group) => (
                                     <React.Fragment key={group}>
-                                        <tr style={{ background: 'var(--bg-main)' }}>
-                                            <td colSpan="7" style={{ padding: '0.8rem 1.5rem', fontWeight: '600', color: 'var(--text-main)', borderBottom: '1px solid var(--border-color)', borderTop: 'none' }}>
-                                                เดือน {group}
+                                        <tr style={{ background: 'rgba(59, 130, 246, 0.02)' }}>
+                                            <td colSpan="7" style={{ padding: '1rem 1.5rem', fontWeight: '700', color: '#37477C', borderBottom: '1px solid var(--border-color)', borderTop: 'none', fontSize: '1rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                        <Calendar size={18} color="#3b82f6" />
+                                                        <span>เดือน {group}</span>
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: '400', color: 'var(--text-muted)', background: 'white', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{groupedPOs[group].length} รายการ</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); exportMonthToExcel(group, groupedPOs[group]); }}
+                                                        title={`Export Excel เดือน${group}`}
+                                                        style={{
+                                                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                                            padding: '0.4rem 0.8rem', borderRadius: '6px',
+                                                            border: '1px solid rgba(16, 185, 129, 0.2)',
+                                                            background: 'white',
+                                                            color: 'var(--success)', cursor: 'pointer',
+                                                            fontSize: '0.8rem', fontWeight: '600',
+                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                        onMouseOver={e => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.05)'}
+                                                        onMouseOut={e => e.currentTarget.style.background = 'white'}
+                                                    >
+                                                        <FileSpreadsheet size={14} /> ส่งออก Excel
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                         {groupedPOs[group].map((po) => {
@@ -269,7 +380,7 @@ const SupplierPoListPage = () => {
                                                     <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>{po.date ? new Date(po.date).toLocaleDateString('th-TH') : '-'}</td>
                                                     <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
                                                         <span style={{
-                                                            color: po.delivery_date && new Date(po.delivery_date) < new Date() && po.status !== 'Completed' ? 'var(--danger)' : 'inherit',
+                                                            color: po.delivery_date && new Date(po.delivery_date) < new Date() && po.status !== 'Completed' ? 'var(--error)' : 'inherit',
                                                             fontWeight: po.delivery_date && new Date(po.delivery_date) < new Date() && po.status !== 'Completed' ? '600' : 'normal'
                                                         }}>
                                                             {po.delivery_date ? new Date(po.delivery_date).toLocaleDateString('th-TH') : '-'}
@@ -280,14 +391,19 @@ const SupplierPoListPage = () => {
                                                     </td>
                                                     <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
                                                         <span style={{
-                                                            padding: '0.3rem 0.8rem',
+                                                            padding: '0.4rem 0.8rem',
                                                             borderRadius: '20px',
-                                                            fontSize: '0.85rem',
-                                                            fontWeight: '500',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: '600',
                                                             whiteSpace: 'nowrap',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px',
                                                             background: status.bg,
-                                                            color: status.color
+                                                            color: status.color,
+                                                            border: `1px solid ${status.color}22`
                                                         }}>
+                                                            {status.icon}
                                                             {status.text}
                                                         </span>
                                                     </td>

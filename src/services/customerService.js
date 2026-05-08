@@ -26,6 +26,7 @@ export const customerService = {
         status: customer.status,
         poNote: customer.po_note,
         invoiceNote: customer.invoice_note,
+        quotationNote: customer.quotation_note,
         billingNoteNote: customer.billing_note_note,
         receiptNote: customer.receipt_note,
         createdAt: customer.created_at,
@@ -63,6 +64,7 @@ export const customerService = {
         status: data.status,
         poNote: data.po_note,
         invoiceNote: data.invoice_note,
+        quotationNote: data.quotation_note,
         billingNoteNote: data.billing_note_note,
         receiptNote: data.receipt_note,
         createdAt: data.created_at,
@@ -89,6 +91,7 @@ export const customerService = {
         status: customerData.status || 'Active',
         po_note: customerData.poNote || '',
         invoice_note: customerData.invoiceNote || '',
+        quotation_note: customerData.quotationNote || '',
         billing_note_note: customerData.billingNoteNote || '',
         receipt_note: customerData.receiptNote || ''
       };
@@ -124,6 +127,7 @@ export const customerService = {
         status: customerData.status,
         po_note: customerData.poNote,
         invoice_note: customerData.invoiceNote,
+        quotation_note: customerData.quotationNote,
         billing_note_note: customerData.billingNoteNote,
         receipt_note: customerData.receiptNote,
         updated_at: new Date().toISOString()

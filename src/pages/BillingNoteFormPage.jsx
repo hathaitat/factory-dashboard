@@ -4,6 +4,7 @@ import { Save, ArrowLeft, Plus, Trash2, Calendar, FileText, X } from 'lucide-rea
 import { billingNoteService } from '../services/billingNoteService';
 import { customerService } from '../services/customerService';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const BillingNoteFormPage = () => {
     const { id } = useParams();
@@ -24,7 +25,7 @@ const BillingNoteFormPage = () => {
     // Form state
     const [formData, setFormData] = useState({
         billingNoteNo: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateString(),
         customerId: '',
         customerSnapshot: null,
         totalAmount: 0,
@@ -171,9 +172,14 @@ const BillingNoteFormPage = () => {
     const handleRemoveInvoice = (invId) => {
         const removed = selectedInvoices.find(i => i.id === invId);
         setSelectedInvoices(selectedInvoices.filter(i => i.id !== invId));
-        // Add back to available if it matches the current customer and month
-        if (removed) {
-            setAvailableInvoices([...availableInvoices, removed]);
+        
+        // Only add back to available if it matches the current customer and month filter
+        if (removed && formData.customerId) {
+            const dateObj = new Date(formData.date);
+            const invDate = new Date(removed.date);
+            if (invDate.getMonth() === dateObj.getMonth() && invDate.getFullYear() === dateObj.getFullYear()) {
+                setAvailableInvoices([...availableInvoices, removed]);
+            }
         }
     };
 
@@ -266,7 +272,16 @@ const BillingNoteFormPage = () => {
                             value={formData.status}
                             onChange={e => setFormData({ ...formData, status: e.target.value })}
                             className="glass-input"
-                            style={{ padding: '0.6rem 1rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                            style={{ 
+                                padding: '0.6rem 1rem', 
+                                borderRadius: '8px', 
+                                border: '1px solid var(--border-color)',
+                                background: formData.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' : 
+                                           formData.status === 'Cancelled' ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-main)',
+                                color: formData.status === 'Paid' ? 'var(--success)' : 
+                                       formData.status === 'Cancelled' ? 'var(--error)' : 'var(--text-main)',
+                                fontWeight: '500'
+                            }}
                         >
                             <option value="Draft">แบบร่าง (Draft)</option>
                             <option value="Paid">ชำระเงินแล้ว (Paid)</option>
@@ -334,7 +349,20 @@ const BillingNoteFormPage = () => {
                                 )}
                             </div>
                             {showCustomerDropdown && (
-                                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, maxHeight: '250px', overflowY: 'auto', background: 'var(--card-hover)', zIndex: 50, border: '1px solid var(--border-color)', borderRadius: '8px', marginTop: '0.2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                                <div style={{ 
+                                    position: 'absolute', 
+                                    top: '100%', 
+                                    left: 0, 
+                                    right: 0, 
+                                    maxHeight: '250px', 
+                                    overflowY: 'auto', 
+                                    background: 'white', 
+                                    zIndex: 50, 
+                                    border: '1px solid var(--border-color)', 
+                                    borderRadius: '8px', 
+                                    marginTop: '0.2rem', 
+                                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)' 
+                                }}>
                                     {customers.filter(c =>
                                         c.name?.toLowerCase().includes(customerSearch.toLowerCase()) ||
                                         c.code?.toLowerCase().includes(customerSearch.toLowerCase())

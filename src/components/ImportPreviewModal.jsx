@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, AlertCircle, Loader, FileText, Trash2, Save } from 'lucide-react';
 import EditLogModal from './EditLogModal';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const ImportPreviewModal = ({ isOpen, onClose, data, onConfirm, status = 'preview', message = '' }) => {
     if (!isOpen) return null;
@@ -30,7 +31,7 @@ const ImportPreviewModal = ({ isOpen, onClose, data, onConfirm, status = 'previe
     };
 
     const handleDeleteLog = (emp, date) => {
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = getLocalDateString(date);
         const filtered = localLogs.filter(l =>
             !(String(l.employee_code) === String(emp.code) && l.work_date.startsWith(dateStr))
         );
@@ -106,11 +107,11 @@ const ImportPreviewModal = ({ isOpen, onClose, data, onConfirm, status = 'previe
                                 {allDates.map(date => {
                                     const isSunday = date.getDay() === 0;
                                     return (
-                                        <th key={date.toISOString()} style={{
+                                        <th key={getLocalDateString(date)} style={{
                                             borderBottom: '1px solid #e5e7eb', padding: '0.5rem', minWidth: '80px', textAlign: 'center',
                                             background: isSunday ? '#fee2e2' : '#f9fafb', color: isSunday ? '#991b1b' : '#374151'
                                         }}>
-                                            {date.toLocaleDateString('en-US', { day: 'numeric', weekday: 'short' })}
+                                            {date.toLocaleDateString('th-TH', { day: 'numeric', weekday: 'short' })}
                                         </th>
                                     );
                                 })}
@@ -127,7 +128,7 @@ const ImportPreviewModal = ({ isOpen, onClose, data, onConfirm, status = 'previe
                                         <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{emp.code}</div>
                                     </td>
                                     {allDates.map(date => {
-                                        const dateStr = date.toISOString().split('T')[0];
+                                        const dateStr = getLocalDateString(date);
                                         const log = emp.dailyLogs[dateStr];
                                         const isSunday = date.getDay() === 0;
 

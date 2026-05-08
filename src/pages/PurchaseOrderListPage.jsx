@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Search, Edit, Trash2, FileSpreadsheet, Eye, Link as LinkIcon } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, FileSpreadsheet, Eye, Link as LinkIcon, Clock, CheckCircle, Package, AlertTriangle, Calendar } from 'lucide-react';
 import { purchaseOrderService } from '../services/purchaseOrderService';
 import { usePermissions } from '../hooks/usePermissions';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
@@ -77,6 +77,23 @@ const PurchaseOrderListPage = () => {
         XLSX.writeFile(wb, 'Purchase_Orders_Export.xlsx');
     };
 
+    // Export only a specific month's POs
+    const exportMonthToExcel = (group, monthPOs) => {
+        const dataToExport = monthPOs.map(po => ({
+            'เลขที่ใบสั่งซื้อ (PO)': po.po_number,
+            'วันที่ออกเอกสาร': po.issue_date,
+            'วันกำหนดส่ง': po.due_date,
+            'ลูกค้า': po.customers?.name || 'ลูกค้าทั่วไป',
+            'สถานะ': po.status,
+            'หมายเหตุ': po.notes || ''
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Purchase_Orders');
+        XLSX.writeFile(wb, `PO_${group.replace(/ /g, '_')}.xlsx`);
+    };
+
     const hasActiveFilters = dateFrom || dateTo;
     const clearFilters = () => { setDateFrom(''); setDateTo(''); setDateFilterType('issue_date'); };
 
@@ -114,56 +131,105 @@ const PurchaseOrderListPage = () => {
         });
     });
 
-    // Create an ordered array of keys sorted by the latest PO in each group
     const monthYearGroups = Object.keys(groupedPOs).sort((a, b) => {
         const dateA = Math.max(...groupedPOs[a].map(po => new Date(po.issue_date).getTime()));
         const dateB = Math.max(...groupedPOs[b].map(po => new Date(po.issue_date).getTime()));
         return dateB - dateA;
     });
 
+    // KPI Calculations
+    const kpis = React.useMemo(() => {
+        const waiting = purchaseOrders.filter(po => po.status === 'Waiting').length;
+        const progressing = purchaseOrders.filter(po => po.status === 'Progressing').length;
+        const completed = purchaseOrders.filter(po => po.status === 'Completed').length;
+        const overdue = purchaseOrders.filter(po =>
+            po.status !== 'Completed' && po.status !== 'Cancelled' &&
+            po.due_date && new Date(po.due_date) < new Date()
+        ).length;
+
+        return { waiting, progressing, completed, overdue };
+    }, [purchaseOrders]);
+
     return (
         <div style={{ padding: '0 1rem' }}>
             <PageHeader
-                title="รายการใบสั่งซื้อ (Purchase Orders) ของลูกค้า"
+                title="รายการใบสั่งซื้อ (Purchase Orders)"
                 helpContent={HELP_CONTENT.purchaseOrders}
             >
-                <button
-                    onClick={exportToExcel}
-                    className="glass-panel"
-                    style={{
-                        padding: '0.6rem 1rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        background: 'rgba(16, 185, 129, 0.05)',
-                        border: '1px solid rgba(16, 185, 129, 0.1)',
-                        color: 'var(--success)',
-                        cursor: 'pointer',
-                        borderRadius: '8px'
-                    }}
-                >
-                    <FileSpreadsheet size={18} /> Export Excel
-                </button>
-                {hasPermission('invoices', 'create') && (
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button
-                        onClick={() => navigate('/dashboard/purchase-orders/new')}
+                        onClick={exportToExcel}
+                        className="glass-panel"
                         style={{
-                            padding: '0.6rem 1.2rem',
+                            padding: '0.6rem 1rem',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem',
-                            background: '#3b82f6',
-                            border: 'none',
-                            color: 'white',
+                            background: 'white',
+                            border: '1px solid #e2e8f0',
+                            color: 'var(--success)',
                             cursor: 'pointer',
                             borderRadius: '8px',
-                            fontWeight: '500'
+                            fontWeight: '500',
+                            fontSize: '0.9rem'
                         }}
                     >
-                        <Plus size={20} /> เพิ่มใบสั่งซื้อ
+                        <FileSpreadsheet size={18} /> Export All
                     </button>
-                )}
+                    {hasPermission('invoices', 'create') && (
+                        <button
+                            onClick={() => navigate('/dashboard/purchase-orders/new')}
+                            style={{
+                                padding: '0.6rem 1.2rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                background: '#3b82f6',
+                                border: 'none',
+                                color: 'white',
+                                cursor: 'pointer',
+                                borderRadius: '8px',
+                                fontWeight: '600',
+                                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)'
+                            }}
+                        >
+                            <Plus size={20} /> เพิ่มใบสั่งซื้อ
+                        </button>
+                    )}
+                </div>
             </PageHeader>
+
+            {/* KPI Cards */}
+            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(245, 158, 11, 0.1)', background: 'rgba(245, 158, 11, 0.02)' }}>
+                    <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#f59e0b' }}><Clock size={20} /></div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>รอรับออเดอร์</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#f59e0b' }}>{kpis.waiting}</div>
+                    </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(59, 130, 246, 0.1)', background: 'rgba(59, 130, 246, 0.02)' }}>
+                    <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#3b82f6' }}><Package size={20} /></div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>กำลังผลิต/ส่ง</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#3b82f6' }}>{kpis.progressing}</div>
+                    </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(239, 68, 68, 0.1)', background: 'rgba(239, 68, 68, 0.02)' }}>
+                    <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#ef4444' }}><AlertTriangle size={20} /></div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>เกินกำหนดส่ง</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#ef4444' }}>{kpis.overdue}</div>
+                    </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(16, 185, 129, 0.1)', background: 'rgba(16, 185, 129, 0.02)' }}>
+                    <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#10b981' }}><CheckCircle size={20} /></div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>สำเร็จแล้ว</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#10b981' }}>{kpis.completed}</div>
+                    </div>
+                </div>
+            </div>
 
             <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
                 <Search size={20} style={{ color: 'var(--text-muted)' }} />
@@ -222,9 +288,33 @@ const PurchaseOrderListPage = () => {
                             ) : filteredPOs.length > 0 ? (
                                 monthYearGroups.map((group) => (
                                     <React.Fragment key={group}>
-                                        <tr style={{ background: 'var(--bg-main)' }}>
-                                            <td colSpan="8" style={{ padding: '0.8rem 1.5rem', fontWeight: '600', color: 'var(--text-main)', borderBottom: '1px solid var(--border-color)', borderTop: 'none' }}>
-                                                เดือน {group}
+                                        <tr style={{ background: 'rgba(59, 130, 246, 0.02)' }}>
+                                            <td colSpan="8" style={{ padding: '1rem 1.5rem', fontWeight: '700', color: '#37477C', borderBottom: '1px solid var(--border-color)', borderTop: 'none', fontSize: '1rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                        <Calendar size={18} color="#3b82f6" />
+                                                        <span>{group}</span>
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: '400', color: 'var(--text-muted)', background: 'white', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{groupedPOs[group].length} รายการ</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); exportMonthToExcel(group, groupedPOs[group]); }}
+                                                        title={`Export Excel เดือน${group}`}
+                                                        style={{
+                                                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                                            padding: '0.4rem 0.8rem', borderRadius: '6px',
+                                                            border: '1px solid rgba(16, 185, 129, 0.2)',
+                                                            background: 'white',
+                                                            color: 'var(--success)', cursor: 'pointer',
+                                                            fontSize: '0.8rem', fontWeight: '600',
+                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                        onMouseOver={e => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.05)'}
+                                                        onMouseOut={e => e.currentTarget.style.background = 'white'}
+                                                    >
+                                                        <FileSpreadsheet size={14} /> ส่งออก Excel
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                         {groupedPOs[group].map((po) => (
@@ -278,7 +368,7 @@ const PurchaseOrderListPage = () => {
                                                 <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>{new Date(po.issue_date).toLocaleDateString('th-TH')}</td>
                                                 <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
                                                     <span style={{
-                                                        color: new Date(po.due_date) < new Date() && po.status !== 'Completed' ? 'var(--danger)' : 'inherit',
+                                                        color: new Date(po.due_date) < new Date() && po.status !== 'Completed' ? 'var(--error)' : 'inherit',
                                                         fontWeight: new Date(po.due_date) < new Date() && po.status !== 'Completed' ? '600' : 'normal'
                                                     }}>
                                                         {po.due_date ? new Date(po.due_date).toLocaleDateString('th-TH') : '-'}
@@ -300,19 +390,30 @@ const PurchaseOrderListPage = () => {
                                                 </td>
                                                 <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
                                                     <span style={{
-                                                        padding: '0.3rem 0.8rem',
+                                                        padding: '0.4rem 0.8rem',
                                                         borderRadius: '20px',
-                                                        fontSize: '0.85rem',
-                                                        fontWeight: '500',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: '600',
                                                         whiteSpace: 'nowrap',
-                                                        background: po.status === 'Waiting' ? 'rgba(245, 158, 11, 0.1)' :
-                                                            po.status === 'Progressing' ? 'rgba(59, 130, 246, 0.1)' :
-                                                                po.status === 'Completed' ? 'rgba(16, 185, 129, 0.1)' : 'var(--card-hover)',
-                                                        color: po.status === 'Waiting' ? '#f59e0b' :
-                                                            po.status === 'Progressing' ? 'var(--primary)' :
-                                                                po.status === 'Completed' ? 'var(--success)' : 'var(--text-muted)'
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px',
+                                                        background: po.status === 'Waiting' ? 'rgba(245, 158, 11, 0.08)' :
+                                                            po.status === 'Progressing' ? 'rgba(59, 130, 246, 0.08)' :
+                                                                po.status === 'Completed' ? 'rgba(16, 185, 129, 0.08)' : '#f3f4f6',
+                                                        color: po.status === 'Waiting' ? '#d97706' :
+                                                            po.status === 'Progressing' ? '#2563eb' :
+                                                                po.status === 'Completed' ? '#059669' : '#6b7280',
+                                                        border: po.status === 'Waiting' ? '1px solid rgba(245, 158, 11, 0.2)' :
+                                                            po.status === 'Progressing' ? '1px solid rgba(59, 130, 246, 0.2)' :
+                                                                po.status === 'Completed' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid #e5e7eb'
                                                     }}>
-                                                        {po.status === 'Progressing' ? 'Production' : po.status}
+                                                        {po.status === 'Waiting' && <Clock size={14} />}
+                                                        {po.status === 'Progressing' && <Package size={14} />}
+                                                        {po.status === 'Completed' && <CheckCircle size={14} />}
+                                                        {po.status === 'Waiting' ? 'รอดำเนินการ' :
+                                                            po.status === 'Progressing' ? 'กำลังผลิต' :
+                                                                po.status === 'Completed' ? 'สำเร็จแล้ว' : po.status}
                                                     </span>
                                                 </td>
                                             </tr>

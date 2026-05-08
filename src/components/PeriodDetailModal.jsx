@@ -3,49 +3,9 @@ import { X, Clock, AlertCircle } from 'lucide-react';
 import EditLogModal from './EditLogModal';
 import { employeeService } from '../services/employeeService';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 
-const DiligenceInput = ({ value, isOverridden, onCommit }) => {
-    const [localValue, setLocalValue] = React.useState(value);
-
-    React.useEffect(() => {
-        setLocalValue(value);
-    }, [value]);
-
-    const handleBlur = () => {
-        const val = localValue;
-        const isForced = (val === '' || val === null || val === undefined) ? null : true;
-        const amount = (val === '' || val === null || val === undefined) ? null : Number(val);
-        onCommit(isForced, amount);
-    };
-
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter') {
-            e.target.blur();
-        }
-    };
-
-    return (
-        <input
-            type="number"
-            value={localValue === null || localValue === undefined ? '' : localValue}
-            onChange={(e) => setLocalValue(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            onClick={(e) => e.stopPropagation()} // Prevent card click if inside one
-            style={{
-                width: '80px',
-                padding: '4px',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                textAlign: 'center',
-                color: isOverridden ? '#059669' : '#4b5563',
-                fontWeight: isOverridden ? 'bold' : 'normal',
-                background: isOverridden ? '#ecfdf5' : 'white',
-                fontSize: '1.2rem'
-            }}
-        />
-    );
-};
+import DiligenceInput from './DiligenceInput';
 
 const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedule, diligenceOverride, onUpdate }) => {
     const { showConfirm, showAlert } = useDialog();
@@ -84,7 +44,7 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
         if (!confirmed) return;
 
         try {
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = getLocalDateString(date);
             const log = logs.find(l => l.work_date.split('T')[0] === dateStr);
             console.log('Delete target:', log);
 
@@ -164,7 +124,7 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
         const isSunday = date.getDay() === 0;
         if (isSunday) return; // Sunday is never absent
 
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = getLocalDateString(date);
         const dailyLog = logs.find(l => l.work_date.split('T')[0] === dateStr);
 
         if (!dailyLog) {
@@ -232,11 +192,14 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
                 </div>
 
                 {/* Summary Cards */}
-                <div style={{
-                    display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '1rem',
-                    padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0',
-                    overflowX: 'auto'
-                }}>
+                <div 
+                    className="grid-mobile-stack"
+                    style={{
+                        display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '1rem',
+                        padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0',
+                        overflowX: 'auto'
+                    }}
+                >
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>วันทำงาน</div>
                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#10b981' }}>{Number(totalDays).toFixed(2)}</div>
@@ -264,6 +227,7 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
                         <DiligenceInput
                             value={diligenceAmount}
                             isOverridden={diligenceOverride && diligenceOverride.amount !== undefined && diligenceOverride.amount !== null}
+                            style={{ fontSize: '1.2rem' }}
                             onCommit={async (isForced, amount) => {
                                 try {
                                     await employeeService.upsertDiligenceOverride(period.id, employee.id, isForced, amount);
@@ -284,7 +248,7 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
                             {/* Row 1: Dates */}
                             <tr>
                                 {allDates.map((date) => (
-                                    <th key={date.toISOString()} colSpan="2" style={{
+                                    <th key={getLocalDateString(date)} colSpan="2" style={{
                                         padding: '0.5rem', border: '1px solid #cbd5e1', background: '#f1f5f9',
                                         textAlign: 'center', whiteSpace: 'nowrap', minWidth: '120px',
                                         color: date.getDay() === 0 ? '#ef4444' : '#334155'
@@ -296,7 +260,7 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
                             {/* Row 2: In/Out Labels */}
                             <tr>
                                 {allDates.map((date) => (
-                                    <React.Fragment key={date.toISOString()}>
+                                    <React.Fragment key={getLocalDateString(date)}>
                                         <th style={{
                                             padding: '0.4rem', border: '1px solid #cbd5e1', background: '#f8fafc',
                                             textAlign: 'center', fontSize: '0.8rem', color: '#64748b', width: '60px'
@@ -317,7 +281,7 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
                             {/* Row 3: Time Data */}
                             <tr>
                                 {allDates.map((date) => {
-                                    const dateStr = date.toISOString().split('T')[0];
+                                    const dateStr = getLocalDateString(date);
                                     const isSunday = date.getDay() === 0;
                                     const log = logs.find(l => l.work_date.split('T')[0] === dateStr);
 

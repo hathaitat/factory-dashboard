@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export const certificateService = {
   // Upload a file to the certificates bucket
@@ -70,7 +71,7 @@ export const certificateService = {
     try {
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + days);
-      const targetDateString = targetDate.toISOString().split('T')[0];
+      const targetDateString = getLocalDateString(targetDate);
       
       const { data, error } = await supabase
         .from('certificates')
@@ -87,6 +88,57 @@ export const certificateService = {
     } catch (error) {
       console.error('Error fetching expiring certificates:', error);
       return [];
+    }
+  },
+
+  // Get certificate summary stats for dashboard
+  getCertificateStats: async () => {
+    try {
+      const now = new Date();
+      const today = getLocalDateString(now);
+      
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      const soon = getLocalDateString(thirtyDaysFromNow);
+
+      const { data, error } = await supabase
+        .from('certificates')
+        .select('id, expiry_date, status');
+
+      if (error) throw error;
+
+      const stats = {
+        total: data.length,
+        active: 0,
+        expired: 0,
+        expiringSoon: 0, // next 30 days
+        draft: 0
+      };
+
+      data.forEach(cert => {
+        if (cert.status === 'Draft') {
+            stats.draft++;
+            return;
+        }
+
+        if (cert.expiry_date) {
+            if (cert.expiry_date < today) {
+                stats.expired++;
+            } else if (cert.expiry_date <= soon) {
+                stats.expiringSoon++;
+                stats.active++;
+            } else {
+                stats.active++;
+            }
+        } else {
+            stats.active++;
+        }
+      });
+
+      return stats;
+    } catch (error) {
+      console.error('Error fetching certificate stats:', error);
+      return { total: 0, active: 0, expired: 0, expiringSoon: 0, draft: 0 };
     }
   },
 

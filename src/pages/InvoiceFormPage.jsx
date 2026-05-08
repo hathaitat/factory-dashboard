@@ -6,6 +6,7 @@ import { purchaseOrderService } from '../services/purchaseOrderService';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const InvoiceFormPage = () => {
     const { id } = useParams();
@@ -27,7 +28,7 @@ const InvoiceFormPage = () => {
 
     const [formData, setFormData] = useState({
         invoiceNo: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateString(),
         customerId: '',
         referenceNo: '',
         purchaseOrderId: '',
@@ -60,7 +61,7 @@ const InvoiceFormPage = () => {
         if (formData.date && formData.creditDays !== undefined) {
             const date = new Date(formData.date);
             date.setDate(date.getDate() + parseInt(formData.creditDays || 0));
-            setFormData(prev => ({ ...prev, dueDate: date.toISOString().split('T')[0] }));
+            setFormData(prev => ({ ...prev, dueDate: getLocalDateString(date) }));
         }
     }, [formData.date, formData.creditDays]);
 
@@ -173,6 +174,11 @@ const InvoiceFormPage = () => {
             referenceNo: '',
             creditDays: selectedCustomer?.creditTerm || 0
         }));
+
+        // Proactive: Show customer note immediately
+        if (selectedCustomer?.invoiceNote) {
+            showToast(`📌 หมายเหตุจากลูกค้า: ${selectedCustomer.invoiceNote}`, 8000);
+        }
 
         // Load products and POs for this customer
         const [customerProducts, pos] = await Promise.all([
@@ -379,6 +385,15 @@ const InvoiceFormPage = () => {
                         {isEdit ? 'แก้ไขใบกำกับภาษี' : 'ออกใบกำกับภาษีใหม่'}
                     </h1>
                     <div style={{ display: 'flex', gap: '1rem' }}>
+                        {isEdit && (
+                            <button
+                                type="button"
+                                onClick={() => navigate(`/dashboard/invoices/${id}/print`)}
+                                style={{ padding: '0.6rem 1.2rem', background: 'rgba(55, 71, 124, 0.05)', color: '#37477C', border: '1px solid rgba(55, 71, 124, 0.1)', borderRadius: '8px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
+                            >
+                                <Printer size={18} /> พิมพ์
+                            </button>
+                        )}
                         <select
                             value={formData.status}
                             onChange={e => setFormData({ ...formData, status: e.target.value })}
@@ -393,9 +408,9 @@ const InvoiceFormPage = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            style={{ padding: '0.6rem 1.5rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
+                            style={{ padding: '0.6rem 1.5rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }}
                         >
-                            <Save size={18} /> {isLoading ? 'กำลังบันทึก...' : 'บันทึก'}
+                            <Save size={18} /> {isLoading ? 'กำลังบันทึก...' : 'บันทึกเอกสาร'}
                         </button>
                     </div>
                 </div>
@@ -797,11 +812,16 @@ const InvoiceFormPage = () => {
                             ))}
                         </div>
 
-                        <div style={{ padding: '1rem 0', borderTop: '1px solid var(--border-color)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '1.2rem', fontWeight: '600', color: 'var(--text-main)' }}>จำนวนเงินรวมทั้งสิ้น</span>
-                            <span style={{ fontSize: '1.8rem', fontWeight: '700', color: 'var(--success)' }}>
-                                ฿{formData.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
+                        <div style={{ padding: '1.5rem 0', borderTop: '2px solid var(--border-color)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(to right, transparent, rgba(16, 185, 129, 0.05))', paddingRight: '1rem', borderRadius: '0 0 12px 12px' }}>
+                            <div style={{ textAlign: 'right', flex: 1 }}>
+                                <div style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-main)' }}>จำนวนเงินรวมทั้งสิ้น</div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '400' }}>(Grand Total)</div>
+                            </div>
+                            <div style={{ textAlign: 'right', marginLeft: '2rem' }}>
+                                <span style={{ fontSize: '2.2rem', fontWeight: '800', color: '#10b981', letterSpacing: '-0.5px' }}>
+                                    ฿{formData.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>

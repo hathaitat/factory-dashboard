@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export const purchaseOrderService = {
     // Get all purchase orders
@@ -143,7 +144,7 @@ export const purchaseOrderService = {
 
     // Get upcoming deliveries (POs due today or soon)
     async getUpcomingDeliveries() {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
         const { data, error } = await supabase
             .from('purchase_orders')
             .select(`

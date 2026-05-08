@@ -8,8 +8,9 @@ import PeriodDetailModal from '../components/PeriodDetailModal';
 import ImportPreviewModal from '../components/ImportPreviewModal';
 import FullTimesheetModal from '../components/FullTimesheetModal';
 import AddPeriodModal from '../components/AddPeriodModal';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 
 import { settingService } from '../services/settingService';
@@ -111,7 +112,6 @@ const EmployeeListPage = () => {
         const logs = await employeeService.getWorkLogsByPeriod(selectedPeriod.startDate, selectedPeriod.endDate);
         const overridesList = await employeeService.getDiligenceOverrides(selectedPeriod.id);
 
-        // Convert overrides to map: { empId: { isForced, amount } }
         const overridesMap = {};
         overridesList.forEach(o => {
             overridesMap[o.employee_id] = {
@@ -123,7 +123,6 @@ const EmployeeListPage = () => {
 
         setPeriodLogs(logs);
 
-        // Calculate Stats
         const stats = {};
         const periodStart = new Date(selectedPeriod.startDate);
         const periodEnd = new Date(selectedPeriod.endDate);
@@ -138,25 +137,15 @@ const EmployeeListPage = () => {
             const totalOT = empLogs.reduce((sum, l) => sum + Number(l.ot_hours), 0);
             const totalLate = empLogs.reduce((sum, l) => sum + (Number(l.late_hours) || 0), 0);
 
-            // Calculate Absent Days
             let absentDays = 0;
             daysInPeriod.forEach(date => {
-                const dateStr = date.toISOString().split('T')[0];
+                const dateStr = getLocalDateString(date);
                 const isSunday = date.getDay() === 0;
-
-                // Sunday is never counted as absent (even if log exists as absent)
                 if (isSunday) return;
 
                 const dailyLog = empLogs.find(l => l.work_date.split('T')[0] === dateStr);
-
-                if (!dailyLog) {
-                    // No log: Count as absent (since not Sunday)
+                if (!dailyLog || Number(dailyLog.work_days) === 0) {
                     absentDays++;
-                } else {
-                    // Log exists: Check if it's an "Absent" log (work_days = 0)
-                    if (Number(dailyLog.work_days) === 0) {
-                        absentDays++;
-                    }
                 }
             });
 
@@ -167,31 +156,56 @@ const EmployeeListPage = () => {
                 absentDays: absentDays,
                 diligence: (() => {
                     const override = overridesMap[emp.id];
-
-                    // If manual amount is set, use it (regardless of forced flag, though usually forced=true if amount exists)
-                    if (override && override.amount !== null && override.amount !== undefined) {
-                        return Number(override.amount);
-                    }
-
-                    // Fallback to legacy forced flag if amount is missing but forced is true
+                    if (override && override.amount !== null && override.amount !== undefined) return Number(override.amount);
                     if (override && override.isForced === true) return (Number(emp.diligence_allowance) || 0);
                     if (override && override.isForced === false) return 0;
-
-                    // Auto Calculation
-                    // Logic: Must have 0 absent days and 0 late hours
-                    // Note: We don't have per-employee diligence setting anymore in form, so defaulting to 500 or 0?
-                    // User removed input, but maybe data still exists or we should use a default?
-                    // Let's assume 500 as default if not set, or 0.
-                    // Actually, if they removed the input, how do we know the base rate?
-                    // We should probably rely on the existing data in DB or ask user.
-                    // For now, I'll keep using `emp.diligence_allowance` (which might be in DB even if hidden in form).
-
                     return (absentDays === 0 && totalLate === 0) ? (Number(emp.diligence_allowance) || 0) : 0;
                 })()
             };
         });
         setPeriodStats(stats);
         setIsLoading(false);
+    };
+
+    const exportPeriodSummaryToExcel = () => {
+        if (!selectedPeriod || !employees.length) return;
+        
+        const data = filteredEmployees.map(emp => {
+            const stats = periodStats[emp.id] || { workDays: 0, lateHours: 0, otHours: 0, absentDays: 0, diligence: 0 };
+            return {
+                'รหัส': emp.code,
+                'ชื่อ-นามสกุล': emp.full_name,
+                'วันเกิดในงวด': getBirthdayDisplay(emp) || '-',
+                'ทำงาน (วัน)': Number(stats.workDays),
+                'ขาด (วัน)': stats.absentDays,
+                'OT (ชม.)': Number(stats.otHours),
+                'สาย (นาที)': Math.round(stats.lateHours * 60),
+                'เบี้ยขยัน': stats.diligence
+            };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Summary");
+        XLSX.writeFile(wb, `PayrollSummary_${selectedPeriod.label}.xlsx`);
+    };
+
+    const exportEmployeeListToExcel = () => {
+        const data = employees.map(emp => ({
+            'รหัส': emp.code,
+            'ชื่อ-นามสกุล': emp.full_name,
+            'ตำแหน่ง': emp.position,
+            'ประเภทการจ้าง': emp.employment_type,
+            'เบอร์โทร': emp.phone,
+            'ค่าแรงรายวัน': emp.daily_wage,
+            'เบี้ยขยัน': emp.diligence_allowance,
+            'สถานะ': emp.status === 'Active' ? 'ปกติ' : 'ระงับ'
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Employees");
+        XLSX.writeFile(wb, `EmployeeList_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
     const handleSelectPeriod = (period) => {
@@ -622,7 +636,7 @@ const EmployeeListPage = () => {
                     if (day < periodStartDate.getDate()) {
                         candidate.setMonth(candidate.getMonth() + 1);
                     }
-                    workDate = candidate.toISOString().split('T')[0];
+                    workDate = getLocalDateString(candidate);
                 }
 
                 if (!workDate) return;
@@ -800,7 +814,7 @@ const EmployeeListPage = () => {
         if (dateObj && !isNaN(dateObj.getTime())) {
             const year = dateObj.getFullYear();
             if (year < 2020 || year > 2030) return null;
-            return dateObj.toISOString().split('T')[0];
+            return getLocalDateString(dateObj);
         }
         return null;
     };
@@ -888,33 +902,45 @@ const EmployeeListPage = () => {
                 subtitle={viewMode === 'timesheet' ? 'จัดการเวลาทำงานและการเข้างาน' : 'จัดการข้อมูลพนักงานและค่าแรง'}
                 helpContent={HELP_CONTENT.employees}
             >
-                {viewMode === 'info' && hasPermission('employees', 'create') && (
+                {viewMode === 'info' && (
                     <button
-                        onClick={() => navigate('/dashboard/employees/new')}
-                        className="btn-primary"
+                        onClick={exportEmployeeListToExcel}
                         style={{
-                            padding: '0.8rem 1.5rem', borderRadius: '8px', border: 'none', background: '#37477C', color: 'white',
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500', fontSize: '1rem'
+                            padding: '0.8rem 1.2rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#10b981',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500', fontSize: '0.95rem'
                         }}
                     >
-                        <Plus size={20} /> เพิ่มพนักงาน
+                        <FileSpreadsheet size={18} /> Export List
                     </button>
                 )}
 
                 {viewMode === 'timesheet' && selectedPeriod && hasPermission('employees', 'edit') && (
-                    <label
-                        style={{
-                            padding: '0.8rem 1.5rem', borderRadius: '8px', border: 'none', background: '#10b981', color: 'white',
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500', fontSize: '1rem'
-                        }}>
-                        <FileSpreadsheet size={20} /> Import Time From Excel
-                        <input
-                            type="file"
-                            accept=".xlsx, .xls, .csv"
-                            onClick={(e) => { e.target.value = null; }}
-                            onChange={handleImport}
-                        />
-                    </label>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button
+                            onClick={exportPeriodSummaryToExcel}
+                            style={{
+                                padding: '0.8rem 1.2rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#10b981',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500', fontSize: '0.95rem'
+                            }}
+                        >
+                            <FileSpreadsheet size={18} /> Export Summary
+                        </button>
+                        <label
+                            style={{
+                                padding: '0.8rem 1.5rem', borderRadius: '8px', border: 'none', background: '#10b981', color: 'white',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500', fontSize: '1rem',
+                                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
+                            }}>
+                            <Upload size={18} /> Import จาก Excel
+                            <input
+                                type="file"
+                                accept=".xlsx, .xls, .csv"
+                                style={{ display: 'none' }}
+                                onClick={(e) => { e.target.value = null; }}
+                                onChange={handleImport}
+                            />
+                        </label>
+                    </div>
                 )}
             </PageHeader>
 
@@ -984,25 +1010,34 @@ const EmployeeListPage = () => {
                                     className="period-card"
                                     style={{
                                         width: '100%',
-                                        padding: '1.5rem',
-                                        paddingRight: '6rem', // More space for delete button
+                                        padding: '1.5rem 2rem',
+                                        paddingRight: '6rem',
                                         textAlign: 'left',
-                                        background: '#37477C',
-                                        borderRadius: '8px',
+                                        background: 'linear-gradient(135deg, #37477C 0%, #2a365f 100%)',
+                                        borderRadius: '12px',
                                         color: 'white',
                                         border: 'none',
                                         cursor: 'pointer',
                                         display: 'flex',
                                         justifyContent: 'space-between',
                                         alignItems: 'center',
-                                        transition: 'transform 0.2s, background 0.2s',
-                                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        boxShadow: '0 4px 15px rgba(55, 71, 124, 0.2)',
+                                        overflow: 'hidden',
+                                        position: 'relative'
                                     }}
+                                    onMouseOver={e => e.currentTarget.style.transform = 'translateY(-4px) scale(1.01)'}
+                                    onMouseOut={e => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
                                 >
-                                    <span style={{ fontSize: '1.2rem', fontWeight: '500' }}>
-                                        {period.label}
-                                    </span>
-                                    <ChevronRight size={24} color="white" />
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                        <span style={{ fontSize: '1.25rem', fontWeight: '700', letterSpacing: '0.5px' }}>
+                                            {period.label}
+                                        </span>
+                                        <span style={{ fontSize: '0.85rem', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <Calendar size={14} /> {new Date(period.startDate).toLocaleDateString('th-TH')} - {new Date(period.endDate).toLocaleDateString('th-TH')}
+                                        </span>
+                                    </div>
+                                    <ChevronRight size={28} color="rgba(255,255,255,0.8)" />
                                 </button>
                                 {hasPermission('employees', 'delete') && (
                                     <button
@@ -1158,12 +1193,25 @@ const EmployeeListPage = () => {
                                                             <td className="actions-column">
                                                                 <div className="table-actions">
                                                                     {hasPermission('employees', 'edit') && (
-                                                                        <button className="action-edit" onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/employees/${emp.id}/edit`); }}>
+                                                                        <button
+                                                                            className="action-link"
+                                                                            title="ลงเวลารวดเร็ว"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setSelectedEmployee(emp);
+                                                                                setIsLogModalOpen(true);
+                                                                            }}
+                                                                        >
+                                                                            <Clock size={16} />
+                                                                        </button>
+                                                                    )}
+                                                                    {hasPermission('employees', 'edit') && (
+                                                                        <button className="action-edit" title="แก้ไขข้อมูล" onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/employees/${emp.id}/edit`); }}>
                                                                             <Edit2 size={16} />
                                                                         </button>
                                                                     )}
                                                                     {hasPermission('employees', 'delete') && (
-                                                                        <button className="action-delete" onClick={(e) => handleDelete(e, emp.id)}>
+                                                                        <button className="action-delete" title="ลบ" onClick={(e) => handleDelete(e, emp.id)}>
                                                                             <Trash2 size={16} />
                                                                         </button>
                                                                     )}
@@ -1173,11 +1221,13 @@ const EmployeeListPage = () => {
                                                             <td style={{ padding: '1.2rem', color: '#6b7280' }}>{emp.phone || '-'}</td>
                                                             <td style={{ padding: '1.2rem', textAlign: 'center' }}>
                                                                 <span style={{
-                                                                    padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem',
-                                                                    background: emp.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                                                    padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '600',
+                                                                    background: emp.status === 'Active' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
                                                                     color: emp.status === 'Active' ? '#10b981' : '#ef4444',
-                                                                    border: emp.status === 'Active' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
+                                                                    border: emp.status === 'Active' ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid rgba(239, 68, 68, 0.15)',
+                                                                    display: 'inline-flex', alignItems: 'center', gap: '4px'
                                                                 }}>
+                                                                    {emp.status === 'Active' ? <CheckCircle size={14} /> : <XCircle size={14} />}
                                                                     {emp.status === 'Active' ? 'ปกติ' : 'ระงับ'}
                                                                 </span>
                                                             </td>
@@ -1201,7 +1251,10 @@ const EmployeeListPage = () => {
                     <LogTimeModal
                         employee={selectedEmployee}
                         onClose={() => setIsLogModalOpen(false)}
-                        onSuccess={() => { }}
+                        onSuccess={() => {
+                            if (selectedPeriod) loadPeriodData();
+                            else loadEmployees();
+                        }}
                     />
                 )
             }
@@ -1256,26 +1309,31 @@ const EmployeeListPage = () => {
                 }}
                 onUpdateLog={async (empId, dateStr, startTime, endTime) => {
                     try {
+                        const formattedStart = startTime ? (startTime.length === 5 ? startTime + ':00' : startTime) : null;
+                        const formattedEnd = endTime ? (endTime.length === 5 ? endTime + ':00' : endTime) : null;
+
                         const payload = {
                             employee_id: empId,
                             work_date: dateStr,
+                            start_time: formattedStart,
+                            end_time: formattedEnd,
+                            not_scan: false // Manually edited
                         };
-                        // Only add time if provided, otherwise null
-                        if (startTime) payload.start_time = startTime;
-                        else payload.start_time = null;
 
-                        if (endTime) payload.end_time = endTime;
-                        else payload.end_time = null;
+                        // Calculate basic work_days
+                        if (formattedStart && formattedEnd) {
+                            payload.work_days = 1;
+                        } else if (formattedStart || formattedEnd) {
+                            payload.work_days = 0.5;
+                        } else {
+                            payload.work_days = 0;
+                        }
 
-                        // If both null, upsert will create a log with null times (absent? or just cleared?)
-                        // If we want to delete log, we might need a separate delete function, but upsert with nulls is fine for now usually.
-
-                        // Calculate late minutes
+                        // Calculate late minutes if we have start time and schedule
                         let lateHours = 0;
-                        if (startTime && workSchedule && workSchedule.start_time) {
+                        if (formattedStart && workSchedule && workSchedule.start_time) {
                             const [sh, sm] = workSchedule.start_time.split(':').map(Number);
-                            const [ah, am] = startTime.split(':').map(Number);
-
+                            const [ah, am] = formattedStart.split(':').map(Number);
                             const scheduleMins = sh * 60 + sm;
                             const actualMins = ah * 60 + am;
 
@@ -1283,17 +1341,15 @@ const EmployeeListPage = () => {
                                 lateHours = (actualMins - scheduleMins) / 60;
                             }
                         }
-                        payload.late_hours = lateHours;
 
-                        // Also update work_days ? 
-                        // If no start/end, work_days = 0.
-                        // If start/end, work_days = 1 (or 0.5?). Default to 1 if present.
-                        if (startTime && endTime) {
-                            payload.work_days = 1;
-                        } else if (!startTime && !endTime) {
-                            payload.work_days = 0;
-                        }
-                        // If partial? let's assume 1 if either exists for now, or just stick to 1 if start exists.
+                        // Set calculated fields
+                        payload.late_hours = lateHours;
+                        payload.is_late = lateHours > 0;
+                        
+                        // OT and Early Leave calculation usually happens at backend or bulk-import.
+                        // Here we at least reset them so they aren't stale if previous log had them.
+                        payload.ot_hours = null;
+                        payload.is_early = null;
 
                         await employeeService.upsertWorkLog(payload);
                         loadPeriodData();

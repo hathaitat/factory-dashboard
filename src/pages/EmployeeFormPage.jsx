@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Save, ArrowLeft, User, DollarSign, Calendar, MapPin, Phone, Clock, Plus, Trash2, Heart, ChevronDown, ChevronRight } from 'lucide-react';
+import { Save, ArrowLeft, User, DollarSign, Calendar, MapPin, Phone, Clock, Plus, Trash2, Heart, ChevronDown, ChevronRight, FileSpreadsheet } from 'lucide-react';
 import { employeeService } from '../services/employeeService';
+import { getLocalDateString } from '../utils/dateUtils';
 import { useDialog } from '../contexts/DialogContext';
+import * as XLSX from 'xlsx-js-style';
 
 const EmployeeFormPage = () => {
     const navigate = useNavigate();
@@ -20,7 +22,7 @@ const EmployeeFormPage = () => {
         phone: '',
         position: '',
         employment_type: 'Full-time',
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: getLocalDateString(),
         status: 'Active',
         emergency_contact_name: '',
         emergency_contact_phone: '',
@@ -31,7 +33,7 @@ const EmployeeFormPage = () => {
     const [workLogs, setWorkLogs] = useState([]);
     const [expandedLogs, setExpandedLogs] = useState(new Set()); // Track expanded rows
     const [logForm, setLogForm] = useState({
-        work_date: new Date().toISOString().split('T')[0],
+        work_date: getLocalDateString(),
         work_days: '1',
         ot_hours: '0',
         note: ''
@@ -59,7 +61,7 @@ const EmployeeFormPage = () => {
 
             // If today is within range, use today. Else use start of period.
             if (today >= start && today <= end) {
-                setLogForm(prev => ({ ...prev, work_date: today.toISOString().split('T')[0] }));
+                setLogForm(prev => ({ ...prev, work_date: getLocalDateString(today) }));
             } else {
                 setLogForm(prev => ({ ...prev, work_date: periodStart }));
             }
@@ -164,35 +166,51 @@ const EmployeeFormPage = () => {
         });
     };
 
-    // Group logs by Month and Half-Month
-    const groupedLogs = workLogs
-        .filter(log => {
-            if (!periodStart || !periodEnd) return true;
-            return log.work_date >= periodStart && log.work_date <= periodEnd;
-        })
-        .reduce((acc, log) => {
-            const date = new Date(log.work_date);
-            const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
-            const day = date.getDate();
+    // Group logs by Month and Half-Month - Memoized
+    const groupedLogs = React.useMemo(() => {
+        return workLogs
+            .filter(log => {
+                if (!periodStart || !periodEnd) return true;
+                return log.work_date >= periodStart && log.work_date <= periodEnd;
+            })
+            .reduce((acc, log) => {
+                const date = new Date(log.work_date);
+                const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                const day = date.getDate();
 
-            if (!acc[yearMonth]) acc[yearMonth] = { first: [], second: [] };
+                if (!acc[yearMonth]) acc[yearMonth] = { first: [], second: [] };
 
-            if (day <= 15) {
-                acc[yearMonth].first.push(log);
-            } else {
-                acc[yearMonth].second.push(log);
-            }
-            return acc;
-        }, {});
+                if (day <= 15) {
+                    acc[yearMonth].first.push(log);
+                } else {
+                    acc[yearMonth].second.push(log);
+                }
+                return acc;
+            }, {});
+    }, [workLogs, periodStart, periodEnd]);
 
-    // Helper to calculate total
-    const calculateTotal = (logs) => {
-        return logs.reduce((sum, log) => {
-            return {
-                days: sum.days + parseFloat(log.work_days || 0),
-                ot: sum.ot + parseFloat(log.ot_hours || 0)
-            };
-        }, { days: 0, ot: 0 });
+    // Helper to calculate total - Memoized per list
+    const getTotals = (logs) => {
+        return logs.reduce((sum, log) => ({
+            days: sum.days + parseFloat(log.work_days || 0),
+            ot: sum.ot + parseFloat(log.ot_hours || 0)
+        }), { days: 0, ot: 0 });
+    };
+
+    const exportTimesheetToExcel = (monthKey, logs, title) => {
+        const wb = XLSX.utils.book_new();
+        const data = logs.map(log => ({
+            'วันที่': log.work_date,
+            'วันทำงาน': log.work_days,
+            'OT (ชม.)': log.ot_hours,
+            'เข้างาน': log.start_time?.slice(0, 5) || '-',
+            'ออกงาน': log.end_time?.slice(0, 5) || '-',
+            'หมายเหตุ': log.note || ''
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, "Timesheet");
+        XLSX.writeFile(wb, `Timesheet_${formData.full_name}_${monthKey}_${title}.xlsx`);
     };
 
     // Helper to calculate age
@@ -243,7 +261,9 @@ const EmployeeFormPage = () => {
         <div style={{ padding: '0 1rem 2rem 1rem', maxWidth: '1000px', margin: '0 auto' }}>
             <button
                 onClick={() => navigate('/dashboard/employees')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#888', marginBottom: '1rem' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', marginBottom: '1rem', padding: '0.5rem', borderRadius: '8px', transition: 'background 0.2s' }}
+                onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+                onMouseOut={e => e.currentTarget.style.background = 'none'}
             >
                 <ArrowLeft size={18} /> กลับไปหน้ารายชื่อ
             </button>
@@ -456,8 +476,9 @@ const EmployeeFormPage = () => {
                         </div>
 
                         <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                            {/* <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ค่าแรงรายวัน (บาท)</label>
+                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                            <div className="form-group">
+                                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>ค่าแรงรายวัน (บาท)</label>
                                 <input
                                     type="number"
                                     name="daily_wage"
@@ -469,7 +490,7 @@ const EmployeeFormPage = () => {
                                 />
                             </div>
                             <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>เบี้ยขยัน (บาท/งวด)</label>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>เบี้ยขยัน (บาท/งวด)</label>
                                 <input
                                     type="number"
                                     name="diligence_allowance"
@@ -479,7 +500,8 @@ const EmployeeFormPage = () => {
                                     placeholder="เช่น 500"
                                     style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
                                 />
-                            </div> */}
+                            </div>
+                        </div>
                         </div>
 
                         <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
@@ -640,11 +662,20 @@ const EmployeeFormPage = () => {
 
                                 {/* Second Half */}
                                 {groupedLogs[monthKey].second.length > 0 && (
-                                    <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
-                                        <div style={{ background: '#f9fafb', padding: '0.8rem 1rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)' }}>
-                                            <span style={{ fontWeight: '600', color: '#6b7280' }}>งวดวันที่ 16 - สิ้นเดือน</span>
-                                            <div style={{ fontSize: '0.9rem' }}>
-                                                รวม: <b style={{ color: '#10b981' }}>{calculateTotal(groupedLogs[monthKey].second).days} วัน</b> | OT: <b>{calculateTotal(groupedLogs[monthKey].second).ot} ชม.</b>
+                                    <div className="glass-panel" style={{ padding: 0, overflow: 'hidden', border: '1px solid rgba(139, 92, 246, 0.1)' }}>
+                                        <div style={{ background: 'rgba(139, 92, 246, 0.05)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <span style={{ fontWeight: '700', color: 'var(--text-main)' }}>งวดวันที่ 16 - สิ้นเดือน</span>
+                                                <button 
+                                                    onClick={() => exportTimesheetToExcel(monthKey, groupedLogs[monthKey].second, '16-end')}
+                                                    style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.2)', background: 'rgba(16, 185, 129, 0.05)', color: '#10b981', cursor: 'pointer', display: 'flex' }}
+                                                    title="Export Excel งวดนี้"
+                                                >
+                                                    <FileSpreadsheet size={14} />
+                                                </button>
+                                            </div>
+                                            <div style={{ fontSize: '0.95rem' }}>
+                                                รวม: <b style={{ color: '#10b981' }}>{getTotals(groupedLogs[monthKey].second).days} วัน</b> | OT: <b style={{ color: '#8b5cf6' }}>{getTotals(groupedLogs[monthKey].second).ot} ชม.</b>
                                             </div>
                                         </div>
                                         <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -715,11 +746,20 @@ const EmployeeFormPage = () => {
 
                                 {/* First Half */}
                                 {groupedLogs[monthKey].first.length > 0 && (
-                                    <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
-                                        <div style={{ background: '#f9fafb', padding: '0.8rem 1rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)' }}>
-                                            <span style={{ fontWeight: '600', color: '#6b7280' }}>งวดวันที่ 1 - 15</span>
-                                            <div style={{ fontSize: '0.9rem' }}>
-                                                รวม: <b style={{ color: '#10b981' }}>{calculateTotal(groupedLogs[monthKey].first).days} วัน</b> | OT: <b>{calculateTotal(groupedLogs[monthKey].first).ot} ชม.</b>
+                                    <div className="glass-panel" style={{ padding: 0, overflow: 'hidden', border: '1px solid rgba(139, 92, 246, 0.1)' }}>
+                                        <div style={{ background: 'rgba(139, 92, 246, 0.05)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <span style={{ fontWeight: '700', color: 'var(--text-main)' }}>งวดวันที่ 1 - 15</span>
+                                                <button 
+                                                    onClick={() => exportTimesheetToExcel(monthKey, groupedLogs[monthKey].first, '01-15')}
+                                                    style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.2)', background: 'rgba(16, 185, 129, 0.05)', color: '#10b981', cursor: 'pointer', display: 'flex' }}
+                                                    title="Export Excel งวดนี้"
+                                                >
+                                                    <FileSpreadsheet size={14} />
+                                                </button>
+                                            </div>
+                                            <div style={{ fontSize: '0.95rem' }}>
+                                                รวม: <b style={{ color: '#10b981' }}>{getTotals(groupedLogs[monthKey].first).days} วัน</b> | OT: <b style={{ color: '#8b5cf6' }}>{getTotals(groupedLogs[monthKey].first).ot} ชม.</b>
                                             </div>
                                         </div>
                                         <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>

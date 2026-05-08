@@ -5,17 +5,59 @@ import { quotationService } from '../services/quotationService';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
 import { useDialog } from '../contexts/DialogContext';
+import { getLocalDateString } from '../utils/dateUtils';
 
-// Safe formula evaluator: supports +, -, *, /, parentheses, and numbers
+// Safe formula evaluator using recursive descent parser (no eval/new Function)
 const evaluateFormula = (expr) => {
     if (!expr || typeof expr !== 'string') return 0;
     const sanitized = expr.replace(/\s/g, '').replace(/×/g, '*').replace(/÷/g, '/');
-    // Only allow digits, operators, parentheses, and decimal points
     if (!/^[\d+\-*/().]+$/.test(sanitized)) return 0;
-    // Prevent empty parentheses or double operators
-    if (/\(\)/.test(sanitized) || /[+\-*/]{2,}/.test(sanitized)) return 0;
+
+    let pos = 0;
+    const peek = () => sanitized[pos];
+    const consume = () => sanitized[pos++];
+
+    // Grammar: expression = term (('+' | '-') term)*
+    const parseExpression = () => {
+        let left = parseTerm();
+        while (peek() === '+' || peek() === '-') {
+            const op = consume();
+            const right = parseTerm();
+            left = op === '+' ? left + right : left - right;
+        }
+        return left;
+    };
+
+    // term = factor (('*' | '/') factor)*
+    const parseTerm = () => {
+        let left = parseFactor();
+        while (peek() === '*' || peek() === '/') {
+            const op = consume();
+            const right = parseFactor();
+            left = op === '*' ? left * right : (right !== 0 ? left / right : 0);
+        }
+        return left;
+    };
+
+    // factor = number | '(' expression ')'
+    const parseFactor = () => {
+        if (peek() === '(') {
+            consume(); // '('
+            const val = parseExpression();
+            if (peek() === ')') consume(); // ')'
+            return val;
+        }
+        let numStr = '';
+        // Handle leading minus for negative numbers
+        if (peek() === '-') numStr += consume();
+        while (pos < sanitized.length && (/\d/.test(peek()) || peek() === '.')) {
+            numStr += consume();
+        }
+        return parseFloat(numStr) || 0;
+    };
+
     try {
-        const result = new Function('return ' + sanitized)();
+        const result = parseExpression();
         return isFinite(result) ? Math.round((result + Number.EPSILON) * 100) / 100 : 0;
     } catch {
         return 0;
@@ -25,7 +67,7 @@ const evaluateFormula = (expr) => {
 const QuotationFormPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { showAlert, showConfirm } = useDialog();
+    const { showAlert, showConfirm, showToast } = useDialog();
     const isEdit = !!id;
     const [activeTab, setActiveTab] = useState('quotation'); // 'quotation' or 'costing'
 
@@ -39,7 +81,7 @@ const QuotationFormPage = () => {
 
     const [formData, setFormData] = useState({
         quotationNo: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateString(),
         customerId: '',
         attnName: '',
         validityDays: 15,
@@ -140,6 +182,11 @@ const QuotationFormPage = () => {
             customerId,
             paymentCondition: parseInt(selectedCustomer?.creditTerm) === 0 ? 'สด' : `${selectedCustomer?.creditTerm} วัน`
         }));
+
+        // Proactive: Show customer quotation note immediately
+        if (selectedCustomer?.quotationNote) {
+            showToast(`📌 หมายเหตุใบเสนอราคา: ${selectedCustomer.quotationNote}`, 8000);
+        }
 
         const customerProducts = await productService.getProductsByCustomerId(customerId);
         setAllProducts(customerProducts || []);
@@ -423,38 +470,48 @@ const QuotationFormPage = () => {
                 <ArrowLeft size={20} /> ย้อนกลับ
             </button>
 
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', padding: '0 0.5rem' }}>
                 <button
                     type="button"
                     onClick={() => setActiveTab('quotation')}
                     style={{
-                        padding: '0.5rem 1.5rem',
-                        background: activeTab === 'quotation' ? 'rgba(59, 130, 246, 0.1)' : 'none',
+                        padding: '0.75rem 0.5rem',
+                        background: 'none',
                         border: 'none',
-                        borderBottom: activeTab === 'quotation' ? '2px solid #3b82f6' : '2px solid transparent',
-                        color: activeTab === 'quotation' ? '#3b82f6' : '#888',
+                        borderBottom: activeTab === 'quotation' ? '3px solid #3b82f6' : '3px solid transparent',
+                        color: activeTab === 'quotation' ? '#3b82f6' : 'var(--text-muted)',
                         cursor: 'pointer',
-                        fontWeight: '600',
-                        fontSize: '1rem'
+                        fontWeight: '700',
+                        fontSize: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        transition: 'all 0.2s',
+                        opacity: activeTab === 'quotation' ? 1 : 0.7
                     }}
                 >
-                    ใบเสนอราคา
+                    <FileText size={18} /> ใบเสนอราคา (Quotation)
                 </button>
                 <button
                     type="button"
                     onClick={() => setActiveTab('costing')}
                     style={{
-                        padding: '0.5rem 1.5rem',
-                        background: activeTab === 'costing' ? 'rgba(245, 158, 11, 0.1)' : 'none',
+                        padding: '0.75rem 0.5rem',
+                        background: 'none',
                         border: 'none',
-                        borderBottom: activeTab === 'costing' ? '2px solid #f59e0b' : '2px solid transparent',
-                        color: activeTab === 'costing' ? '#f59e0b' : '#888',
+                        borderBottom: activeTab === 'costing' ? '3px solid #f59e0b' : '3px solid transparent',
+                        color: activeTab === 'costing' ? '#f59e0b' : 'var(--text-muted)',
                         cursor: 'pointer',
-                        fontWeight: '600',
-                        fontSize: '1rem'
+                        fontWeight: '700',
+                        fontSize: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        transition: 'all 0.2s',
+                        opacity: activeTab === 'costing' ? 1 : 0.7
                     }}
                 >
-                    คำนวณต้นทุน
+                    <Calculator size={18} /> การคำนวณต้นทุน (Costing)
                 </button>
             </div>
 
@@ -728,11 +785,16 @@ const QuotationFormPage = () => {
                                     </div>
                                 </div>
 
-                                <div style={{ padding: '1rem 0', borderTop: '1px solid var(--border-color)', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '1.2rem', fontWeight: '600' }}>จำนวนเงินรวมทั้งสิ้น</span>
-                                    <span style={{ fontSize: '1.8rem', fontWeight: '700', color: 'var(--success)' }}>
-                                        ฿{formData.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                    </span>
+                                <div style={{ padding: '1.5rem 0', borderTop: '2px solid #e2e8f0', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(to right, transparent, rgba(16, 185, 129, 0.05))', paddingRight: '1rem', borderRadius: '0 0 12px 12px' }}>
+                                    <div style={{ textAlign: 'right', flex: 1 }}>
+                                        <div style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-main)' }}>จำนวนเงินรวมทั้งสิ้น</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '400' }}>(Grand Total)</div>
+                                    </div>
+                                    <div style={{ textAlign: 'right', marginLeft: '2rem' }}>
+                                        <span style={{ fontSize: '2.2rem', fontWeight: '800', color: '#10b981', letterSpacing: '-0.5px' }}>
+                                            ฿{formData.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

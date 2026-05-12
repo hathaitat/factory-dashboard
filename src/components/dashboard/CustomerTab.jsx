@@ -74,7 +74,7 @@ const CustomerTab = () => {
     return (
         <div className="tab-content">
             <div className="kpi-grid">
-                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/customers')} className="cursor-pointer">
+                <div className="kpi-card glass-panel cursor-pointer" onClick={() => navigate('/dashboard/customers')}>
                     <div className="kpi-icon-wrapper blue">
                         <Users size={24} />
                     </div>

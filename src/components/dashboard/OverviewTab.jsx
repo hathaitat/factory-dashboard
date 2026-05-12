@@ -181,7 +181,7 @@ const OverviewTab = () => {
             </div>
 
             <div className="kpi-grid">
-                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/customers')} className="cursor-pointer">
+                <div className="kpi-card glass-panel cursor-pointer" onClick={() => navigate('/dashboard/customers')}>
                     <div className="kpi-icon-wrapper blue">
                         <Users size={24} />
                     </div>
@@ -208,7 +208,7 @@ const OverviewTab = () => {
                     </div>
                 </div>
 
-                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/invoices')} className="cursor-pointer">
+                <div className="kpi-card glass-panel cursor-pointer" onClick={() => navigate('/dashboard/invoices')}>
                     <div className="kpi-icon-wrapper green">
                         <DollarSign size={24} />
                     </div>
@@ -223,7 +223,7 @@ const OverviewTab = () => {
                     </div>
                 </div>
 
-                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/purchase-orders')} className="cursor-pointer">
+                <div className="kpi-card glass-panel cursor-pointer" onClick={() => navigate('/dashboard/purchase-orders')}>
                     <div className="kpi-icon-wrapper blue">
                         <ShoppingCart size={24} />
                     </div>
@@ -238,7 +238,7 @@ const OverviewTab = () => {
                     </div>
                 </div>
 
-                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/quotations')} className="cursor-pointer">
+                <div className="kpi-card glass-panel cursor-pointer" onClick={() => navigate('/dashboard/quotations')}>
                     <div className="kpi-icon-wrapper yellow">
                         <FileText size={24} />
                     </div>

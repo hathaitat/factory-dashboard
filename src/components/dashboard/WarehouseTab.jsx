@@ -78,7 +78,7 @@ const WarehouseTab = () => {
         <div className="tab-content">
             {/* KPI Cards */}
             <div className="kpi-grid mb-6">
-                <div className="glass-panel kpi-card" onClick={() => navigate('/dashboard/warehouses')} className="cursor-pointer">
+                <div className="glass-panel kpi-card cursor-pointer" onClick={() => navigate('/dashboard/warehouses')}>
                     <div className="kpi-icon-wrapper blue">
                         <Package size={24} />
                     </div>

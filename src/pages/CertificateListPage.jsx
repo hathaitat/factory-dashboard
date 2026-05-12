@@ -115,7 +115,7 @@ const CertificateListPage = () => {
             </PageHeader>
 
             <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div className="flex items-center gap-4">
                     <div style={{ position: 'relative', flex: 1 }}>
                         <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                         <input

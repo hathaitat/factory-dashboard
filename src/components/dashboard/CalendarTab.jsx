@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-    ChevronLeft, ChevronRight, Calendar as CalendarIcon, List as ListIcon
+    ChevronLeft, ChevronRight, Calendar as CalendarIcon, List as ListIcon, ShoppingCart
 } from 'lucide-react';
 import { purchaseOrderService } from '../../services/purchaseOrderService';
+import { supplierPoService } from '../../services/supplierPoService';
 import { useNavigate } from 'react-router-dom';
 
 const CalendarTab = () => {
@@ -10,21 +11,28 @@ const CalendarTab = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [view, setView] = useState('month'); // month, week
     const [purchaseOrders, setPurchaseOrders] = useState([]);
+    const [supplierPos, setSupplierPos] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedDayEvents, setSelectedDayEvents] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
-        const loadPOs = async () => {
+        const loadAllData = async () => {
             setIsLoading(true);
             try {
-                const data = await purchaseOrderService.getPurchaseOrders();
-                setPurchaseOrders(data || []);
+                const [poData, supplierPoData] = await Promise.all([
+                    purchaseOrderService.getPurchaseOrders(),
+                    supplierPoService.getSupplierPos()
+                ]);
+                setPurchaseOrders(poData || []);
+                setSupplierPos(supplierPoData || []);
             } catch (err) {
-                console.error('Error loading POs for calendar:', err);
+                console.error('Error loading calendar data:', err);
             } finally {
                 setIsLoading(false);
             }
         };
-        loadPOs();
+        loadAllData();
     }, []);
 
     // Calendar Helper Functions
@@ -42,23 +50,34 @@ const CalendarTab = () => {
 
     const dayNames = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
 
-    const getPOsForDate = (day, month, year) => {
-        return purchaseOrders.filter(po => {
+    const getEventsForDate = (day, month, year) => {
+        const clientEvents = purchaseOrders.filter(po => {
             if (!po.due_date) return false;
             const d = new Date(po.due_date);
             return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
-        });
+        }).map(po => ({ ...po, type: 'client' }));
+
+        const supplierEvents = supplierPos.filter(po => {
+            if (!po.delivery_date) return false;
+            const d = new Date(po.delivery_date);
+            return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
+        }).map(po => ({ ...po, type: 'supplier' }));
+
+        return [...clientEvents, ...supplierEvents];
     };
 
-    const getStatusColor = (po) => {
-        if (po.status === 'Completed') return 'completed'; // Green
+    const getStatusColor = (event) => {
+        if (event.status === 'Completed') return 'completed';
 
-        const dueDate = new Date(po.due_date);
+        const date = event.type === 'client' ? event.due_date : event.delivery_date;
+        if (!date) return 'upcoming';
+
+        const targetDate = new Date(date);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        if (dueDate < today) return 'overdue'; // Red
-        return 'upcoming'; // Orange
+        if (targetDate < today) return 'overdue';
+        return 'upcoming';
     };
 
     const renderMonthView = () => {
@@ -73,38 +92,58 @@ const CalendarTab = () => {
 
         // Actual days
         for (let d = 1; d <= daysInMonth; d++) {
-            const pos = getPOsForDate(d, currentDate.getMonth(), currentDate.getFullYear());
+            const allEvents = getEventsForDate(d, currentDate.getMonth(), currentDate.getFullYear());
+            const displayEvents = allEvents.slice(0, 2); // Show only first 2
+            const remainingCount = allEvents.length - displayEvents.length;
+
             const isToday = d === new Date().getDate() &&
                 currentDate.getMonth() === new Date().getMonth() &&
                 currentDate.getFullYear() === new Date().getFullYear();
 
             days.push(
-                <div key={d} className={`calendar-day ${isToday ? 'today' : ''}`}>
+                <div key={d} className={`calendar-day ${isToday ? 'today' : ''}`} onClick={() => {
+                    if (allEvents.length > 0) {
+                        setSelectedDayEvents({ day: d, events: allEvents });
+                        setIsModalOpen(true);
+                    }
+                }}>
                     <div className="day-header">
                         <span className="day-number">{d}</span>
                         {isToday && <span className="today-badge">วันนี้</span>}
                     </div>
                     <div className="day-events">
-                        {pos.map(po => (
+                        {displayEvents.map(event => (
                             <div
-                                key={po.id}
-                                className={`event-pill ${getStatusColor(po)}`}
+                                key={`${event.type}-${event.id}`}
+                                className={`event-pill ${getStatusColor(event)} ${event.type}`}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/dashboard/purchase-orders/${po.id}/edit`);
+                                    const path = event.type === 'client' 
+                                        ? `/dashboard/purchase-orders/${event.id}/edit` 
+                                        : `/dashboard/supplier-pos/${event.id}/edit`;
+                                    navigate(path);
                                 }}
                             >
                                 <div className="event-info">
                                     <div className="event-top-line">
-                                        <span className="event-po">{po.po_number}</span>
-                                        {getStatusColor(po) === 'overdue' && <span className="status-tag overdue">เลยกำหนด</span>}
-                                        {getStatusColor(po) === 'upcoming' && <span className="status-tag upcoming">เตรียมจัดส่ง</span>}
-                                        {getStatusColor(po) === 'completed' && <span className="status-tag completed">ส่งแล้ว</span>}
+                                        <span className="event-po">
+                                            <span style={{ fontWeight: '800', marginRight: '4px' }}>
+                                                {event.type === 'supplier' ? 'สั่งซื้อ' : 'ส่งงาน'}
+                                            </span>
+                                            {event.po_number}
+                                        </span>
                                     </div>
-                                    <span className="event-cust">{po.customers?.name}</span>
+                                    <span className="event-cust">
+                                        {event.type === 'client' ? event.customers?.name : event.suppliers?.name}
+                                    </span>
                                 </div>
                             </div>
                         ))}
+                        {remainingCount > 0 && (
+                            <div className="more-events-link">
+                                + ดูอีก {remainingCount} รายการ
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -161,9 +200,12 @@ const CalendarTab = () => {
 
                 <div className="control-right">
                     <div className="calendar-legend-inline">
+                        <div className="legend-item"><span className="legend-type client"></span> PO ลูกค้า (ส่งงาน)</div>
+                        <div className="legend-item"><span className="legend-type supplier"></span> PO ผู้ขาย (สั่งซื้อ)</div>
+                        <div className="legend-divider"></div>
                         <div className="legend-item"><span className="dot overdue"></span> เลยกำหนด</div>
-                        <div className="legend-item"><span className="dot upcoming"></span> เตรียมจัดส่ง</div>
-                        <div className="legend-item"><span className="dot completed"></span> ส่งแล้ว</div>
+                        <div className="legend-item"><span className="dot upcoming"></span> เตรียมงาน</div>
+                        <div className="legend-item"><span className="dot completed"></span> สำเร็จ</div>
                     </div>
                 </div>
             </div>
@@ -172,6 +214,51 @@ const CalendarTab = () => {
             <div className="calendar-body glass-panel">
                 {view === 'month' ? renderMonthView() : <div className="placeholder">สัปดาห์ (เร็วๆ นี้)</div>}
             </div>
+
+            {/* Events Modal */}
+            {isModalOpen && selectedDayEvents && (
+                <div className="calendar-modal-overlay" onClick={() => setIsModalOpen(false)}>
+                    <div className="calendar-modal-content glass-panel" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>รายการงานวันที่ {selectedDayEvents.day} {monthNames[currentDate.getMonth()]}</h3>
+                            <button className="close-btn" onClick={() => setIsModalOpen(false)}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            {selectedDayEvents.events.map(event => (
+                                <div 
+                                    key={`${event.type}-${event.id}`}
+                                    className={`modal-event-item ${getStatusColor(event)} ${event.type}`}
+                                    onClick={() => {
+                                        const path = event.type === 'client' 
+                                            ? `/dashboard/purchase-orders/${event.id}/edit` 
+                                            : `/dashboard/supplier-pos/${event.id}/edit`;
+                                        navigate(path);
+                                    }}
+                                >
+                                    <div className="modal-event-type">
+                                        {event.type === 'client' ? (
+                                            <span className="badge-client">📦 ส่งงานให้ลูกค้า (Client PO)</span>
+                                        ) : (
+                                            <span className="badge-supplier">🛒 สั่งซื้อของ (Vendor PO)</span>
+                                        )}
+                                    </div>
+                                    <div className="modal-event-main">
+                                        <div className="modal-event-po">{event.po_number}</div>
+                                        <div className={`modal-event-status ${getStatusColor(event)}`}>
+                                            {getStatusColor(event) === 'overdue' ? 'เลยกำหนด' : 
+                                             getStatusColor(event) === 'completed' ? 'สำเร็จแล้ว' : 
+                                             event.type === 'client' ? 'รอจัดส่ง' : 'รอรับสินค้า'}
+                                        </div>
+                                    </div>
+                                    <div className="modal-event-cust">
+                                        {event.type === 'client' ? event.customers?.name : event.suppliers?.name}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <style>{`
                 .calendar-tab-wrapper {
@@ -221,17 +308,29 @@ const CalendarTab = () => {
 
                 .calendar-legend-inline {
                     display: flex;
-                    gap: 1.5rem;
+                    align-items: center;
+                    gap: 1.2rem;
+                }
+
+                .legend-divider {
+                    width: 1px;
+                    height: 20px;
+                    background: #e2e8f0;
+                    margin: 0 0.5rem;
                 }
 
                 .legend-item {
                     display: flex;
                     align-items: center;
-                    gap: 0.6rem;
-                    font-size: 0.85rem;
+                    gap: 0.5rem;
+                    font-size: 0.8rem;
                     font-weight: 600;
-                    color: #475569;
+                    color: #64748b;
                 }
+
+                .legend-type { width: 12px; height: 12px; border-radius: 3px; }
+                .legend-type.client { background: #8b5cf6; }
+                .legend-type.supplier { background: #0ea5e9; }
 
                 .dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
                 .dot.overdue { color: #ef4444; background: #ef4444; }
@@ -272,110 +371,195 @@ const CalendarTab = () => {
 
                 .calendar-grid {
                     display: grid;
-                    grid-template-columns: repeat(7, minmax(120px, 1fr));
-                    min-width: 840px;
+                    grid-template-columns: repeat(7, 1fr);
+                    min-width: 1000px;
                 }
 
                 .calendar-weekday {
-                    padding: 1rem 0.5rem;
+                    padding: 0.8rem 0.5rem;
                     text-align: center;
-                    font-weight: 800;
-                    font-size: 0.75rem;
-                    color: #fff;
-                    background: #475569;
-                    border-bottom: 1px solid rgba(0,0,0,0.05);
-                    text-transform: uppercase;
-                    letter-spacing: 0.1em;
+                    font-weight: 700;
+                    font-size: 0.8rem;
+                    color: #475569;
+                    background: #f8fafc;
+                    border-bottom: 2px solid #e2e8f0;
                 }
 
                 .calendar-day {
-                    min-height: 120px;
-                    padding: 0.6rem;
-                    border-right: 1px solid rgba(0,0,0,0.03);
-                    border-bottom: 1px solid rgba(0,0,0,0.03);
+                    height: 140px;
+                    padding: 0.5rem;
+                    border-right: 1px solid #f1f5f9;
+                    border-bottom: 1px solid #f1f5f9;
                     display: flex;
                     flex-direction: column;
-                    gap: 0.6rem;
-                    transition: all 0.3s;
+                    gap: 0.4rem;
+                    transition: all 0.2s;
                     background: #fff;
+                    cursor: default;
+                }
+                
+                .calendar-day:not(.empty):hover {
+                    background: #fdfdfd;
+                    box-shadow: inset 0 0 0 1px #3b82f644;
                 }
 
-                .calendar-day:nth-child(7n) { border-right: none; }
-                .calendar-day:hover:not(.empty) { background: rgba(59, 130, 246, 0.05); }
-
                 .calendar-day.today {
-                    background: rgba(59, 130, 246, 0.04);
-                    position: relative;
+                    background: #f0f7ff;
                 }
 
                 .day-header {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
+                    margin-bottom: 2px;
                 }
 
-                .day-number { font-size: 1rem; font-weight: 800; color: #1e293b; opacity: 0.6; }
+                .day-number { font-size: 0.9rem; font-weight: 700; color: #64748b; }
                 .calendar-day.today .day-number { color: #3b82f6; }
-
-                .today-badge {
-                    font-size: 0.6rem;
-                    font-weight: 800;
-                    padding: 0.2rem 0.5rem;
-                    background: #3b82f6;
-                    color: #fff;
-                    border-radius: 4px;
-                    text-transform: uppercase;
-                }
 
                 .day-events {
                     display: flex;
                     flex-direction: column;
-                    gap: 0.4rem;
-                    overflow-y: auto;
+                    gap: 3px;
+                    overflow: hidden;
                     flex: 1;
                 }
 
                 .event-pill {
-                    padding: 0.5rem 0.8rem;
-                    border-radius: 10px;
+                    padding: 4px 8px;
+                    border-radius: 6px;
                     cursor: pointer;
-                    transition: all 0.2s;
-                    border: 1px solid transparent;
+                    transition: all 0.15s;
+                    border-left: 3px solid transparent;
+                    font-size: 0.7rem;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
                 }
 
-                .event-pill:hover { transform: scale(1.03); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+                .event-pill:hover { transform: translateX(2px); }
 
-                .event-pill.overdue { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
-                .event-pill.upcoming { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border-color: rgba(245, 158, 11, 0.2); }
-                .event-pill.completed { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: rgba(16, 185, 129, 0.2); }
+                /* Client PO Theme */
+                .event-pill.client {
+                    background: #f5f3ff;
+                    color: #5b21b6;
+                    border-color: #8b5cf6;
+                }
+                .event-pill.client.overdue { background: #fef2f2; color: #991b1b; border-color: #ef4444; }
+                .event-pill.client.completed { background: #ecfdf5; color: #065f46; border-color: #10b981; }
 
-                .event-info { display: flex; flex-direction: column; gap: 0.1rem; }
-                .event-top-line {
+                /* Supplier PO Theme */
+                .event-pill.supplier {
+                    background: #f0f9ff;
+                    color: #075985;
+                    border-color: #0ea5e9;
+                }
+                .event-pill.supplier.overdue { background: #fff1f2; color: #9f1239; border-color: #f43f5e; }
+                .event-pill.supplier.completed { background: #f0fdf4; color: #166534; border-color: #22c55e; }
+
+                .event-info { display: flex; flex-direction: column; }
+                .event-po { font-weight: 700; font-size: 0.75rem; }
+                .event-cust { font-size: 0.65rem; opacity: 0.8; }
+
+                .more-events-link {
+                    font-size: 0.65rem;
+                    color: #3b82f6;
+                    font-weight: 700;
+                    text-align: center;
+                    padding: 2px 0;
+                    cursor: pointer;
+                    margin-top: auto;
+                }
+                .more-events-link:hover { text-decoration: underline; }
+
+                /* Modal Styles */
+                .calendar-modal-overlay {
+                    position: fixed;
+                    top: 0; left: 0; right: 0; bottom: 0;
+                    background: rgba(0,0,0,0.4);
+                    backdrop-filter: blur(4px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    animation: fadeIn 0.2s ease;
+                }
+
+                .calendar-modal-content {
+                    width: 90%;
+                    max-width: 500px;
+                    background: white;
+                    border-radius: 20px;
+                    overflow: hidden;
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+                }
+
+                .modal-header {
+                    padding: 1.2rem 1.5rem;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
+                    border-bottom: 1px solid #f1f5f9;
+                    background: #f8fafc;
+                }
+                .modal-header h3 { margin: 0; font-size: 1.1rem; color: #1e293b; }
+                .close-btn { 
+                    background: none; border: none; font-size: 1.5rem; cursor: pointer; 
+                    color: #94a3b8; transition: color 0.2s;
+                }
+                .close-btn:hover { color: #1e293b; }
+
+                .modal-body {
+                    padding: 1rem;
+                    max-height: 60vh;
+                    overflow-y: auto;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.8rem;
+                }
+
+                .modal-event-item {
+                    padding: 1rem;
+                    border-radius: 12px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    border-left: 5px solid transparent;
+                    display: flex;
+                    flex-direction: column;
                     gap: 0.4rem;
                 }
-                .event-po { font-size: 0.75rem; font-weight: 800; }
+                .modal-event-item:hover { transform: scale(1.01); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+                .modal-event-item.client { background: #f5f3ff; border-color: #8b5cf6; }
+                .modal-event-item.supplier { background: #f0f9ff; border-color: #0ea5e9; }
                 
-                .status-tag {
-                    font-size: 0.6rem;
-                    padding: 0.1rem 0.3rem;
+                .badge-client, .badge-supplier {
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                    padding: 2px 8px;
                     border-radius: 4px;
-                    font-weight: 800;
-                    white-space: nowrap;
+                    text-transform: uppercase;
                 }
-                .status-tag.overdue { background: #ef4444; color: #fff; }
-                .status-tag.upcoming { background: #f59e0b; color: #fff; }
-                .status-tag.completed { background: #10b981; color: #fff; }
+                .badge-client { background: #ddd6fe; color: #5b21b6; }
+                .badge-supplier { background: #bae6fd; color: #075985; }
 
-                .event-cust { font-size: 0.7rem; font-weight: 500; opacity: 0.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                .modal-event-main {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .modal-event-po { font-weight: 800; font-size: 1.1rem; color: #1e293b; }
+                .modal-event-status { font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+                
+                .modal-event-status.upcoming { background: #fef3c7; color: #92400e; }
+                .modal-event-status.overdue { background: #fee2e2; color: #991b1b; }
+                .modal-event-status.completed { background: #d1fae5; color: #065f46; }
 
-                .calendar-day.empty { background: #f8fafc; opacity: 1; }
+                .modal-event-cust { font-size: 0.9rem; color: #64748b; font-weight: 500; }
 
                 @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
+                    from { opacity: 0; }
+                    to { opacity: 1; }
                 }
             `}</style>
         </div>

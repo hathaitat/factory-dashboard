@@ -200,27 +200,27 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
                         overflowX: 'auto'
                     }}
                 >
-                    <div style={{ textAlign: 'center' }}>
+                    <div className="text-center">
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>วันทำงาน</div>
                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#10b981' }}>{Number(totalDays).toFixed(2)}</div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div className="text-center">
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>วันขาด</div>
                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#ef4444' }}>{absentDays > 0 ? absentDays : '-'}</div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div className="text-center">
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>OT (ชม.)</div>
                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#8b5cf6' }}>{Number(totalOT).toFixed(2)}</div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div className="text-center">
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>สาย (นาที)</div>
                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#f59e0b' }}>{Math.round(totalLate * 60)}</div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div className="text-center">
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>วันเกิด</div>
                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#ec4899' }}>{getBirthdayDisplay()}</div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div className="text-center">
                         <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px' }}>
                             เบี้ยขยัน {diligenceOverride && diligenceOverride.isForced ? '(Lock)' : ''}
                         </div>

@@ -65,7 +65,7 @@ const SupplierForm = ({ initialData, onSubmit, title }) => {
     return (
         <div className="glass-panel" style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h2 style={{ margin: 0 }}>{title}</h2>
+                <h2 className="m-0">{title}</h2>
                 <button onClick={() => navigate('/dashboard/suppliers')} className="btn-secondary" style={{ background: 'transparent', border: '1px solid var(--border-color)', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)' }}>
                     <X size={20} />
                 </button>

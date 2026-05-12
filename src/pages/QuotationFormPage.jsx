@@ -520,7 +520,7 @@ const QuotationFormPage = () => {
                     <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>
                         {isEdit ? 'แก้ไขใบเสนอราคา' : 'ออกใบเสนอราคาใหม่'}
                     </h1>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div className="flex gap-4">
                         <select
                             value={formData.status}
                             onChange={e => setFormData({ ...formData, status: e.target.value })}
@@ -679,7 +679,7 @@ const QuotationFormPage = () => {
                                     <Plus size={16} /> เพิ่มรายการ
                                 </button>
                             </div>
-                            <div className="table-responsive-wrapper" style={{ overflowX: 'auto' }}>
+                            <div className="table-responsive-wrapper overflow-x-auto">
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead>
                                         <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
@@ -747,7 +747,7 @@ const QuotationFormPage = () => {
                         </div>
 
                         <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '2rem' }}>
-                            <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                            <div className="glass-panel p-6">
                                 <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>หมายเหตุ</label>
                                 <textarea
                                     value={formData.notes}
@@ -761,13 +761,13 @@ const QuotationFormPage = () => {
                                 </div>
                             </div>
 
-                            <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                            <div className="glass-panel p-6">
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div className="flex justify-between items-center">
                                         <span style={{ color: '#888' }}>รวมเป็นเงิน (Subtotal)</span>
                                         <span style={{ fontSize: '1.1rem' }}>฿{formData.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div className="flex justify-between items-center">
                                         <span style={{ color: '#888' }}>หักส่วนลด</span>
                                         <input
                                             type="number"
@@ -777,7 +777,7 @@ const QuotationFormPage = () => {
                                             style={{ width: '120px', padding: '0.4rem', textAlign: 'right', background: 'var(--bg-main)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
                                         />
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div className="flex justify-between items-center">
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                             <span style={{ color: '#888' }}>VAT ({formData.vatRate}%)</span>
                                         </div>
@@ -856,7 +856,7 @@ const QuotationFormPage = () => {
                                     {/* Section Items */}
                                     {!section.collapsed && (
                                         <div style={{ padding: '0' }}>
-                                            <div style={{ overflowX: 'auto' }}>
+                                            <div className="overflow-x-auto">
                                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                                     <thead>
                                                         <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
@@ -928,7 +928,7 @@ const QuotationFormPage = () => {
 
                         {/* Summary */}
                         <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
-                            <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                            <div className="glass-panel p-6">
                                 {/* Section subtotals breakdown */}
                                 {(formData.costCalculation?.sections || []).map((section, sIdx) => {
                                     const sectionColors = ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#06b6d4'];
@@ -946,7 +946,7 @@ const QuotationFormPage = () => {
 
                                 <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.8rem', marginTop: '0.8rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.8rem' }}>
-                                        <span style={{ fontWeight: '600' }}>รวมต้นทุนทั้งหมด:</span>
+                                        <span className="font-semibold">รวมต้นทุนทั้งหมด:</span>
                                         <span style={{ fontSize: '1.2rem', fontWeight: '700' }}>฿{(formData.costCalculation?.totalCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                     </div>
 
@@ -977,7 +977,7 @@ const QuotationFormPage = () => {
                                 </div>
 
                                 {/* Notes */}
-                                <div style={{ marginTop: '1rem' }}>
+                                <div className="mt-4">
                                     <label style={{ display: 'block', color: '#888', fontSize: '0.85rem', marginBottom: '0.3rem' }}>หมายเหตุต้นทุน:</label>
                                     <textarea
                                         value={formData.costCalculation?.notes || ''}

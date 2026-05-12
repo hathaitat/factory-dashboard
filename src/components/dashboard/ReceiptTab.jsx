@@ -80,7 +80,7 @@ const ReceiptTab = () => {
                     </div>
                     <div className="kpi-content">
                         <span className="kpi-label">ใบเสร็จทั้งหมด</span>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div className="flex flex-col">
                             <span className="kpi-value">{data.total.toLocaleString()} <span className="unit">ใบ</span></span>
                             <span className="kpi-sub-value" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                                 ยอดสะสม ฿{data.rawReceipts.reduce((sum, bn) => sum + (Number(bn.totalAmount) || 0), 0).toLocaleString()}

@@ -252,13 +252,13 @@ const InvoiceTab = () => {
                     <div style={{ overflowY: 'auto', flex: 1, padding: '0.5rem 0' }}>
                         {data.pendingByCustomer.map((item, index) => (
                             <div key={index} style={{ padding: '0.8rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }} className="hover-row">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div className="flex justify-between items-center">
                                     <span style={{ fontWeight: '600', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>{item.name}</span>
                                     <span style={{ fontWeight: '600', color: '#f59e0b' }}>฿{item.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '0.85rem' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                                        <span style={{ color: 'var(--text-muted)' }}>รวม {item.count} รายการค้างวางบิล</span>
+                                        <span className="text-textMuted">รวม {item.count} รายการค้างวางบิล</span>
                                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                             {item.billedCount > 0 && <span style={{ color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.75rem' }}>สร้างบิลแล้ว {item.billedCount}</span>}
                                             {item.unbilledCount > 0 && <span style={{ color: '#6b7280', background: 'rgba(107, 114, 128, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.75rem' }}>ยังไม่สร้าง {item.unbilledCount}</span>}

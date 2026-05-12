@@ -8,7 +8,9 @@ export const supplierPoService = {
                 .from('supplier_pos')
                 .select(`
                     *,
-                    suppliers (id, code, name)
+                    suppliers (id, code, name),
+                    warehouses (name),
+                    supplier_po_items (*)
                 `)
                 .order('created_at', { ascending: false });
 
@@ -16,6 +18,32 @@ export const supplierPoService = {
             return data;
         } catch (error) {
             console.error('Error fetching supplier POs:', error);
+            throw error;
+        }
+    },
+
+    // Upload a file to storage
+    uploadFile: async (file, filePath) => {
+        try {
+            // Using 'certificates' bucket which we know exists in this project
+            const bucketName = 'certificates';
+            
+            const { data, error } = await supabase.storage
+                .from(bucketName)
+                .upload(filePath, file);
+
+            if (error) throw error;
+            
+            const { data: urlData } = supabase.storage
+                .from(bucketName)
+                .getPublicUrl(filePath);
+
+            return {
+                data,
+                publicUrl: urlData.publicUrl
+            };
+        } catch (error) {
+            console.error('Error uploading file:', error);
             throw error;
         }
     },
@@ -138,6 +166,17 @@ export const supplierPoService = {
     // Delete supplier PO
     deleteSupplierPo: async (id) => {
         try {
+            // Check if it's completed first
+            const { data: po } = await supabase
+                .from('supplier_pos')
+                .select('status')
+                .eq('id', id)
+                .single();
+
+            if (po?.status === 'Completed') {
+                throw new Error('ไม่สามารถลบใบสั่งซื้อที่รับสินค้าเข้าคลังแล้วได้ กรุณาใช้การยกเลิกแทน');
+            }
+
             const { error } = await supabase
                 .from('supplier_pos')
                 .delete()
@@ -147,6 +186,90 @@ export const supplierPoService = {
             return true;
         } catch (error) {
             console.error('Error deleting supplier PO:', error);
+            throw error;
+        }
+    },
+
+    // Cancel supplier PO with inventory check
+    cancelSupplierPo: async (id) => {
+        try {
+            // 1. Get PO details and items
+            const { data: po, error: poError } = await supabase
+                .from('supplier_pos')
+                .select('*, items:supplier_po_items(*)')
+                .eq('id', id)
+                .single();
+
+            if (poError) throw poError;
+            if (po.status === 'Cancelled') throw new Error('ใบสั่งซื้อนี้ถูกยกเลิกไปแล้ว');
+
+            // 2. If it was completed, check if we have enough stock to return
+            if (po.status === 'Completed' && po.items && po.items.length > 0) {
+                const targetWarehouseId = po.delivery_warehouse_id;
+                if (!targetWarehouseId) throw new Error('ไม่พบข้อมูลคลังสินค้าที่จัดส่ง');
+
+                // Get current inventory
+                const { data: currentInventory } = await supabase
+                    .from('warehouse_inventory')
+                    .select('*')
+                    .eq('warehouse_id', targetWarehouseId);
+
+                // Validation Loop
+                for (const item of po.items) {
+                    const existingItem = (currentInventory || []).find(inv => 
+                        inv.product_name === item.description
+                    );
+
+                    if (!existingItem || Number(existingItem.quantity) < Number(item.quantity)) {
+                        throw new Error(`สต็อกสินค้า "${item.description}" ไม่เพียงพอสำหรับการยกเลิก (ต้องการหักออก ${item.quantity} แต่มีในคลัง ${existingItem?.quantity || 0})`);
+                    }
+                }
+
+                // Deduction Loop
+                for (const item of po.items) {
+                    const existingItem = currentInventory.find(inv => inv.product_name === item.description);
+                    const newQty = Number(existingItem.quantity) - Number(item.quantity);
+                    const { error: updateError } = await supabase
+                        .from('warehouse_inventory')
+                        .update({
+                            quantity: newQty,
+                            last_updated: new Date().toISOString()
+                        })
+                        .eq('id', existingItem.id);
+                        
+                    if (updateError) throw updateError;
+
+                    // Log the cancellation movement
+                    await supabase.from('inventory_logs').insert([{
+                        inventory_id: existingItem.id,
+                        type: 'OUT',
+                        qty: item.quantity,
+                        old_quantity: existingItem.quantity,
+                        balance: newQty,
+                        source_type: 'po',
+                        source_id: id,
+                        reference_no: po.po_number || 'N/A',
+                        remark: `หักสต็อกออกเนื่องจากการยกเลิกใบสั่งซื้อเลขที่ ${po.po_number || id}`
+                    }]);
+                }
+            }
+
+            // 3. Update PO status to Cancelled
+            const { data, error: finalError } = await supabase
+                .from('supplier_pos')
+                .update({ 
+                    status: 'Cancelled',
+                    updated_at: new Date().toISOString(),
+                    remark: (po.remark ? po.remark + ' ' : '') + `(ยกเลิกเมื่อ ${new Date().toLocaleDateString('th-TH')})`
+                })
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (finalError) throw finalError;
+            return data;
+        } catch (error) {
+            console.error('Error cancelling supplier PO:', error);
             throw error;
         }
     },
@@ -198,47 +321,85 @@ export const supplierPoService = {
                 }
 
                 if (targetWarehouseId) {
-                    // Fetch current inventory for this warehouse to see if items exist
-                    const { data: currentInventory } = await supabase
+                    const { data: currentInventory, error: invFetchError } = await supabase
                         .from('warehouse_inventory')
                         .select('*')
                         .eq('warehouse_id', targetWarehouseId);
+                    
+                    if (invFetchError) throw invFetchError;
 
                     for (const item of po.items) {
-                        // Try to find if this item already exists in the warehouse
                         const existingItem = (currentInventory || []).find(inv => 
                             inv.product_name === item.description
                         );
 
                         if (existingItem) {
-                            // Update quantity
+                            const newQty = Number(existingItem.quantity) + Number(item.quantity);
                             const { error: updateError } = await supabase
                                 .from('warehouse_inventory')
                                 .update({
-                                    quantity: Number(existingItem.quantity) + Number(item.quantity),
+                                    quantity: newQty,
                                     last_updated: new Date().toISOString()
                                 })
                                 .eq('id', existingItem.id);
-                                
-                            if (updateError) {
-                                console.error('Error updating inventory:', updateError);
+                            
+                            if (updateError) throw updateError;
+                            
+                            // Log the movement
+                            const { error: logError } = await supabase.from('inventory_logs').insert([{
+                                inventory_id: existingItem.id,
+                                type: 'IN',
+                                qty: item.quantity,
+                                old_quantity: existingItem.quantity,
+                                balance: newQty,
+                                source_type: 'po',
+                                source_id: id,
+                                reference_no: po.po_number || 'N/A',
+                                remark: `รับสินค้าจากใบสั่งซื้อเลขที่ ${po.po_number || id}`
+                            }]);
+
+                            if (logError) {
+                                console.error('Error inserting log:', logError);
+                                // Try inserting minimal if it failed
+                                const { error: retryError } = await supabase.from('inventory_logs').insert([{
+                                    inventory_id: existingItem.id,
+                                    type: 'IN',
+                                    qty: item.quantity,
+                                    remark: `รับสินค้า (Retry): ${po.po_number || id}`
+                                }]);
+                                if (retryError) throw retryError;
                             }
                         } else {
-                            // Insert new inventory item
-                            const { error: insertError } = await supabase
+                            const { data: newItem, error: insertError } = await supabase
                                 .from('warehouse_inventory')
                                 .insert([{
                                     warehouse_id: targetWarehouseId,
-                                    product_type: 'material', // Assuming PO items are materials
+                                    product_type: 'material',
                                     product_name: item.description || 'Unknown Item',
-                                    sku: null,
                                     quantity: Number(item.quantity) || 0,
                                     unit: item.unit || 'PCS',
                                     min_stock: 0
+                                }])
+                                .select()
+                                .single();
+                            
+                            if (insertError) throw insertError;
+                            
+                            if (newItem) {
+                                // Log the initial movement
+                                const { error: logError } = await supabase.from('inventory_logs').insert([{
+                                    inventory_id: newItem.id,
+                                    type: 'IN',
+                                    qty: item.quantity,
+                                    old_quantity: 0,
+                                    balance: item.quantity,
+                                    source_type: 'po',
+                                    source_id: id,
+                                    reference_no: po.po_number || 'N/A',
+                                    remark: `เพิ่มรายการใหม่และรับสินค้าจากใบสั่งซื้อเลขที่ ${po.po_number || id}`
                                 }]);
-                                
-                            if (insertError) {
-                                console.error('Error inserting inventory:', insertError);
+
+                                if (logError) throw logError;
                             }
                         }
                     }

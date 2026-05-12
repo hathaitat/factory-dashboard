@@ -305,7 +305,7 @@ const QuotationListPage = () => {
 
             {/* Table */}
             <div className="glass-panel" style={{ borderRadius: '12px', overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
+                <div className="overflow-x-auto">
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                             <tr style={{ background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--border-color)' }}>
@@ -335,7 +335,7 @@ const QuotationListPage = () => {
                                     <React.Fragment key={group}>
                                         <tr style={{ background: 'rgba(59, 130, 246, 0.02)' }}>
                                             <td colSpan="5" style={{ padding: '1rem 1.5rem', fontWeight: '700', color: '#37477C', borderBottom: '1px solid var(--border-color)', borderTop: 'none', fontSize: '1rem' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div className="flex justify-between items-center">
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                         <Calendar size={18} color="#3b82f6" />
                                                         <span>{group}</span>
@@ -398,7 +398,7 @@ const QuotationListPage = () => {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td style={{ padding: '1rem' }}>
+                                                <td className="p-4">
                                                     <div style={{ fontWeight: '600', color: '#3b82f6', marginBottom: '2px' }}>
                                                         {qt.quotationNo}
                                                     </div>
@@ -406,7 +406,7 @@ const QuotationListPage = () => {
                                                         {fmtDate(qt.date)}
                                                     </div>
                                                 </td>
-                                                <td style={{ padding: '1rem' }}>
+                                                <td className="p-4">
                                                     <div style={{ color: 'var(--text-main)', fontWeight: '500' }}>
                                                         {qt.customerName}
                                                     </div>
@@ -419,7 +419,7 @@ const QuotationListPage = () => {
                                                 <td style={{ padding: '1rem', fontWeight: '500' }}>
                                                     ฿{fmtNum(qt.grandTotal)}
                                                 </td>
-                                                <td style={{ padding: '1rem' }}>
+                                                <td className="p-4">
                                                     {getStatusBlock(qt.status)}
                                                 </td>
                                             </tr>

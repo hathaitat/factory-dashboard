@@ -129,6 +129,7 @@ export const quotationService = {
                 baht_text: quotationData.bahtText,
                 notes: quotationData.notes,
                 status: quotationData.status || 'Draft',
+                // Note: Ensure 'cost_calculation' column exists in your Supabase 'quotations' table (JSONB)
                 cost_calculation: quotationData.costCalculation || {},
                 customer_snapshot: quotationData.customerSnapshot || null
             };

@@ -505,7 +505,7 @@ const BillingNoteListPage = () => {
             </div>
 
             <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
-                <Search size={20} style={{ color: 'var(--text-muted)' }} />
+                <Search size={20} className="text-textMuted" />
                 <input
                     type="text"
                     placeholder="ค้นตามเลขที่หรือชื่อลูกค้า..."
@@ -558,7 +558,7 @@ const BillingNoteListPage = () => {
                                     <React.Fragment key={group}>
                                         <tr style={{ background: 'rgba(59, 130, 246, 0.02)' }}>
                                             <td colSpan="6" style={{ padding: '1rem 1.5rem', fontWeight: '700', color: '#37477C', borderBottom: '1px solid var(--border-color)', borderTop: 'none', fontSize: '1rem' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div className="flex justify-between items-center">
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                         <Calendar size={18} color="#3b82f6" />
                                                         <span>{group}</span>

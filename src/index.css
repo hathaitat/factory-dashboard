@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* Professional Light Palette */
   --bg-main: #f8fafc;
@@ -92,11 +96,6 @@ a {
   -webkit-text-fill-color: transparent;
 }
 
-.flex-center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
 
 .btn-primary {
   background: var(--primary);

@@ -127,7 +127,7 @@ const SupplierFormPage = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                         <div className="form-group">
                             <label className="form-label" style={{ display: 'block', marginBottom: '0.6rem', color: 'var(--text-muted)', fontWeight: '500' }}>
-                                รหัส Supplier <span style={{ color: 'var(--error)' }}>*</span>
+                                รหัส Supplier <span className="text-error">*</span>
                             </label>
                             <input
                                 type="text"
@@ -142,7 +142,7 @@ const SupplierFormPage = () => {
                         </div>
                         <div className="form-group">
                             <label className="form-label" style={{ display: 'block', marginBottom: '0.6rem', color: 'var(--text-muted)', fontWeight: '500' }}>
-                                ชื่อบริษัท / ชื่อผู้ขาย <span style={{ color: 'var(--error)' }}>*</span>
+                                ชื่อบริษัท / ชื่อผู้ขาย <span className="text-error">*</span>
                             </label>
                             <input
                                 type="text"

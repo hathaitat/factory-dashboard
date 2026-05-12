@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Printer, ArrowLeft } from 'lucide-react';
 import { supplierPoService } from '../services/supplierPoService';
+import { companyService } from '../services/companyService';
 import SupplierPoPrintTemplate from '../components/SupplierPoPrintTemplate';
 
 const SupplierPoPrintPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [po, setPo] = useState(null);
+    const [company, setCompany] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -17,10 +19,12 @@ const SupplierPoPrintPage = () => {
     const loadData = async () => {
         setIsLoading(true);
         try {
-            const data = await supplierPoService.getSupplierPoById(id);
-            setPo(data);
-            
-            // Auto-trigger print if needed? No, let user click.
+            const [poData, compData] = await Promise.all([
+                supplierPoService.getSupplierPoById(id),
+                companyService.getCompanyInfo()
+            ]);
+            setPo(poData);
+            setCompany(compData);
         } catch (error) {
             console.error('Error fetching PO for print:', error);
         } finally {
@@ -52,8 +56,8 @@ const SupplierPoPrintPage = () => {
             <div className="no-print" style={{ 
                 padding: '0.8rem 1.5rem', 
                 display: 'flex', 
-                justifyContent: 'space-between',
                 alignItems: 'center',
+                gap: '1rem',
                 background: '#111', 
                 color: 'white', 
                 position: 'sticky', 
@@ -61,33 +65,29 @@ const SupplierPoPrintPage = () => {
                 zIndex: 100,
                 borderBottom: '1px solid #333'
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <button 
-                        onClick={() => navigate(`/dashboard/supplier-pos/${id}`)} 
-                        style={{ 
-                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                            background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white', 
-                            padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
-                            fontSize: '0.9rem'
-                        }}
-                    >
-                        <ArrowLeft size={18} /> ย้อนกลับ
-                    </button>
-                    <span style={{ color: '#aaa', fontSize: '0.9rem' }}>|</span>
-                    <span style={{ fontSize: '1rem', fontWeight: '500' }}>พิมพ์ใบสั่งซื้อ: {po.po_number}</span>
-                </div>
+                <button 
+                    onClick={() => navigate(`/dashboard/supplier-pos/${id}`)} 
+                    style={{ 
+                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white', 
+                        padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
+                        fontSize: '0.9rem'
+                    }}
+                >
+                    <ArrowLeft size={18} /> ย้อนกลับ
+                </button>
                 
                 <button 
                     onClick={handlePrint} 
                     style={{ 
                         display: 'flex', alignItems: 'center', gap: '0.5rem', 
                         background: '#3b82f6', border: 'none', color: 'white', 
-                        padding: '0.6rem 1.5rem', borderRadius: '6px', cursor: 'pointer',
+                        padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
                         fontWeight: '600', fontSize: '0.95rem',
                         boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
                     }}
                 >
-                    <Printer size={18} /> สั่งพิมพ์ (Print)
+                    <Printer size={18} /> พิมพ์ใบสั่งซื้อ
                 </button>
             </div>
 
@@ -103,7 +103,7 @@ const SupplierPoPrintPage = () => {
                     boxShadow: '0 0 10px rgba(0,0,0,0.1)',
                     backgroundColor: 'white'
                 }}>
-                    <SupplierPoPrintTemplate po={po} />
+                    <SupplierPoPrintTemplate po={po} company={company} />
                 </div>
             </div>
         </div>

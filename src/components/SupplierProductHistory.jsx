@@ -82,7 +82,7 @@ const SupplierProductHistory = ({ product, onBack }) => {
                             onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
                             style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none' }}
                         />
-                        <span style={{ color: 'var(--text-muted)' }}>-</span>
+                        <span className="text-textMuted">-</span>
                         <input
                             type="date"
                             value={dateRange.end}
@@ -142,7 +142,7 @@ const SupplierProductHistory = ({ product, onBack }) => {
                         </div>
 
                         {/* History Table */}
-                        <div style={{ overflowX: 'auto' }}>
+                        <div className="overflow-x-auto">
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
@@ -160,7 +160,7 @@ const SupplierProductHistory = ({ product, onBack }) => {
 
                                         return (
                                             <tr key={h.id} style={{ borderBottom: '1px solid var(--border-color)', background: idx === 0 ? 'rgba(var(--primary-rgb), 0.03)' : 'transparent' }}>
-                                                <td style={{ padding: '1rem' }}>{new Date(h.effectiveDate).toLocaleDateString('th-TH')}</td>
+                                                <td className="p-4">{new Date(h.effectiveDate).toLocaleDateString('th-TH')}</td>
                                                 <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>฿{h.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                                 <td style={{ padding: '1rem', textAlign: 'right' }}>
                                                     {prev ? (

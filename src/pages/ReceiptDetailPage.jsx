@@ -61,7 +61,7 @@ const ReceiptDetailPage = () => {
                 >
                     <ArrowLeft size={18} /> ย้อนกลับ
                 </button>
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div className="flex gap-4">
                     <button
                         onClick={() => navigate(`/dashboard/billing-notes/${bn.id}/print-receipt`)}
                         style={{ padding: '0.6rem 1.5rem', background: 'var(--success)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
@@ -77,10 +77,10 @@ const ReceiptDetailPage = () => {
                         ใบเสร็จรับเงิน (Receipt)
                     </h1>
                     <div style={{ color: 'var(--text-muted)', marginTop: '0.5rem', fontSize: '1.1rem' }}>
-                        เลขที่: <strong style={{ color: 'var(--text-main)' }}>{getReceiptNumber()}</strong>
+                        เลขที่: <strong className="text-textMain">{getReceiptNumber()}</strong>
                     </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
+                <div className="text-right">
                     <span style={{
                         padding: '0.4rem 1rem',
                         borderRadius: '20px',
@@ -98,26 +98,26 @@ const ReceiptDetailPage = () => {
             </div>
 
             <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
-                <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                <div className="glass-panel p-6">
                     <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
                         <Building size={18} className="text-primary" /> ข้อมูลลูกค้า
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', color: 'var(--text-muted)' }}>
-                        <div><strong style={{ color: 'var(--text-main)' }}>ชื่อ:</strong> {customer.name} {customer.branch ? `(${customer.branch})` : ''}</div>
-                        {customer.code && <div><strong style={{ color: 'var(--text-main)' }}>รหัส:</strong> {customer.code}</div>}
-                        <div><strong style={{ color: 'var(--text-main)' }}>ที่อยู่:</strong> {customer.address || '-'}</div>
-                        <div><strong style={{ color: 'var(--text-main)' }}>เลขประจำตัวผู้เสียภาษี:</strong> {customer.taxId || '-'}</div>
-                        <div><strong style={{ color: 'var(--text-main)' }}>เบอร์โทร:</strong> {customer.phone || '-'}</div>
+                        <div><strong className="text-textMain">ชื่อ:</strong> {customer.name} {customer.branch ? `(${customer.branch})` : ''}</div>
+                        {customer.code && <div><strong className="text-textMain">รหัส:</strong> {customer.code}</div>}
+                        <div><strong className="text-textMain">ที่อยู่:</strong> {customer.address || '-'}</div>
+                        <div><strong className="text-textMain">เลขประจำตัวผู้เสียภาษี:</strong> {customer.taxId || '-'}</div>
+                        <div><strong className="text-textMain">เบอร์โทร:</strong> {customer.phone || '-'}</div>
                     </div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                <div className="glass-panel p-6">
                     <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
                         <FileText size={18} className="text-secondary" /> ข้อมูลเอกสาร
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', color: 'var(--text-muted)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Calendar size={16} /> <strong style={{ color: 'var(--text-main)' }}>วันที่ใบวางบิล:</strong> {new Date(bn.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            <Calendar size={16} /> <strong className="text-textMain">วันที่ใบวางบิล:</strong> {new Date(bn.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                         </div>
                         {bn.notes && (
                             <div style={{ marginTop: '0.5rem', padding: '1rem', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
@@ -186,7 +186,7 @@ const ReceiptDetailPage = () => {
                 </div>
                 <div style={{ padding: '1.5rem', borderTop: '2px solid var(--border-color)', background: 'var(--bg-main)' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '2rem' }}>
-                        <div style={{ color: 'var(--text-muted)' }}>{bn.bahtText}</div>
+                        <div className="text-textMuted">{bn.bahtText}</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                             <span style={{ fontSize: '1.1rem', fontWeight: '600', color: 'var(--text-muted)' }}>รวมทั้งสิ้น</span>
                             <span style={{ fontSize: '1.8rem', fontWeight: '700', color: 'var(--success)' }}>

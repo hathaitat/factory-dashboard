@@ -944,7 +944,7 @@ const EmployeeListPage = () => {
             </PageHeader>
 
             {/* Controls: View Mode Toggle */}
-            <div style={{ marginBottom: '2rem' }}>
+            <div className="mb-8">
                 <div style={{
                     background: '#f3f4f6', padding: '0.4rem', borderRadius: '12px', display: 'flex', gap: '0.5rem', width: '100%',
                 }}>
@@ -1087,7 +1087,7 @@ const EmployeeListPage = () => {
                             <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#37477C' }}>
                                 งวด: {selectedPeriod.label}
                             </span>
-                            <div style={{ flex: 1 }}></div>
+                            <div className="flex-1"></div>
                             <button
                                 onClick={() => setIsFullTimesheetOpen(true)}
                                 style={{

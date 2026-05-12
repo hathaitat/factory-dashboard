@@ -106,7 +106,7 @@ const OverviewTab = () => {
 
     return (
         <div className="tab-content">
-            <div style={{ marginBottom: '1.5rem' }}>
+            <div className="mb-6">
                 {/* Expiring Certificates */}
                 <div className="glass-panel" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '340px' }}>
                     <div className="panel-header" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: data.expiringCertificates.length > 0 ? 'rgba(239, 68, 68, 0.05)' : undefined }}>
@@ -147,7 +147,7 @@ const OverviewTab = () => {
                 </div>
 
                 {/* Low Stock Alert */}
-                <div className="glass-panel" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '340px' }}>
+                <div className="glass-panel mt-4" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '340px' }}>
                     <div className="panel-header" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: data.lowStockItems.length > 0 ? 'rgba(239, 68, 68, 0.05)' : undefined }}>
                         <h3 style={{ margin: 0, fontSize: '1rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <AlertTriangle size={16} /> สินค้าใกล้หมด/ต้องสั่งเพิ่ม
@@ -164,7 +164,7 @@ const OverviewTab = () => {
                                         <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '0.9rem' }}>{item.product_name}</div>
                                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>SKU: {item.sku || '-'}</div>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
+                                    <div className="text-right">
                                         <div style={{ fontWeight: '700', color: '#ef4444', fontSize: '0.9rem' }}>{item.quantity.toLocaleString()} {item.unit}</div>
                                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Min: {item.min_stock}</div>
                                     </div>
@@ -181,7 +181,7 @@ const OverviewTab = () => {
             </div>
 
             <div className="kpi-grid">
-                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/customers')} style={{ cursor: 'pointer' }}>
+                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/customers')} className="cursor-pointer">
                     <div className="kpi-icon-wrapper blue">
                         <Users size={24} />
                     </div>
@@ -197,7 +197,7 @@ const OverviewTab = () => {
                     </div>
                     <div className="kpi-content">
                         <span className="kpi-label">รายการสินค้าในคลัง</span>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div className="flex flex-col">
                             <span className="kpi-value">{data.totalInventoryItems.toLocaleString()} <span className="unit">รายการ</span></span>
                             {data.lowStockItems.length > 0 && (
                                 <span className="kpi-sub-value" style={{ fontSize: '0.8rem', color: '#ef4444', fontWeight: '600', marginTop: '0.2rem' }}>
@@ -208,13 +208,13 @@ const OverviewTab = () => {
                     </div>
                 </div>
 
-                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/invoices')} style={{ cursor: 'pointer' }}>
+                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/invoices')} className="cursor-pointer">
                     <div className="kpi-icon-wrapper green">
                         <DollarSign size={24} />
                     </div>
                     <div className="kpi-content">
                         <span className="kpi-label">ยอดขายเดือนนี้</span>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div className="flex flex-col">
                             <span className="kpi-value">฿{data.monthlySales.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                             <span className="kpi-sub-value" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                                 รวม {data.monthlyInvoiceCount} ใบกำกับภาษี
@@ -223,13 +223,13 @@ const OverviewTab = () => {
                     </div>
                 </div>
 
-                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/purchase-orders')} style={{ cursor: 'pointer' }}>
+                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/purchase-orders')} className="cursor-pointer">
                     <div className="kpi-icon-wrapper blue">
                         <ShoppingCart size={24} />
                     </div>
                     <div className="kpi-content">
                         <span className="kpi-label">PO เดือนนี้</span>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div className="flex flex-col">
                             <span className="kpi-value">{data.monthlyPOCount.toLocaleString()} <span className="unit">ใบ</span></span>
                             <span className="kpi-sub-value" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                                 ยอดรวม ฿{data.monthlyPOAmount.toLocaleString()}
@@ -238,13 +238,13 @@ const OverviewTab = () => {
                     </div>
                 </div>
 
-                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/quotations')} style={{ cursor: 'pointer' }}>
+                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/quotations')} className="cursor-pointer">
                     <div className="kpi-icon-wrapper yellow">
                         <FileText size={24} />
                     </div>
                     <div className="kpi-content">
                         <span className="kpi-label">ใบเสนอราคาเดือนนี้</span>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div className="flex flex-col">
                             <span className="kpi-value">{data.monthlyQuotationCount.toLocaleString()} <span className="unit">ใบ</span></span>
                             <span className="kpi-sub-value" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                                 ยอดรวม ฿{data.monthlyQuotationAmount.toLocaleString()}
@@ -254,7 +254,7 @@ const OverviewTab = () => {
                 </div>
             </div>
 
-            <CustomLineChart 
+            <CustomLineChart
                 title="แนวโน้มและสถิติภาพรวม"
                 metrics={[
                     { id: 'sales', label: 'ยอดขาย (Invoices)', data: data.rawInvoices, dateField: 'date', valueField: 'grandTotal', color: '#10b981', valuePrefix: '฿' },

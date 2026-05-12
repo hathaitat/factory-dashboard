@@ -128,7 +128,7 @@ const UserFormPage = () => {
 
     return (
         <div style={{ padding: '0 1rem 2rem 1rem', maxWidth: '900px', margin: '0 auto' }}>
-            <div style={{ marginBottom: '2rem' }}>
+            <div className="mb-8">
                 <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>
                     {isEditMode ? 'แก้ไขผู้ใช้งาน' : 'เพิ่มผู้ใช้งานใหม่'}
                 </h1>
@@ -139,7 +139,7 @@ const UserFormPage = () => {
 
             <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '2rem' }}>
                 {/* ข้อมูลทั่วไป */}
-                <div className="glass-panel" style={{ padding: '2rem' }}>
+                <div className="glass-panel p-8">
                     <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8b5cf6' }}>
                         <User size={20} /> ข้อมูลทั่วไป
                     </h3>
@@ -171,7 +171,7 @@ const UserFormPage = () => {
                             />
                         </div>
                     </div>
-                    <div className="form-group" style={{ marginTop: '1rem' }}>
+                    <div className="form-group mt-4">
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>อีเมล</label>
                         <input
                             type="email"
@@ -183,7 +183,7 @@ const UserFormPage = () => {
                             style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
                         />
                     </div>
-                    <div className="form-group" style={{ marginTop: '1rem' }}>
+                    <div className="form-group mt-4">
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>
                             รหัสผ่าน {isEditMode && <span style={{ fontSize: '0.8rem', color: '#f59e0b' }}>(เว้นว่างไว้หากไม่ต้องการเปลี่ยน)</span>}
                         </label>

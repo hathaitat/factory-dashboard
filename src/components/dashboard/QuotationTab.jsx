@@ -86,7 +86,7 @@ const QuotationTab = () => {
                     </div>
                     <div className="kpi-content">
                         <span className="kpi-label">ใบเสนอราคาทั้งหมด</span>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div className="flex flex-col">
                             <span className="kpi-value">{data.total.toLocaleString()} <span className="unit">ใบ</span></span>
                             <span className="kpi-sub-value" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                                 มูลค่ารวม ฿{data.rawQuotations.reduce((sum, qt) => sum + (qt.status !== 'Rejected' ? Number(qt.grandTotal) || 0 : 0), 0).toLocaleString()}
@@ -101,7 +101,7 @@ const QuotationTab = () => {
                     </div>
                     <div className="kpi-content">
                         <span className="kpi-label">เดือนนี้</span>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div className="flex flex-col">
                             <span className="kpi-value">{data.monthly.toLocaleString()} <span className="unit">ใบ</span></span>
                             <span className="kpi-sub-value" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                                 ยอดรวม ฿{data.monthlyAmount.toLocaleString()}
@@ -159,7 +159,7 @@ const QuotationTab = () => {
                             { label: 'Rejected', count: data.rejected, color: '#ef4444' }
                         ].map(s => (
                             <div key={s.label} style={{ fontSize: '0.75rem', color: s.color }}>
-                                <span style={{ fontWeight: '600' }}>{s.count}</span> {s.label}
+                                <span className="font-semibold">{s.count}</span> {s.label}
                             </div>
                         ))}
                     </div>

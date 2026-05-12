@@ -115,6 +115,77 @@ export const warehouseService = {
         }
     },
 
+    // === Inventory Logs & Tracking ===
+
+    getInventoryLogs: async (inventoryId) => {
+        try {
+            const { data, error } = await supabase
+                .from('inventory_logs')
+                .select('*')
+                .eq('inventory_id', inventoryId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error fetching inventory logs:', error);
+            return [];
+        }
+    },
+
+    getAllInventoryLogs: async (days = 90) => {
+        try {
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - days);
+
+            const { data, error } = await supabase
+                .from('inventory_logs')
+                .select(`
+                    *,
+                    inventory:warehouse_inventory(
+                        product_name,
+                        warehouse:warehouses(name)
+                    )
+                `)
+                .gte('created_at', startDate.toISOString())
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            return (data || []).map(log => ({
+                ...log,
+                productName: log.inventory?.product_name || 'ไม่ระบุ',
+                warehouseName: log.inventory?.warehouse?.name || 'ไม่ระบุ',
+                date: log.created_at
+            }));
+        } catch (error) {
+            console.error('Error fetching all inventory logs:', error);
+            return [];
+        }
+    },
+
+    logMovement: async (logData) => {
+        try {
+            console.log('Logging movement for:', logData.inventory_id);
+            const { error } = await supabase
+                .from('inventory_logs')
+                .insert([{
+                    inventory_id: logData.inventory_id,
+                    type: logData.action || logData.type || 'ADJUST',
+                    qty: logData.quantity_change || logData.quantity || logData.qty,
+                    remark: logData.remark || ''
+                }]);
+
+            if (error) {
+                console.error('Insert Error:', error);
+                throw error;
+            }
+        } catch (error) {
+            console.error('Critical logMovement error:', error);
+            throw error;
+        }
+    },
+
     addInventoryItem: async (inventoryData) => {
         try {
             const { data, error } = await supabase
@@ -124,6 +195,18 @@ export const warehouseService = {
                 .single();
 
             if (error) throw error;
+
+            // Log the initial addition
+            await warehouseService.logMovement({
+                inventory_id: data.id,
+                action: 'IN',
+                quantity_change: data.quantity,
+                previous_quantity: 0,
+                new_quantity: data.quantity,
+                source_type: 'manual',
+                remark: 'เพิ่มรายการสินค้าใหม่เข้าระบบ'
+            });
+
             return data;
         } catch (error) {
             console.error('Error adding inventory item:', error);
@@ -133,6 +216,13 @@ export const warehouseService = {
 
     updateInventoryItem: async (id, inventoryData) => {
         try {
+            // Get previous quantity for logging
+            const { data: prevItem } = await supabase
+                .from('warehouse_inventory')
+                .select('quantity')
+                .eq('id', id)
+                .single();
+
             inventoryData.last_updated = new Date().toISOString();
             const { data, error } = await supabase
                 .from('warehouse_inventory')
@@ -142,6 +232,21 @@ export const warehouseService = {
                 .single();
 
             if (error) throw error;
+
+            // Log the change if quantity was updated
+            if (prevItem && Number(prevItem.quantity) !== Number(data.quantity)) {
+                const diff = Number(data.quantity) - Number(prevItem.quantity);
+                await warehouseService.logMovement({
+                    inventory_id: data.id,
+                    action: diff > 0 ? 'IN' : 'OUT',
+                    quantity_change: Math.abs(diff),
+                    previous_quantity: prevItem.quantity,
+                    new_quantity: data.quantity,
+                    source_type: 'manual',
+                    remark: 'ปรับปรุงข้อมูลสินค้า (Manual Update)'
+                });
+            }
+
             return data;
         } catch (error) {
             console.error('Error updating inventory item:', error);
@@ -161,6 +266,25 @@ export const warehouseService = {
         } catch (error) {
             console.error('Error deleting inventory item:', error);
             throw error;
+        }
+    },
+
+    getInventoryItemById: async (id) => {
+        try {
+            const { data, error } = await supabase
+                .from('warehouse_inventory')
+                .select(`
+                    *,
+                    warehouse:warehouses(name)
+                `)
+                .eq('id', id)
+                .single();
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error fetching inventory item:', error);
+            return null;
         }
     }
 };

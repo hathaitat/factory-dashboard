@@ -18,7 +18,12 @@ const CustomLineChart = ({
     groupByValueField = 'grandTotal',
     groupByPrefix = '฿',
     groupBySuffix = '',
-    allGroups = null // Optional list of all possible group names
+    allGroups = null, // Optional list of all possible group names
+    isCategorical = false,
+    categoricalData = [],
+    categoryField = 'label',
+    className = '',
+    style = {}
 }) => {
     const [activeMetricIds, setActiveMetricIds] = useState([]);
     const [period, setPeriod] = useState('daily');
@@ -236,45 +241,74 @@ const CustomLineChart = ({
         return { data: finalData, configs: activeConfigs };
     }, [activeConfigs, period, dateBounds]);
 
+    const categoricalChartData = useMemo(() => {
+        if (!isCategorical) return { data: [], configs: [] };
+        
+        // Map categorical data to the internal format
+        const finalData = (categoricalData || []).map(item => ({
+            ...item,
+            key: item[categoryField],
+            label: item.shortName || item[categoryField]
+        }));
+
+        const configs = activeMetricIds.length > 0 
+            ? metrics.filter(m => activeMetricIds.includes(m.id))
+            : metrics.slice(0, 1);
+
+        return { data: finalData, configs };
+    }, [isCategorical, categoricalData, categoryField, activeMetricIds, metrics]);
+
+    const finalChartObj = isCategorical ? categoricalChartData : chartDataObj;
+
     const enhancedData = useMemo(() => {
-        let data = [...chartDataObj.data];
-        chartDataObj.configs.forEach(config => {
-            if (showMA) data = calcMovingAverage(data, config.id, 3);
-            if (showCumulative) data = calcCumulative(data, config.id);
+        let data = [...finalChartObj.data];
+        finalChartObj.configs.forEach(config => {
+            if (showMA && !isCategorical) data = calcMovingAverage(data, config.id, 3);
+            if (showCumulative && !isCategorical) data = calcCumulative(data, config.id);
         });
         return data;
-    }, [chartDataObj, showMA, showCumulative]);
+    }, [finalChartObj, showMA, showCumulative, isCategorical]);
 
     const summaryKPIs = useMemo(() => {
-        return chartDataObj.configs.map(config => {
-            const values = chartDataObj.data.map(d => d[config.id] || 0);
+        return finalChartObj.configs.map(config => {
+            const values = finalChartObj.data.map(d => Number(d[config.id]) || 0);
             const total = values.reduce((a, b) => a + b, 0);
             const avg = values.length > 0 ? total / values.length : 0;
             const nonZero = values.filter(v => v > 0);
             const max = nonZero.length > 0 ? Math.max(...nonZero) : 0;
             const maxIdx = values.indexOf(max);
-            const bestLabel = chartDataObj.data[maxIdx]?.label || '-';
-            const comparison = calcPrevPeriodData(config.data || [], dateBounds, period, config.dateField || 'date', config.valueField);
+            const bestLabel = finalChartObj.data[maxIdx]?.label || '-';
+            const comparison = isCategorical ? null : calcPrevPeriodData(config.data || [], dateBounds, period, config.dateField || 'date', config.valueField);
             return { ...config, total, avg, max, bestLabel, comparison };
         });
-    }, [chartDataObj, dateBounds, period]);
+    }, [finalChartObj, dateBounds, period, isCategorical]);
 
     const insights = useMemo(() => {
-        return generateInsights(chartDataObj.data, chartDataObj.configs, period);
-    }, [chartDataObj, period]);
+        if (isCategorical) {
+            if (finalChartObj.data.length === 0) return [];
+            const sortedData = [...finalChartObj.data].sort((a, b) => (b[finalChartObj.configs[0]?.id] || 0) - (a[finalChartObj.configs[0]?.id] || 0));
+            const top = sortedData[0];
+            const config = finalChartObj.configs[0];
+            if (!top || !config) return [];
+            return [
+                { text: `สูงสุด: ${top.label} (${formatDisplayValue(top[config.id], config.valuePrefix, config.valueSuffix)})`, color: config.color || '#3b82f6' }
+            ];
+        }
+        return generateInsights(finalChartObj.data, finalChartObj.configs, period);
+    }, [finalChartObj, period, isCategorical]);
 
     const avgValues = useMemo(() => {
         const map = {};
-        chartDataObj.configs.forEach(config => {
-            const vals = chartDataObj.data.map(d => d[config.id] || 0);
+        finalChartObj.configs.forEach(config => {
+            const vals = finalChartObj.data.map(d => d[config.id] || 0);
             map[config.id] = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
         });
         return map;
-    }, [chartDataObj]);
+    }, [finalChartObj]);
 
-    const hasRightAxis = chartDataObj.configs.some(c => c.yAxisId === 'right');
-    const leftConfigs = chartDataObj.configs.filter(c => c.yAxisId === 'left');
-    const rightConfigs = chartDataObj.configs.filter(c => c.yAxisId === 'right');
+    const hasRightAxis = finalChartObj.configs.some(c => c.yAxisId === 'right');
+    const leftConfigs = finalChartObj.configs.filter(c => c.yAxisId === 'left');
+    const rightConfigs = finalChartObj.configs.filter(c => c.yAxisId === 'right');
 
     const renderCustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
@@ -282,7 +316,7 @@ const CustomLineChart = ({
                 <div style={{ background: 'rgba(17, 24, 39, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', fontSize: '0.85rem', minWidth: '200px' }}>
                     <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.4rem' }}>{label}</p>
                     {payload.map((entry, index) => {
-                        const config = chartDataObj.configs.find(c => c.id === entry.dataKey);
+                        const config = finalChartObj.configs.find(c => c.id === entry.dataKey);
                         if (!config) return null;
 
                         const val = formatDisplayValue(entry.value, config.valuePrefix || '', config.valueSuffix || '');
@@ -316,11 +350,11 @@ const CustomLineChart = ({
     if (!metrics || metrics.length === 0) return null;
 
     return (
-        <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+        <div className={`glass-panel ${className}`} style={{ padding: '1.5rem', marginBottom: '1.5rem', ...style }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                     <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <TrendingUp size={20} style={{ color: chartDataObj.configs[0]?.color || '#3b82f6' }} />
+                        <TrendingUp size={20} style={{ color: finalChartObj.configs[0]?.color || '#3b82f6' }} />
                         {title}
                     </h3>
 
@@ -386,12 +420,12 @@ const CustomLineChart = ({
                         )}
 
                         {isGroupByMode && selectedGroups.map((group, index) => {
-                            const config = chartDataObj.configs.find(c => c.label === group);
+                            const config = finalChartObj.configs.find(c => c.label === group);
                             const color = config ? config.color : '#888';
                             return (
                                 <div key={group} style={{ padding: '0.2rem 0.6rem', borderRadius: '20px', border: `1px solid ${color}`, background: `${color}15`, color: color, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem', maxWidth: '150px' }}>
                                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{group}</span>
-                                    <X size={12} style={{ cursor: 'pointer' }} onClick={() => toggleGroup(group)} />
+                                    <X size={12} className="cursor-pointer" onClick={() => toggleGroup(group)} />
                                 </div>
                             );
                         })}
@@ -402,9 +436,11 @@ const CustomLineChart = ({
                     <div style={{ display: 'flex', background: 'rgba(0,0,0,0.1)', borderRadius: '8px', padding: '0.2rem', flexWrap: 'wrap' }}>
                         {[{ key: 'labels', icon: <FileDigit size={14} />, label: 'ตัวเลข', val: showLabels, set: setShowLabels, tooltip: 'แสดงตัวเลขระบุค่าของแต่ละจุดบนกราฟ เพื่อให้อ่านค่าได้ชัดเจน' },
                         { key: 'table', icon: <Table size={14} />, label: 'ตาราง', val: showTable, set: setShowTable, tooltip: 'แสดงข้อมูลสรุปในรูปแบบตารางที่ด้านล่างกราฟ แบ่งตามรายการและค่าเฉลี่ย' },
-                        { key: 'ma', icon: <Activity size={14} />, label: 'เส้นเฉลี่ยเคลื่อนที่', val: showMA, set: setShowMA, tooltip: 'เส้นที่ช่วยลดความผันผวนของข้อมูลรายวัน เพื่อให้เห็นแนวโน้ม (Trend) ที่แท้จริง' },
-                        { key: 'avg', icon: <BarChart3 size={14} />, label: 'เส้นค่าเฉลี่ย', val: showAvgLine, set: setShowAvgLine, tooltip: 'เส้นตรงที่ระบุค่าเฉลี่ยกลางของข้อมูลทั้งหมด เพื่อใช้เปรียบเทียบว่าวันไหนสูงหรือต่ำกว่าปกติ' },
-                        { key: 'cum', icon: <Layers size={14} />, label: 'สะสม', val: showCumulative, set: setShowCumulative, tooltip: 'แสดงกราฟแบบยอดรวมสะสมเพิ่มขึ้นเรื่อยๆ ตั้งแต่จุดเริ่มต้น เพื่อดูการเติบโตในภาพรวม' },
+                        ...(!isCategorical ? [
+                            { key: 'ma', icon: <Activity size={14} />, label: 'เส้นเฉลี่ยเคลื่อนที่', val: showMA, set: setShowMA, tooltip: 'เส้นที่ช่วยลดความผันผวนของข้อมูลรายวัน เพื่อให้เห็นแนวโน้ม (Trend) ที่แท้จริง' },
+                            { key: 'avg', icon: <BarChart3 size={14} />, label: 'เส้นค่าเฉลี่ย', val: showAvgLine, set: setShowAvgLine, tooltip: 'เส้นตรงที่ระบุค่าเฉลี่ยกลางของข้อมูลทั้งหมด เพื่อใช้เปรียบเทียบว่าวันไหนสูงหรือต่ำกว่าปกติ' },
+                            { key: 'cum', icon: <Layers size={14} />, label: 'สะสม', val: showCumulative, set: setShowCumulative, tooltip: 'แสดงกราฟแบบยอดรวมสะสมเพิ่มขึ้นเรื่อยๆ ตั้งแต่จุดเริ่มต้น เพื่อดูการเติบโตในภาพรวม' }
+                        ] : []),
                         { key: 'insights', icon: <Lightbulb size={14} />, label: 'วิเคราะห์', val: showInsights, set: setShowInsights, tooltip: 'แสดงข้อมูลสรุปผลการวิเคราะห์ เช่น วันที่ยอดสูงสุด และข้อสังเกตที่น่าสนใจ' }
                         ].map(btn => (
                             <div key={btn.key} className="tooltip-container">
@@ -414,18 +450,20 @@ const CustomLineChart = ({
                         ))}
                     </div>
 
-                    <select value={period} onChange={(e) => setPeriod(e.target.value)} className="glass-input" style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: 'var(--bg-main)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
-                        <option value="daily">รายวัน (30 วันล่าสุด)</option>
-                        <option value="weekly">รายสัปดาห์ (12 สัปดาห์ล่าสุด)</option>
-                        <option value="monthly">รายเดือน (12 เดือนล่าสุด)</option>
-                        <option value="yearly">รายปี (5 ปีล่าสุด)</option>
-                        <option value="custom">กำหนดเอง (Custom)</option>
-                    </select>
+                    {!isCategorical && (
+                        <select value={period} onChange={(e) => setPeriod(e.target.value)} className="glass-input" style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: 'var(--bg-main)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
+                            <option value="daily">รายวัน (30 วันล่าสุด)</option>
+                            <option value="weekly">รายสัปดาห์ (12 สัปดาห์ล่าสุด)</option>
+                            <option value="monthly">รายเดือน (12 เดือนล่าสุด)</option>
+                            <option value="yearly">รายปี (5 ปีล่าสุด)</option>
+                            <option value="custom">กำหนดเอง (Custom)</option>
+                        </select>
+                    )}
 
-                    {period === 'custom' && (
+                    {!isCategorical && period === 'custom' && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="glass-input" style={{ padding: '0.4rem', borderRadius: '6px', background: 'var(--bg-main)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} />
-                            <span style={{ color: 'var(--text-muted)' }}>ถึง</span>
+                            <span className="text-textMuted">ถึง</span>
                             <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="glass-input" style={{ padding: '0.4rem', borderRadius: '6px', background: 'var(--bg-main)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} />
                         </div>
                     )}
@@ -483,9 +521,9 @@ const CustomLineChart = ({
 
             <div style={{ width: '100%', height: 350 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={enhancedData} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
+                    <ComposedChart data={enhancedData} margin={{ top: 20, right: 10, left: 0, bottom: isCategorical ? 50 : 5 }}>
                         <defs>
-                            {chartDataObj.configs.map(config => (
+                            {finalChartObj.configs.map(config => (
                                 <linearGradient key={`grad-${config.id}`} id={`colorGradient-${config.id}`} x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor={config.color} stopOpacity={0.3} />
                                     <stop offset="95%" stopColor={config.color} stopOpacity={0} />
@@ -493,23 +531,28 @@ const CustomLineChart = ({
                             ))}
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={{ stroke: 'var(--border-color)' }} tickLine={false} minTickGap={20} />
+                        <XAxis dataKey="label" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={{ stroke: 'var(--border-color)' }} tickLine={false} minTickGap={5} interval={0} angle={isCategorical ? -45 : 0} textAnchor={isCategorical ? 'end' : 'middle'} />
                         {leftConfigs.length > 0 && <YAxis yAxisId="left" orientation="left" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => formatYAxis(v, leftConfigs[0])} width={55} />}
                         {hasRightAxis && <YAxis yAxisId="right" orientation="right" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => formatYAxis(v, rightConfigs[0])} width={45} />}
                         <Tooltip content={renderCustomTooltip} />
-                        {chartDataObj.configs.map((config) => {
+                        {finalChartObj.configs.map((config) => {
                             if (config.chartType === 'bar') return (<Bar key={config.id} yAxisId={config.yAxisId} dataKey={config.id} name={config.label} fill={config.color} radius={[4, 4, 0, 0]} barSize={30}>{showLabels && <LabelList dataKey={config.id} position="top" fill={config.color} fontSize={10} formatter={(val) => customLabelFormatter(val, config)} />}</Bar>);
-                            return (<Line key={config.id} yAxisId={config.yAxisId} type="monotone" dataKey={config.id} name={config.label} stroke={config.color} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: 'var(--card-bg)', stroke: config.color }} activeDot={{ r: 6, strokeWidth: 0, fill: config.color }}>{showLabels && <LabelList dataKey={config.id} position="top" fill={config.color} fontSize={10} formatter={(val) => customLabelFormatter(val, config)} />}</Line>);
+                            return (
+                                <React.Fragment key={config.id}>
+                                    <Area yAxisId={config.yAxisId} type="monotone" dataKey={config.id} stroke="none" fillOpacity={1} fill={`url(#colorGradient-${config.id})`} />
+                                    <Line yAxisId={config.yAxisId} type="monotone" dataKey={config.id} name={config.label} stroke={config.color} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: 'var(--card-bg)', stroke: config.color }} activeDot={{ r: 6, strokeWidth: 0, fill: config.color }}>{showLabels && <LabelList dataKey={config.id} position="top" fill={config.color} fontSize={10} formatter={(val) => customLabelFormatter(val, config)} />}</Line>
+                                </React.Fragment>
+                            );
                         })}
-                        {showAvgLine && chartDataObj.configs.map(config => (avgValues[config.id] > 0 && <ReferenceLine key={`avg-${config.id}`} yAxisId={config.yAxisId} y={avgValues[config.id]} stroke={config.color} strokeDasharray="6 4" strokeOpacity={0.6} />))}
-                        {showMA && chartDataObj.configs.map(config => <Line key={`ma-${config.id}`} yAxisId={config.yAxisId} type="monotone" dataKey={`${config.id}_ma`} name={`MA(3) ${config.label}`} stroke={config.color} strokeWidth={2} strokeDasharray="5 3" dot={false} connectNulls={true} />)}
-                        {showCumulative && chartDataObj.configs.map(config => <Area key={`cum-${config.id}`} yAxisId={config.yAxisId} type="monotone" dataKey={`${config.id}_cum`} name={`สะสม ${config.label}`} stroke={config.color} strokeWidth={1} fillOpacity={0.15} fill={config.color} strokeDasharray="3 2" dot={false} />)}
+                        {showAvgLine && finalChartObj.configs.map(config => (avgValues[config.id] > 0 && <ReferenceLine key={`avg-${config.id}`} yAxisId={config.yAxisId} y={avgValues[config.id]} stroke={config.color} strokeDasharray="6 4" strokeOpacity={0.6} />))}
+                        {showMA && finalChartObj.configs.map(config => <Line key={`ma-${config.id}`} yAxisId={config.yAxisId} type="monotone" dataKey={`${config.id}_ma`} name={`MA(3) ${config.label}`} stroke={config.color} strokeWidth={2} strokeDasharray="5 3" dot={false} connectNulls={true} />)}
+                        {showCumulative && finalChartObj.configs.map(config => <Area key={`cum-${config.id}`} yAxisId={config.yAxisId} type="monotone" dataKey={`${config.id}_cum`} name={`สะสม ${config.label}`} stroke={config.color} strokeWidth={1} fillOpacity={0.15} fill={config.color} strokeDasharray="3 2" dot={false} />)}
                     </ComposedChart>
                 </ResponsiveContainer>
             </div>
 
             {/* Interactive Data Table */}
-            {showTable && chartDataObj.configs.length > 0 && (
+            {showTable && finalChartObj.configs.length > 0 && (
                 <div style={{ marginTop: '1.5rem', animation: 'fadeIn 0.3s ease-out' }}>
                     <h4 title="ตารางแสดงรายละเอียดข้อมูลแบบแจกแจงรายรายการและช่วงเวลา รวมถึงคำนวณผลรวมและค่าเฉลี่ยให้อัตโนมัติ" style={{ margin: '0 0 0.8rem 0', color: 'var(--text-main)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         <Table size={16} style={{ color: '#10b981' }} /> รายละเอียดข้อมูล
@@ -521,14 +564,14 @@ const CustomLineChart = ({
                                     <th style={{ padding: '0.8rem 1rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: '600' }}>หัวข้อ / ซีรีส์</th>
                                     <th style={{ padding: '0.8rem 1rem', textAlign: 'right', color: '#3b82f6', background: 'rgba(59, 130, 246, 0.05)', fontWeight: '600', borderRight: '1px solid var(--border-color)' }}>รวม (Total)</th>
                                     <th style={{ padding: '0.8rem 1rem', textAlign: 'right', color: '#10b981', background: 'rgba(16, 185, 129, 0.05)', fontWeight: '600', borderRight: '1px solid var(--border-color)' }}>ค่าเฉลี่ย</th>
-                                    {chartDataObj.data.map(d => <th key={d.key} style={{ padding: '0.8rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: '500', whiteSpace: 'nowrap' }}>{d.label}</th>)}
+                                    {finalChartObj.data.map(d => <th key={d.key} style={{ padding: '0.8rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: '500', whiteSpace: 'nowrap' }}>{d.label}</th>)}
                                 </tr>
                             </thead>
                             <tbody>
-                                {chartDataObj.configs.map(config => {
+                                {finalChartObj.configs.map(config => {
                                     let total = 0;
-                                    chartDataObj.data.forEach(d => { total += (d[config.id] || 0); });
-                                    const avg = chartDataObj.data.length > 0 ? total / chartDataObj.data.length : 0;
+                                    finalChartObj.data.forEach(d => { total += (d[config.id] || 0); });
+                                    const avg = finalChartObj.data.length > 0 ? total / finalChartObj.data.length : 0;
                                     const formatVal = (v) => config.valuePrefix === '฿' ? Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : Number(v).toLocaleString(undefined, { maximumFractionDigits: 1 });
                                     return (
                                         <tr key={config.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="hover-row">
@@ -538,12 +581,12 @@ const CustomLineChart = ({
                                             </td>
                                             <td style={{ padding: '0.8rem 1rem', textAlign: 'right', fontWeight: '700', color: '#3b82f6', background: 'rgba(59, 130, 246, 0.05)', whiteSpace: 'nowrap', borderRight: '1px solid var(--border-color)' }}>{formatVal(total)}</td>
                                             <td style={{ padding: '0.8rem 1rem', textAlign: 'right', fontWeight: '600', color: '#10b981', background: 'rgba(16, 185, 129, 0.05)', whiteSpace: 'nowrap', borderRight: '1px solid var(--border-color)' }}>{formatVal(avg)}</td>
-                                            {chartDataObj.data.map((d, index) => {
+                                            {finalChartObj.data.map((d, index) => {
                                                 const currentVal = d[config.id] || 0;
-                                                const prevVal = index > 0 ? (chartDataObj.data[index - 1][config.id] || 0) : 0;
+                                                const prevVal = index > 0 ? (finalChartObj.data[index - 1][config.id] || 0) : 0;
                                                 let pctStr = null;
                                                 let pctColor = 'var(--text-muted)';
-                                                if (prevVal > 0) {
+                                                if (!isCategorical && prevVal > 0) {
                                                     const pct = ((currentVal - prevVal) / prevVal) * 100;
                                                     if (pct !== 0) {
                                                         pctColor = pct > 0 ? '#10b981' : '#ef4444';

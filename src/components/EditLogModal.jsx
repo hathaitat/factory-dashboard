@@ -73,7 +73,7 @@ const EditLogModal = ({ cell, onClose, onSave, onDelete }) => {
                     {emp.code} - {emp.name || emp.full_name}
                 </div>
 
-                <div style={{ marginBottom: '1rem' }}>
+                <div className="mb-4">
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                         <input
                             type="checkbox"

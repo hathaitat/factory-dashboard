@@ -249,7 +249,7 @@ export const DialogProvider = ({ children }) => {
                         <div style={{ marginTop: '2px' }}>
                             <Info size={20} />
                         </div>
-                        <div style={{ flex: 1 }}>
+                        <div className="flex-1">
                             <div style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '2px', fontWeight: '500' }}>หมายเหตุเฉพาะลูกค้า</div>
                             <div style={{ fontSize: '0.95rem', lineHeight: '1.4', fontWeight: '500' }}>{toast.message}</div>
                         </div>

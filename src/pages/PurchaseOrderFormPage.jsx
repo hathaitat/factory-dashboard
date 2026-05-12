@@ -252,7 +252,7 @@ const PurchaseOrderFormPage = () => {
                     <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>
                         {isEdit ? 'แก้ไขใบสั่งซื้อ (PO)' : 'เพิ่มใบสั่งซื้อใหม่'}
                     </h1>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div className="flex gap-4">
                         <select
                             value={formData.status}
                             onChange={e => setFormData({ ...formData, status: e.target.value })}
@@ -280,7 +280,7 @@ const PurchaseOrderFormPage = () => {
                     </h3>
                     <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เลขที่ใบสั่งซื้อ (PO Number) <span style={{ color: 'var(--error)' }}>*</span></label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เลขที่ใบสั่งซื้อ (PO Number) <span className="text-error">*</span></label>
                             <input
                                 type="text"
                                 value={formData.po_number}
@@ -337,7 +337,7 @@ const PurchaseOrderFormPage = () => {
                                             onMouseOver={(e) => e.currentTarget.style.background = 'var(--card-hover)'}
                                             onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                                         >
-                                            <div style={{ fontWeight: '500' }}>{c.name}</div>
+                                            <div className="font-medium">{c.name}</div>
                                             <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{c.code}</div>
                                         </div>
                                     ))}
@@ -528,7 +528,7 @@ const PurchaseOrderFormPage = () => {
                 </div>
 
                 <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                    <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                    <div className="glass-panel p-6">
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>รายละเอียดเพิ่มเติม / หมายเหตุ</label>
                         <textarea
                             value={formData.notes}
@@ -541,14 +541,14 @@ const PurchaseOrderFormPage = () => {
                     </div>
 
                     <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: 'var(--text-muted)' }}>รวมเป็นเงิน (Sub Total)</span>
-                            <span style={{ fontWeight: '500' }}>฿{formData.subtotal?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <div className="flex justify-between items-center">
+                            <span className="text-textMuted">รวมเป็นเงิน (Sub Total)</span>
+                            <span className="font-medium">฿{formData.subtotal?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="flex justify-between items-center">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ color: 'var(--text-muted)' }}>หักส่วนลด (Discount)</span>
+                                <span className="text-textMuted">หักส่วนลด (Discount)</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <input
@@ -562,9 +562,9 @@ const PurchaseOrderFormPage = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="flex justify-between items-center">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ color: 'var(--text-muted)' }}>ภาษีมูลค่าเพิ่ม (VAT)</span>
+                                <span className="text-textMuted">ภาษีมูลค่าเพิ่ม (VAT)</span>
                                 <input
                                     type="number"
                                     value={formData.vat_rate}
@@ -574,7 +574,7 @@ const PurchaseOrderFormPage = () => {
                                 />
                                 <span>%</span>
                             </div>
-                            <span style={{ fontWeight: '500' }}>฿{formData.vat_amount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="font-medium">฿{formData.vat_amount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
 
                         <div style={{ borderTop: '1px dashed var(--border-color)', margin: '0.5rem 0' }}></div>

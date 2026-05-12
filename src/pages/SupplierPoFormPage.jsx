@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Save, X, Plus, Trash2, ArrowLeft, FileText, Clock } from 'lucide-react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Save, X, Plus, Trash2, ArrowLeft, FileText, Clock, Image as ImageIcon, Upload, Loader2 } from 'lucide-react';
 import { supplierPoService } from '../services/supplierPoService';
 import { supplierService } from '../services/supplierService';
 import { supplierProductService } from '../services/supplierProductService';
 import { warehouseService } from '../services/warehouseService';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader from '../components/PageHeader';
+import { userService } from '../services/userService';
 
 const SupplierPoFormPage = () => {
     const { id } = useParams();
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const duplicateId = queryParams.get('duplicate');
     const isEdit = Boolean(id);
     const navigate = useNavigate();
     const { showAlert, showError, showConfirm } = useDialog();
@@ -37,7 +41,7 @@ const SupplierPoFormPage = () => {
     });
 
     const [items, setItems] = useState([
-        { id: Date.now(), supplier_product_id: '', description: '', quantity: 1, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }
+        { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }
     ]);
 
     const [isLoading, setIsLoading] = useState(true);
@@ -45,7 +49,7 @@ const SupplierPoFormPage = () => {
 
     useEffect(() => {
         loadInitialData();
-    }, [id]);
+    }, [id, duplicateId]);
 
     // When supplier changes, load their products
     useEffect(() => {
@@ -70,27 +74,34 @@ const SupplierPoFormPage = () => {
             setSuppliers(suppliersData || []);
             setWarehouses(warehousesData || []);
 
-            // Set default warehouse
-            const defaultWh = warehousesData?.find(w => w.is_default);
-            if (!isEdit && defaultWh) {
-                setFormData(prev => ({ ...prev, delivery_warehouse_id: defaultWh.id }));
+            // Set default warehouse and current user for new POs
+            if (!isEdit && !duplicateId) {
+                const defaultWh = warehousesData?.find(w => w.is_default);
+                const currentUser = userService.getCurrentUser();
+                
+                setFormData(prev => ({ 
+                    ...prev, 
+                    delivery_warehouse_id: defaultWh ? defaultWh.id : prev.delivery_warehouse_id,
+                    purchased_by: currentUser ? currentUser.fullName : ''
+                }));
             }
 
-            if (isEdit) {
-                const poData = await supplierPoService.getSupplierPoById(id);
+            if (isEdit || duplicateId) {
+                const fetchId = isEdit ? id : duplicateId;
+                const poData = await supplierPoService.getSupplierPoById(fetchId);
                 if (poData) {
                     setFormData({
-                        po_number: poData.po_number || '',
+                        po_number: isEdit ? (poData.po_number || '') : '', // Clear if duplicating
                         supplier_id: poData.supplier_id || '',
                         delivery_warehouse_id: poData.delivery_warehouse_id || '',
-                        date: poData.date ? poData.date.split('T')[0] : '',
+                        date: isEdit ? (poData.date ? poData.date.split('T')[0] : '') : new Date().toISOString().split('T')[0],
                         delivery_date: poData.delivery_date ? poData.delivery_date.split('T')[0] : '',
                         credit_term: poData.credit_term || '',
                         reference_doc: poData.reference_doc || '',
                         remark: poData.remark || '',
-                        purchased_by: poData.purchased_by || '',
+                        purchased_by: isEdit ? (poData.purchased_by || '') : (userService.getCurrentUser()?.fullName || poData.purchased_by || ''),
                         approved_by: poData.approved_by || '',
-                        status: poData.status || 'Draft',
+                        status: isEdit ? (poData.status || 'Draft') : 'Draft',
                         sub_total: poData.sub_total || 0,
                         vat_rate: poData.vat_rate || 7,
                         vat_amount: poData.vat_amount || 0,
@@ -100,6 +111,7 @@ const SupplierPoFormPage = () => {
                     if (poData.supplier_po_items && poData.supplier_po_items.length > 0) {
                         setItems(poData.supplier_po_items.map(item => ({
                             ...item,
+                            id: isEdit ? item.id : Date.now() + Math.random(), // New ID if duplicating
                             due_date: item.due_date ? item.due_date.split('T')[0] : ''
                         })));
                     }
@@ -144,6 +156,26 @@ const SupplierPoFormPage = () => {
         }));
     };
 
+    const handleImageUpload = async (index, file) => {
+        if (!file) return;
+        
+        try {
+            // Show some loading state if needed
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+            const filePath = `po_items/${fileName}`;
+            
+            const result = await supplierPoService.uploadFile(file, filePath);
+            if (result.error) throw result.error;
+            
+            handleItemChange(index, 'image_url', result.publicUrl);
+            showAlert('อัปโหลดรูปภาพสำเร็จ');
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            showError('ไม่สามารถอัปโหลดรูปภาพได้');
+        }
+    };
+
     const handleItemChange = (index, field, value) => {
         const newItems = [...items];
         const item = newItems[index];
@@ -171,7 +203,7 @@ const SupplierPoFormPage = () => {
     };
 
     const addItem = () => {
-        setItems([...items, { id: Date.now(), supplier_product_id: '', description: '', quantity: 1, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }]);
+        setItems([...items, { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }]);
     };
 
     const removeItem = (index) => {
@@ -257,7 +289,7 @@ const SupplierPoFormPage = () => {
                     <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>
                         {isEdit ? 'แก้ไขใบสั่งซื้อผู้ขาย' : 'สร้างใบสั่งซื้อผู้ขาย'}
                     </h1>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div className="flex gap-4">
                         <select
                             value={formData.status}
                             onChange={e => setFormData({ ...formData, status: e.target.value })}
@@ -291,7 +323,6 @@ const SupplierPoFormPage = () => {
                                 onChange={handleChange}
                                 className="glass-input"
                                 placeholder="สร้างอัตโนมัติเมื่อบันทึก"
-                                disabled={isEdit}
                                 style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
                             />
                         </div>
@@ -342,13 +373,14 @@ const SupplierPoFormPage = () => {
                             </select>
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>กำหนดส่งสินค้า</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>กำหนดส่งสินค้า *</label>
                             <input
                                 type="date"
                                 name="delivery_date"
                                 value={formData.delivery_date}
                                 onChange={handleChange}
                                 className="glass-input"
+                                required
                                 style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
                             />
                         </div>
@@ -386,7 +418,7 @@ const SupplierPoFormPage = () => {
                         </button>
                     </div>
 
-                      <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                    <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
@@ -454,8 +486,74 @@ const SupplierPoFormPage = () => {
                                                     <option key={p.id} value={p.name}>฿{p.price}</option>
                                                 ))}
                                             </datalist>
+
+                                            <div style={{ marginTop: '0.8rem' }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>รายละเอียดเพิ่มเติม (Note):</label>
+                                                <textarea
+                                                    value={item.note || ''}
+                                                    onChange={(e) => handleItemChange(index, 'note', e.target.value)}
+                                                    placeholder="ใส่ข้อมูลเพิ่มเติมทีละบรรทัด (เช่น สเปคสินค้า)..."
+                                                    rows="2"
+                                                    style={{ 
+                                                        width: '100%', 
+                                                        padding: '0.5rem', 
+                                                        background: 'rgba(255, 255, 255, 0.03)', 
+                                                        borderRadius: '6px', 
+                                                        color: 'var(--text-main)', 
+                                                        border: '1px dashed var(--border-color)',
+                                                        fontSize: '0.85rem',
+                                                        resize: 'vertical',
+                                                        minHeight: '45px'
+                                                    }}
+                                                />
+                                            </div>
+
+                                            <div style={{ marginTop: '0.8rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <div style={{ position: 'relative' }}>
+                                                    <input
+                                                        type="file"
+                                                        id={`item-image-${index}`}
+                                                        accept="image/*"
+                                                        onChange={(e) => handleImageUpload(index, e.target.files[0])}
+                                                        style={{ display: 'none' }}
+                                                    />
+                                                    <label
+                                                        htmlFor={`item-image-${index}`}
+                                                        style={{ 
+                                                            display: 'flex', 
+                                                            alignItems: 'center', 
+                                                            gap: '0.4rem', 
+                                                            fontSize: '0.75rem', 
+                                                            color: '#3b82f6', 
+                                                            cursor: 'pointer',
+                                                            background: 'rgba(59, 130, 246, 0.05)',
+                                                            padding: '0.3rem 0.6rem',
+                                                            borderRadius: '4px',
+                                                            border: '1px solid rgba(59, 130, 246, 0.2)'
+                                                        }}
+                                                    >
+                                                        <ImageIcon size={14} /> {item.image_url ? 'เปลี่ยนรูปภาพ' : 'เพิ่มรูปภาพ'}
+                                                    </label>
+                                                </div>
+                                                {item.image_url && (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <img 
+                                                            src={item.image_url} 
+                                                            alt="preview" 
+                                                            style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-color)' }} 
+                                                        />
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => handleItemChange(index, 'image_url', '')}
+                                                            style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '0.7rem' }}
+                                                        >
+                                                            ลบรูป
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
-                                        <td style={{ padding: '1rem' }}>
+                                        <td className="p-4">
                                             <input
                                                 type="number"
                                                 min="0.01"
@@ -509,8 +607,8 @@ const SupplierPoFormPage = () => {
                         </table>
                     </div>
 
-                    <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                        <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                    <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', padding: '1.5rem' }}>
+                        <div className="glass-panel p-6">
                             <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>หมายเหตุ (REMARK)</label>
                             <textarea
                                 name="remark"
@@ -524,23 +622,25 @@ const SupplierPoFormPage = () => {
                             
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ผู้สั่งซื้อ (PURCHASE BY)</label>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ผู้สั่งซื้อ (PURCHASE BY) *</label>
                                     <input
                                         type="text"
                                         name="purchased_by"
                                         value={formData.purchased_by}
                                         onChange={handleChange}
+                                        required
                                         className="glass-input"
                                         style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ผู้อนุมัติ (APPROVER BY)</label>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ผู้อนุมัติ (APPROVER BY) *</label>
                                     <input
                                         type="text"
                                         name="approved_by"
                                         value={formData.approved_by}
                                         onChange={handleChange}
+                                        required
                                         className="glass-input"
                                         style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
                                     />
@@ -548,15 +648,15 @@ const SupplierPoFormPage = () => {
                             </div>
                         </div>
 
-                        <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                        <div className="glass-panel p-6">
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>รวมเป็นเงิน (SUB TOTAL)</span>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-textMuted">รวมเป็นเงิน (SUB TOTAL)</span>
                                     <span style={{ fontSize: '1.1rem', color: 'var(--text-main)' }}>฿{formData.sub_total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div className="flex justify-between items-center">
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <span style={{ color: 'var(--text-muted)' }}>ภาษีมูลค่าเพิ่ม (VAT)</span>
+                                        <span className="text-textMuted">ภาษีมูลค่าเพิ่ม (VAT)</span>
                                         <input 
                                             type="number" 
                                             name="vat_rate" 
@@ -565,9 +665,9 @@ const SupplierPoFormPage = () => {
                                             className="glass-input"
                                             style={{ width: '50px', padding: '0.2rem', textAlign: 'center', background: 'var(--bg-main)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '0.8rem' }}
                                         />
-                                        <span style={{ color: 'var(--text-muted)' }}>%</span>
+                                        <span className="text-textMuted">%</span>
                                     </div>
-                                    <span style={{ color: 'var(--text-main)' }}>฿{formData.vat_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span className="text-textMain">฿{formData.vat_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <div style={{ padding: '1rem 0', borderTop: '1px solid var(--border-color)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontSize: '1.2rem', fontWeight: '600', color: 'var(--primary)' }}>ยอดเงินสุทธิ (TOTAL)</span>
@@ -577,8 +677,6 @@ const SupplierPoFormPage = () => {
                         </div>
                     </div>
                 </div>
-
-
             </form>
         </div>
     );

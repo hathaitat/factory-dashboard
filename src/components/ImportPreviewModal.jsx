@@ -255,7 +255,7 @@ const ImportPreviewModal = ({ isOpen, onClose, data, onConfirm, status = 'previe
 
                     {status === 'processing' && (
                         <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                            <div style={{ marginBottom: '1rem' }}>
+                            <div className="mb-4">
                                 <Loader className="animate-spin" size={48} color="#37477C" style={{ margin: '0 auto' }} />
                             </div>
                             <h4 style={{ margin: '0 0 0.5rem 0', color: '#37477C' }}>กำลังประมวลผล...</h4>

@@ -249,7 +249,7 @@ const SupplierDetailPage = () => {
             {activeTab === 'info' && (
                 <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                        <div className="glass-panel" style={{ padding: '2rem' }}>
+                        <div className="glass-panel p-8">
                             <h3 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--primary)' }}>
                                 <Building size={22} /> รายละเอียดบริษัท
                             </h3>
@@ -295,14 +295,14 @@ const SupplierDetailPage = () => {
                                                 {name}
                                             </span>
                                         )) : (
-                                            <span style={{ color: 'var(--text-muted)' }}>-</span>
+                                            <span className="text-textMuted">-</span>
                                         )}
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="glass-panel" style={{ padding: '2rem' }}>
+                        <div className="glass-panel p-8">
                             <h3 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--secondary)' }}>
                                 <MapPin size={22} /> ที่อยู่จัดส่ง / ติดต่อ
                             </h3>
@@ -313,14 +313,14 @@ const SupplierDetailPage = () => {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                        <div className="glass-panel" style={{ padding: '2rem' }}>
+                        <div className="glass-panel p-8">
                             <h3 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--info)' }}>
                                 <User size={22} /> ข้อมูลติดต่อ
                             </h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>ผู้ติดต่อ</label>
-                                    <div style={{ fontWeight: '600' }}>{supplier.contactPerson || '-'}</div>
+                                    <div className="font-semibold">{supplier.contactPerson || '-'}</div>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                     <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
@@ -328,7 +328,7 @@ const SupplierDetailPage = () => {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>เบอร์โทรศัพท์</label>
-                                        <div style={{ fontWeight: '500' }}>{supplier.phone || '-'}</div>
+                                        <div className="font-medium">{supplier.phone || '-'}</div>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -337,13 +337,13 @@ const SupplierDetailPage = () => {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>อีเมล</label>
-                                        <div style={{ fontWeight: '500' }}>{supplier.email || '-'}</div>
+                                        <div className="font-medium">{supplier.email || '-'}</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="glass-panel" style={{ padding: '2rem' }}>
+                        <div className="glass-panel p-8">
                             <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-muted)', fontSize: '1.1rem' }}>
                                 <FileText size={20} /> หมายเหตุ
                             </h3>
@@ -418,7 +418,7 @@ const SupplierDetailPage = () => {
                                             style={{ width: '100%', padding: '0.8rem' }}
                                         />
                                     </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <div className="flex gap-2">
                                         <button type="submit" className="primary-btn" style={{ padding: '0.8rem 1.5rem', borderRadius: '8px', background: 'var(--secondary)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '600' }}>
                                             {isSavingProduct ? '...' : (editingProduct ? 'บันทึก' : 'เพิ่ม')}
                                         </button>
@@ -492,7 +492,7 @@ const SupplierDetailPage = () => {
                 <div className="glass-panel" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                     <History size={64} style={{ marginBottom: '1.5rem', opacity: 0.2 }} />
                     <h3 style={{ margin: '0 0 0.5rem 0' }}>ประวัติการสั่งซื้อ</h3>
-                    <p style={{ margin: 0 }}>ระบบประวัติการซื้อจะแสดงผลเมื่อมีการเชื่อมต่อกับโมดูลจัดซื้อ (Purchasing) ในขั้นตอนถัดไปครับ</p>
+                    <p className="m-0">ระบบประวัติการซื้อจะแสดงผลเมื่อมีการเชื่อมต่อกับโมดูลจัดซื้อ (Purchasing) ในขั้นตอนถัดไปครับ</p>
                 </div>
             )}
         </div>

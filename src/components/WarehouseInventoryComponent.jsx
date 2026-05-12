@@ -149,13 +149,13 @@ const WarehouseDetailPage = () => {
                 <div style={{ flex: '1', minWidth: '250px' }}>
                     {warehouse.contact_person && (
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', color: 'var(--text-main)', marginBottom: '0.5rem' }}>
-                            <User size={18} style={{ color: 'var(--text-muted)' }}/> 
+                            <User size={18} className="text-textMuted"/> 
                             <span>ผู้ติดต่อ: {warehouse.contact_person}</span>
                         </div>
                     )}
                     {warehouse.phone && (
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', color: 'var(--text-main)' }}>
-                            <Phone size={18} style={{ color: 'var(--text-muted)' }}/> 
+                            <Phone size={18} className="text-textMuted"/> 
                             <span>เบอร์โทร: {warehouse.phone}</span>
                         </div>
                     )}
@@ -165,7 +165,7 @@ const WarehouseDetailPage = () => {
             {/* Inventory Section */}
             <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.02)' }}>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div className="flex gap-4">
                         <button
                             onClick={() => setActiveTab('material')}
                             style={{
@@ -212,7 +212,7 @@ const WarehouseDetailPage = () => {
                     </button>
                 </div>
 
-                <div className="table-responsive-wrapper" style={{ overflowX: 'auto' }}>
+                <div className="table-responsive-wrapper overflow-x-auto">
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', background: 'var(--bg-main)' }}>
@@ -279,7 +279,7 @@ const WarehouseDetailPage = () => {
                         </div>
 
                         <form onSubmit={handleSave}>
-                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                            <div className="form-group mb-4">
                                 <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ประเภทรายการ *</label>
                                 <select
                                     required
@@ -293,7 +293,7 @@ const WarehouseDetailPage = () => {
                                 </select>
                             </div>
 
-                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                            <div className="form-group mb-4">
                                 <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ชื่อรายการ *</label>
                                 <input
                                     required
@@ -306,7 +306,7 @@ const WarehouseDetailPage = () => {
                                 />
                             </div>
 
-                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                            <div className="form-group mb-4">
                                 <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>รหัส SKU</label>
                                 <input
                                     type="text"

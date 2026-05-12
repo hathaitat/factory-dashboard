@@ -106,35 +106,43 @@ export const supplierProductService = {
         }
     },
     
-    // Get price history for a product
+    // Get price history for a product from actual POs
     getProductPriceHistory: async (productId, startDate, endDate) => {
         try {
+            // Query from supplier_po_items which contains actual purchase prices
             let query = supabase
-                .from('supplier_product_price_history')
-                .select('*')
-                .eq('product_id', productId)
-                .order('effective_date', { ascending: true });
+                .from('supplier_po_items')
+                .select(`
+                    id,
+                    unit_price,
+                    supplier_pos!inner (
+                        date,
+                        po_number
+                    )
+                `)
+                .eq('supplier_product_id', productId)
+                .order('supplier_pos(date)', { ascending: true });
 
             if (startDate) {
-                query = query.gte('effective_date', startDate);
+                query = query.gte('supplier_pos.date', startDate);
             }
             if (endDate) {
-                query = query.lte('effective_date', endDate);
+                query = query.lte('supplier_pos.date', endDate);
             }
 
             const { data, error } = await query;
             if (error) throw error;
 
-            return data.map(h => ({
-                id: h.id,
-                productId: h.product_id,
-                price: Number(h.price),
-                effectiveDate: h.effective_date,
-                notes: h.notes,
-                createdAt: h.created_at
+            return data.map(item => ({
+                id: item.id,
+                productId: productId,
+                price: Number(item.unit_price),
+                effectiveDate: item.supplier_pos.date,
+                notes: `จาก PO: ${item.supplier_pos.po_number}`,
+                createdAt: item.supplier_pos.date
             }));
         } catch (error) {
-            console.error('Error fetching product price history:', error);
+            console.error('Error fetching product price history from POs:', error);
             return [];
         }
     }

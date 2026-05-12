@@ -55,16 +55,45 @@ const ReceiptPrintTemplate = () => {
         window.print();
     };
 
-    if (isLoading) return <div style={{ padding: '2rem' }}>กำลังโหลด...</div>;
-    if (!bn || !company) return <div style={{ padding: '2rem' }}>ไม่พบข้อมูล</div>;
+    if (isLoading) return <div className="p-8">กำลังโหลด...</div>;
+    if (!bn || !company) return <div className="p-8">ไม่พบข้อมูล</div>;
 
     return (
         <div className="print-container">
-            <div className="no-print" style={{ padding: '1rem', display: 'flex', gap: '1rem', background: '#111', borderBottom: '1px solid #333' }}>
-                <button onClick={() => navigate(`/dashboard/billing-notes/${id}`)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: '1px solid #444', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' }}>
+            <div className="no-print" style={{ 
+                padding: '0.8rem 1.5rem', 
+                display: 'flex', 
+                alignItems: 'center',
+                gap: '1rem',
+                background: '#111', 
+                color: 'white', 
+                position: 'sticky', 
+                top: 0, 
+                zIndex: 100,
+                borderBottom: '1px solid #333'
+            }}>
+                <button 
+                    onClick={() => navigate(`/dashboard/billing-notes/${id}`)} 
+                    style={{ 
+                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white', 
+                        padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
+                        fontSize: '0.9rem'
+                    }}
+                >
                     <ArrowLeft size={18} /> ย้อนกลับ
                 </button>
-                <button onClick={handlePrint} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#3b82f6', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' }}>
+                
+                <button 
+                    onClick={handlePrint} 
+                    style={{ 
+                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                        background: '#3b82f6', border: 'none', color: 'white', 
+                        padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
+                        fontWeight: '600', fontSize: '0.95rem',
+                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                    }}
+                >
                     <Printer size={18} /> พิมพ์ใบเสร็จรับเงิน
                 </button>
             </div>
@@ -78,8 +107,11 @@ const ReceiptPrintTemplate = () => {
                         <div style={{ fontSize: '1.26rem', fontWeight: 'bold', lineHeight: '1.8' }}>{company.name}</div>
                         <div style={{ fontSize: '0.9rem', lineHeight: '1.8' }}>{company.address}</div>
                         <div style={{ fontSize: '0.9rem', lineHeight: '1.8' }}>
-                            {company.phone && `Tel. ${company.phone}`} {company.fax && `, Fax. ${company.fax}`}
-                            {company.taxId && ` Tax ID: ${company.taxId}`}
+                            {[
+                                company.phone && `Tel. ${company.phone}`,
+                                company.fax && `Fax. ${company.fax}`,
+                                company.taxId && `Tax ID: ${company.taxId}`
+                            ].filter(Boolean).join(' | ')}
                         </div>
                     </div>
 
@@ -135,7 +167,7 @@ const ReceiptPrintTemplate = () => {
                             <span>เลขที่ (No.)</span>
                             <strong>{getReceiptNumber()}</strong>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div className="flex justify-between">
                             <span>วันที่ (Date)</span>
                             <span>{new Date(bn.date).toLocaleDateString('th-TH')}</span>
                         </div>
@@ -152,7 +184,7 @@ const ReceiptPrintTemplate = () => {
                                 <th style={{ borderRight: '1px solid #000', width: '25%', textAlign: 'center' }}>เลขที่ใบกำกับ</th>
                                 <th style={{ borderRight: '1px solid #000', width: '15%', textAlign: 'center' }}>ลงวันที่</th>
                                 <th style={{ borderRight: '1px solid #000', width: '20%', textAlign: 'center' }}>ครบกำหนด</th>
-                                <th style={{ textAlign: 'center' }}>จำนวนเงินเรียกเก็บ</th>
+                                <th className="text-center">จำนวนเงินเรียกเก็บ</th>
                             </tr>
                         </thead>
                         <tbody style={{ lineHeight: '1.8' }}>
@@ -184,8 +216,11 @@ const ReceiptPrintTemplate = () => {
                         </tbody>
                         <tfoot style={{ lineHeight: '1.8' }}>
                             <tr style={{ borderTop: '1px solid #000', height: '30px' }}>
-                                <td colSpan="4" style={{ borderRight: '1px solid #000', textAlign: 'center', background: '#f5f5f5' }}>
-                                    {bn.bahtText || '-'}
+                                <td colSpan="3" style={{ borderRight: '1px solid #000', textAlign: 'center', background: '#f5f5f5', fontSize: '0.9rem' }}>
+                                    ({bn.bahtText || '-'})
+                                </td>
+                                <td style={{ borderRight: '1px solid #000', textAlign: 'center', fontWeight: 'bold' }}>
+                                    รวมเป็นเงิน
                                 </td>
                                 <td style={{ textAlign: 'right', paddingRight: '5px', fontWeight: 'bold' }}>
                                     {bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -217,7 +252,7 @@ const ReceiptPrintTemplate = () => {
                 {/* Payment Section */}
                 <div style={{ border: '1px solid #000', marginBottom: '15px', padding: '10px 15px' }}>
                     <div style={{ display: 'flex', gap: '2rem', marginBottom: '10px', paddingTop: '10px' }}>
-                        <div style={{ fontWeight: 'bold' }}>ชำระโดย</div>
+                        <div className="font-bold">ชำระโดย</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                             <div style={{ width: '15px', height: '15px', border: '1px solid #000' }}></div> สด
                         </div>
@@ -248,7 +283,7 @@ const ReceiptPrintTemplate = () => {
 
                 {/* Legal Note */}
                 <div style={{ fontSize: '0.8rem', textAlign: 'left', marginTop: '20px', lineHeight: '1.8' }}>
-                    หมายเหตุ : โปรดจ่ายเช็คขีดคร่อมในนาม บริษัท มัลติพลายส์ ออโต้ เวิร์ค จำกัดเท่านั้น <br />
+                    หมายเหตุ : โปรดจ่ายเช็คขีดคร่อมในนาม {company.name} เท่านั้น <br />
                     ใบเสร็จนี้จะสมบูรณ์เมื่อผู้รับเงิน และผู้รับมอบอำนาจลงนามร่วมกัน และเช็คของท่านผ่านการเรียกเก็บเงินจากธนาคารเรียบร้อยแล้ว
                 </div>
 

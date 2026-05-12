@@ -1,0 +1,192 @@
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+.po-print-paper {
+    font-family: 'Sarabun', sans-serif;
+    background: white;
+    width: 210mm;
+    min-height: 279mm;
+    margin: 0 auto;
+    padding: 10mm 15mm;
+    color: #000;
+    position: relative;
+    box-sizing: border-box;
+}
+
+@media print {
+    .po-print-paper {
+        margin: 0 !important;
+        box-shadow: none !important;
+        padding: 10mm 15mm !important;
+        page-break-after: always;
+        overflow: hidden;
+        width: 210mm !important;
+        height: 279mm !important;
+    }
+}
+
+.po-header-section {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.company-info-box {
+    max-width: 63%;
+}
+
+.company-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.company-detail {
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.doc-title-section {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.doc-title-main {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.po-details-section {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.info-row {
+    font-size: 0.95rem;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.info-label {
+    min-width: 80px;
+    font-weight: 500;
+}
+
+.info-value {
+    flex: 1;
+}
+
+.info-value-bold {
+    font-weight: 700;
+}
+
+.po-items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+}
+
+.po-items-table th {
+    border: 1px solid #000;
+    padding: 8px;
+    font-size: 0.95rem;
+    background-color: #f8fafc;
+}
+
+.po-items-table td {
+    border-left: 1px solid #000;
+    border-right: 1px solid #000;
+    padding: 6px 10px;
+    font-size: 0.95rem;
+    vertical-align: top;
+}
+
+.po-items-table tr.data-row {
+    min-height: 35px;
+}
+
+.po-items-table tr.empty-row td {
+    height: 35px;
+}
+
+.po-items-table tfoot td {
+    padding: 6px 10px;
+    font-size: 0.95rem;
+    border-top: 1px solid #000;
+}
+
+.po-items-table tfoot tr:last-child td {
+    border-bottom: 1px solid #000;
+}
+
+.summary-label {
+    text-align: right;
+    font-weight: 500;
+    border-right: none !important;
+}
+
+.summary-value {
+    text-align: right;
+    font-weight: 600;
+    border-left: none !important;
+}
+
+.summary-total-label {
+    text-align: right;
+    font-weight: 700;
+    font-size: 1.1rem;
+    background: #f8fafc;
+    border-right: none !important;
+}
+
+.summary-total-value {
+    text-align: right;
+    font-weight: 700;
+    font-size: 1.1rem;
+    background: #f8fafc;
+    border-left: none !important;
+}
+
+.baht-text-row td {
+    text-align: center;
+    font-style: italic;
+    background: #fdfdfd;
+    border: 1px solid #000 !important;
+    padding: 8px !important;
+}
+
+.po-footer-section {
+    margin-top: 30px;
+}
+
+.remark-box {
+    margin-bottom: 30px;
+    font-size: 0.95rem;
+}
+
+.signature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-top: 50px;
+}
+
+.signature-item {
+    text-align: center;
+}
+
+.sig-line {
+    border-bottom: 1px solid #000;
+    margin-bottom: 8px;
+    height: 40px;
+}
+
+.sig-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+}

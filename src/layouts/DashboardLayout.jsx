@@ -52,7 +52,7 @@ const DashboardLayout = () => {
 
             <aside className={`sidebar glass-panel ${isSidebarOpen ? 'active' : ''}`}>
                 <div className="sidebar-header">
-                    <div className="flex-center" style={{ gap: '12px' }}>
+                    <div className="flex-center gap-3">
                         <Hexagon className="sidebar-logo" size={28} />
                         <span className="sidebar-title">MAW OS</span>
                     </div>
@@ -231,7 +231,7 @@ const DashboardLayout = () => {
                 </nav>
 
                 <div className="sidebar-footer">
-                    <button onClick={handleLogout} className="nav-item logout-btn" style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                    <button onClick={handleLogout} className="nav-item logout-btn w-full bg-transparent border-none cursor-pointer text-left">
                         <LogOut size={20} />
                         <span>ออกจากระบบ</span>
                     </button>
@@ -240,7 +240,7 @@ const DashboardLayout = () => {
 
             <main className="main-content">
                 <header className="top-bar glass-panel">
-                    <div className="flex-center" style={{ gap: '1rem' }}>
+                    <div className="flex-center gap-4">
                         <button className="menu-toggle-btn" onClick={toggleSidebar}>
                             <Menu size={24} />
                         </button>

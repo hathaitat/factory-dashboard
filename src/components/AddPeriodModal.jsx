@@ -61,7 +61,7 @@ const AddPeriodModal = ({ isOpen, onClose, onSuccess }) => {
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} style={{ padding: '2rem' }}>
+                <form onSubmit={handleSubmit} className="p-8">
                     {error && (
                         <div style={{ padding: '0.8rem', marginBottom: '1.5rem', background: '#fef2f2', color: '#ef4444', borderRadius: '8px', fontSize: '0.9rem', border: '1px solid #fecaca' }}>
                             {error}

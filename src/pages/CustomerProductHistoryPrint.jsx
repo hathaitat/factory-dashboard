@@ -117,30 +117,49 @@ const CustomerProductHistoryPrint = () => {
         <div className="print-container">
             <div className="no-print" style={{
                 position: 'fixed', top: 0, left: 0, right: 0,
-                padding: '0.75rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                background: 'rgba(17, 24, 39, 0.95)', backdropFilter: 'blur(8px)',
-                borderBottom: '1px solid #374151', zIndex: 1000
+                padding: '0.8rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem',
+                background: '#111', 
+                borderBottom: '1px solid #333', zIndex: 1000
             }}>
-                <div style={{ color: 'white', fontWeight: '500' }}>ตัวอย่างก่อนพิมพ์: รายงานประวัติการซื้อสินค้า</div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button onClick={() => window.close()} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#374151', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                        <ArrowLeft size={18} /> ปิด
-                    </button>
-                    <button onClick={() => window.print()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#3b82f6', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600' }}>
-                        <Printer size={18} /> พิมพ์เอกสาร
-                    </button>
-                </div>
+                <button 
+                    onClick={() => window.close()} 
+                    style={{ 
+                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white', 
+                        padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
+                        fontSize: '0.9rem'
+                    }}
+                >
+                    <ArrowLeft size={18} /> ปิดหน้าต่าง
+                </button>
+                
+                <button 
+                    onClick={() => window.print()} 
+                    style={{ 
+                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                        background: '#3b82f6', border: 'none', color: 'white', 
+                        padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
+                        fontWeight: '600', fontSize: '0.95rem',
+                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                    }}
+                >
+                    <Printer size={18} /> พิมพ์รายงาน
+                </button>
             </div>
 
             <div className="invoice-paper" style={{ padding: '15mm 15mm' }}>
                 {/* Header Section */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px', borderBottom: '2.5px solid #000', paddingBottom: '15px' }}>
-                    <div style={{ flex: 1 }}>
+                    <div className="flex-1">
+                        {company.nameEn && <div style={{ fontSize: '1.2rem', fontFamily: 'serif', color: '#444' }}>{company.nameEn}</div>}
                         <div style={{ fontSize: '1.4rem', fontWeight: 'bold', marginBottom: '4px' }}>{company.name}</div>
-                        <div style={{ fontSize: '0.95rem', lineHeight: '1.4', color: '#000', maxWidth: '450px' }}>
+                        <div style={{ fontSize: '0.95rem', lineHeight: '1.4', color: '#000', maxWidth: '550px' }}>
                             {company.address}<br />
-                            {company.phone && `โทร: ${company.phone}`} {company.fax && `แฟกซ์: ${company.fax}`}<br />
-                            {company.taxId && `เลขประจำตัวผู้เสียภาษี: ${company.taxId}`}
+                            {[
+                                company.phone && `โทร: ${company.phone}`,
+                                company.fax && `แฟกซ์: ${company.fax}`,
+                                company.taxId && `เลขประจำตัวผู้เสียภาษี: ${company.taxId}`
+                            ].filter(Boolean).join(' | ')}
                         </div>
                     </div>
                     <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -156,7 +175,7 @@ const CustomerProductHistoryPrint = () => {
                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{customer.name}</div>
                         <div style={{ fontSize: '0.95rem', color: '#444' }}>รหัสลูกค้า: {customer.code || customer.id}</div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
+                    <div className="text-right">
                         <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '2px' }}>วันที่พิมพ์รายงาน:</div>
                         <div style={{ fontSize: '1rem', fontWeight: '500' }}>{new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
                         <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '4px' }}>เวลา: {new Date().toLocaleTimeString('th-TH')}</div>
@@ -195,12 +214,12 @@ const CustomerProductHistoryPrint = () => {
                                     <tbody>
                                         {monthData.products.map((prod, idx) => (
                                             <tr key={idx}>
-                                                <td style={{ textAlign: 'center' }}>{idx + 1}</td>
+                                                <td className="text-center">{idx + 1}</td>
                                                 <td style={{ textAlign: 'left', fontWeight: '500' }}>{prod.name}</td>
-                                                <td style={{ textAlign: 'right' }}>
+                                                <td className="text-right">
                                                     {prod.quantity.toLocaleString()} <span style={{ fontSize: '0.8rem', color: '#666' }}>{prod.unit}</span>
                                                 </td>
-                                                <td style={{ textAlign: 'right' }}>
+                                                <td className="text-right">
                                                     {prod.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </td>
                                                 <td style={{ textAlign: 'right', fontWeight: '600' }}>

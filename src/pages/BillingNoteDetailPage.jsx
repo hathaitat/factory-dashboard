@@ -36,8 +36,8 @@ const BillingNoteDetailPage = () => {
         }
     };
 
-    if (isLoading) return <div style={{ padding: '2rem' }}>กำลังโหลด...</div>;
-    if (!bn) return <div style={{ padding: '2rem' }}>ไม่พบข้อมูลใบวางบิล</div>;
+    if (isLoading) return <div className="p-8">กำลังโหลด...</div>;
+    if (!bn) return <div className="p-8">ไม่พบข้อมูลใบวางบิล</div>;
 
     return (
         <div style={{ padding: '0 1rem 3rem 1rem' }}>
@@ -85,7 +85,7 @@ const BillingNoteDetailPage = () => {
             <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     {/* Header Info */}
-                    <div className="glass-panel" style={{ padding: '2rem' }}>
+                    <div className="glass-panel p-8">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
                             <div>
                                 <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: 'var(--text-main)', letterSpacing: '-0.02em' }}>{bn.billingNoteNo}</h1>
@@ -108,7 +108,7 @@ const BillingNoteDetailPage = () => {
                                     </span>
                                 </div>
                             </div>
-                            <div style={{ textAlign: 'right' }}>
+                            <div className="text-right">
                                 <div style={{ fontSize: '0.9rem', color: '#888' }}>จำนวนเงินรวมทั้งสิ้น</div>
                                 <div style={{ fontSize: '2.5rem', fontWeight: '800', color: 'var(--success)', marginTop: '0.2rem' }}>
                                     ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -202,7 +202,7 @@ const BillingNoteDetailPage = () => {
 
                 {/* Sidebar Info */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                    <div className="glass-panel p-6">
                         <h4 style={{ margin: '0 0 1rem 0', color: '#888', fontSize: '0.9rem' }}>หมายเหตุ</h4>
                         <div style={{ color: 'var(--text-main)', fontSize: '0.95rem', background: 'var(--bg-main)', padding: '1rem', borderRadius: '8px', minHeight: '100px', border: '1px solid var(--border-color)' }}>
                             {bn.notes || 'ไม่มีหมายเหตุ'}

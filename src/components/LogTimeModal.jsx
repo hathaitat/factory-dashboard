@@ -83,8 +83,8 @@ const LogTimeModal = ({ employee, onClose, onSuccess }) => {
                 </div>
 
                 {/* Body */}
-                <form onSubmit={handleSubmit} style={{ padding: '1.5rem' }}>
-                    <div style={{ marginBottom: '1rem' }}>
+                <form onSubmit={handleSubmit} className="p-6">
+                    <div className="mb-4">
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: '#6b7280', fontSize: '0.9rem' }}>
                             วันที่
                         </label>
@@ -103,7 +103,7 @@ const LogTimeModal = ({ employee, onClose, onSuccess }) => {
                     </div>
 
                     <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                        <div style={{ flex: 1 }}>
+                        <div className="flex-1">
                             <label style={{ display: 'block', marginBottom: '0.5rem', color: '#6b7280', fontSize: '0.9rem' }}>
                                 จำนวนวัน
                             </label>
@@ -119,7 +119,7 @@ const LogTimeModal = ({ employee, onClose, onSuccess }) => {
                                 <option value="0">0 วัน (หยุด/ลา)</option>
                             </select>
                         </div>
-                        <div style={{ flex: 1 }}>
+                        <div className="flex-1">
                             <label style={{ display: 'block', marginBottom: '0.5rem', color: '#6b7280', fontSize: '0.9rem' }}>
                                 OT (ชั่วโมง)
                             </label>
@@ -135,7 +135,7 @@ const LogTimeModal = ({ employee, onClose, onSuccess }) => {
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: '1.5rem' }}>
+                    <div className="mb-6">
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: '#6b7280', fontSize: '0.9rem' }}>
                             หมายเหตุ
                         </label>

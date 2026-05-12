@@ -384,7 +384,7 @@ const InvoiceFormPage = () => {
                     <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>
                         {isEdit ? 'แก้ไขใบกำกับภาษี' : 'ออกใบกำกับภาษีใหม่'}
                     </h1>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div className="flex gap-4">
                         {isEdit && (
                             <button
                                 type="button"
@@ -476,7 +476,7 @@ const InvoiceFormPage = () => {
                                             onMouseOver={(e) => e.currentTarget.style.background = 'var(--card-hover)'}
                                             onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                                         >
-                                            <div style={{ fontWeight: '500' }}>{c.name}</div>
+                                            <div className="font-medium">{c.name}</div>
                                             <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{c.code}</div>
                                         </div>
                                     ))}
@@ -737,7 +737,7 @@ const InvoiceFormPage = () => {
                 </div>
 
                 <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                    <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                    <div className="glass-panel p-6">
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>หมายเหตุ</label>
                         <textarea
                             value={formData.notes}
@@ -752,14 +752,14 @@ const InvoiceFormPage = () => {
                         </div>
                     </div>
 
-                    <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                    <div className="glass-panel p-6">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ color: 'var(--text-muted)' }}>รวมเป็นเงิน (Subtotal)</span>
+                            <div className="flex justify-between items-center">
+                                <span className="text-textMuted">รวมเป็นเงิน (Subtotal)</span>
                                 <span style={{ fontSize: '1.1rem', color: 'var(--text-main)' }}>฿{formData.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ color: 'var(--text-muted)' }}>หักส่วนลด</span>
+                            <div className="flex justify-between items-center">
+                                <span className="text-textMuted">หักส่วนลด</span>
                                 <input
                                     type="number"
                                     value={formData.discount}
@@ -768,9 +768,9 @@ const InvoiceFormPage = () => {
                                     style={{ width: '120px', padding: '0.4rem', textAlign: 'right', background: 'var(--bg-main)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
                                 />
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div className="flex justify-between items-center">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>ภาษีมูลค่าเพิ่ม (VAT)</span>
+                                    <span className="text-textMuted">ภาษีมูลค่าเพิ่ม (VAT)</span>
                                     <input
                                         type="number"
                                         value={formData.vatRate}
@@ -778,9 +778,9 @@ const InvoiceFormPage = () => {
                                         className="glass-input"
                                         style={{ width: '50px', padding: '0.2rem', textAlign: 'center', background: 'var(--bg-main)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '0.8rem' }}
                                     />
-                                    <span style={{ color: 'var(--text-muted)' }}>%</span>
+                                    <span className="text-textMuted">%</span>
                                 </div>
-                                <span style={{ color: 'var(--text-main)' }}>฿{formData.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className="text-textMain">฿{formData.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
 

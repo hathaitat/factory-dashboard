@@ -189,7 +189,7 @@ const ListFilter = ({ filters = [], onClear, hasActiveFilters }) => {
             })}
 
             {/* Spacer */}
-            <div style={{ flex: 1 }} />
+            <div className="flex-1" />
 
             {/* Clear button */}
             {hasActiveFilters && (

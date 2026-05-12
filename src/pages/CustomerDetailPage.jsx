@@ -379,7 +379,7 @@ const CustomerDetailPage = () => {
                         </span>
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div className="flex gap-2">
                     {hasPermission('customers', 'edit') && (
                         <button
                             onClick={() => navigate(`/dashboard/customers/${id}/edit`)}
@@ -488,7 +488,7 @@ const CustomerDetailPage = () => {
             <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     {/* General Info */}
-                    <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                    <div className="glass-panel p-6">
                         <h3 style={{ marginTop: 0, marginBottom: '1.5rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <Building size={20} /> ข้อมูลทั่วไป
                         </h3>
@@ -552,7 +552,7 @@ const CustomerDetailPage = () => {
                                             style={{ width: '100%', padding: '0.6rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '4px', color: 'var(--text-main)' }}
                                         />
                                     </div>
-                                    <div style={{ flex: 1 }}>
+                                    <div className="flex-1">
                                         <label style={{ display: 'block', fontSize: '0.8rem', color: '#888', marginBottom: '0.3rem' }}>หน่วย</label>
                                         <input
                                             type="text"
@@ -563,7 +563,7 @@ const CustomerDetailPage = () => {
                                             style={{ width: '100%', padding: '0.6rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '4px', color: 'var(--text-main)' }}
                                         />
                                     </div>
-                                    <div style={{ flex: 1 }}>
+                                    <div className="flex-1">
                                         <label style={{ display: 'block', fontSize: '0.8rem', color: '#888', marginBottom: '0.3rem' }}>ราคา/หน่วย</label>
                                         <input
                                             type="number"
@@ -574,7 +574,7 @@ const CustomerDetailPage = () => {
                                             style={{ width: '100%', padding: '0.6rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '4px', color: 'var(--text-main)' }}
                                         />
                                     </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <div className="flex gap-2">
                                         <button
                                             type="submit"
                                             disabled={!newProduct.name || isSavingProduct}
@@ -623,7 +623,7 @@ const CustomerDetailPage = () => {
                                         products.map((product) => (
                                             <tr key={product.id} style={{ borderBottom: '1px solid var(--border-color)', opacity: 0.9 }}>
                                                 <td style={{ padding: '0.8rem 1.5rem' }}>
-                                                    <div style={{ fontWeight: '500' }}>{product.name}</div>
+                                                    <div className="font-medium">{product.name}</div>
                                                 </td>
                                                 <td style={{ padding: '0.8rem 1.5rem' }}>
                                                     {product.price > 0 ? `฿${Number(product.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
@@ -685,14 +685,14 @@ const CustomerDetailPage = () => {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     {/* Contact Info */}
-                    <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                    <div className="glass-panel p-6">
                         <h3 style={{ marginTop: 0, marginBottom: '1.5rem', color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <User size={20} /> ข้อมูลการติดต่อ
                         </h3>
                         <div style={{ display: 'grid', gap: '1rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.85rem', color: '#888', marginBottom: '0.3rem' }}>ผู้ติดต่อ</label>
-                                <div style={{ fontWeight: '500' }}>{customer.contactPerson || '-'}</div>
+                                <div className="font-medium">{customer.contactPerson || '-'}</div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <Phone size={16} style={{ color: '#888' }} />
@@ -706,7 +706,7 @@ const CustomerDetailPage = () => {
                     </div>
 
                     {/* Address */}
-                    <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                    <div className="glass-panel p-6">
                         <h3 style={{ marginTop: 0, marginBottom: '1.5rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <MapPin size={20} /> ที่อยู่
                         </h3>
@@ -716,7 +716,7 @@ const CustomerDetailPage = () => {
                     </div>
 
                     {/* History */}
-                    <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                    <div className="glass-panel p-6">
                         <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#666', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}>
                             <Calendar size={18} /> ประวัติ
                         </h3>
@@ -782,7 +782,7 @@ const CustomerDetailPage = () => {
                         {/* Monthly breakdown */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             {historyData.map(monthData => (
-                                <div key={monthData.month} className="glass-panel" style={{ overflow: 'hidden' }}>
+                                <div key={monthData.month} className="glass-panel overflow-hidden">
                                     {/* Month Header - Clickable */}
                                     <button
                                         onClick={() => toggleMonth(monthData.month)}
@@ -813,7 +813,7 @@ const CustomerDetailPage = () => {
                                                 </span>
                                             </div>
                                         </div>
-                                        <div style={{ textAlign: 'right' }}>
+                                        <div className="text-right">
                                             <div style={{ fontWeight: '600', color: '#10b981', fontSize: '1.1rem' }}>
                                                 ฿{monthData.totalInvAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </div>
@@ -980,7 +980,7 @@ const CustomerDetailPage = () => {
                         {/* Monthly product breakdown */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             {productHistoryData.map(monthData => (
-                                <div key={monthData.month} className="glass-panel" style={{ overflow: 'hidden' }}>
+                                <div key={monthData.month} className="glass-panel overflow-hidden">
                                     {/* Month Header - Clickable */}
                                     <div
                                         onClick={() => toggleProductMonth(monthData.month)}

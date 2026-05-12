@@ -267,7 +267,7 @@ const BillingNoteFormPage = () => {
                     <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>
                         {isEdit ? 'แก้ไขใบวางบิล' : 'ออกใบวางบิลใหม่'}
                     </h1>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div className="flex gap-4">
                         <select
                             value={formData.status}
                             onChange={e => setFormData({ ...formData, status: e.target.value })}

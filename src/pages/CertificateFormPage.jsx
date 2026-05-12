@@ -166,7 +166,7 @@ const CertificateFormPage = () => {
                 <form onSubmit={handleSubmit}>
 
                     {/* Basic Info */}
-                    <div style={{ marginBottom: '1.5rem' }}>
+                    <div className="mb-6">
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>ชื่อเอกสาร Certificate <span style={{ color: 'red' }}>*</span></label>
                         <input
                             type="text"
@@ -214,7 +214,7 @@ const CertificateFormPage = () => {
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: '1.5rem' }}>
+                    <div className="mb-6">
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>
                             อัปโหลดไฟล์ Certificate {isEditMode && formData.file_url ? `(มีไฟล์อยู่แล้ว สามารถอัปโหลดใหม่เพื่อเปลี่ยน)` : <span style={{ color: 'red' }}>*</span>}
                         </label>
@@ -242,7 +242,7 @@ const CertificateFormPage = () => {
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>เลือกลูกค้า (Customers) <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 'normal' }}>(เลือกก่อน)</span></label>
                             <div style={{ maxHeight: '200px', overflowY: 'auto', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--card-bg)' }}>
-                                {customers.length === 0 ? <div style={{ color: 'var(--text-muted)' }}>ไม่มีข้อมูลลูกค้า</div> : customers.map(c => (
+                                {customers.length === 0 ? <div className="text-textMuted">ไม่มีข้อมูลลูกค้า</div> : customers.map(c => (
                                     <div key={`c-${c.id}`} style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         <input
                                             type="checkbox"
@@ -262,10 +262,10 @@ const CertificateFormPage = () => {
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>เลือกสินค้าที่เกี่ยวข้อง (Products)</label>
                             <div style={{ maxHeight: '200px', overflowY: 'auto', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--card-bg)' }}>
                                 {selectedCustomers.length === 0 ? (
-                                    <div style={{ color: 'var(--text-muted)' }}>กรุณาเลือกลูกค้าก่อน</div>
+                                    <div className="text-textMuted">กรุณาเลือกลูกค้าก่อน</div>
                                 ) : (
                                     products.filter(p => selectedCustomers.includes(p.customerId)).length === 0 ? (
-                                        <div style={{ color: 'var(--text-muted)' }}>ไม่มีสินค้าสำหรับลูกค้าที่เลือก</div>
+                                        <div className="text-textMuted">ไม่มีสินค้าสำหรับลูกค้าที่เลือก</div>
                                     ) : (
                                         products.filter(p => selectedCustomers.includes(p.customerId)).map(p => (
                                             <div key={`p-${p.id}`} style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

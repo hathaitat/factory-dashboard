@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Search, Package, Settings, Edit2, Trash2, Plus, MapPin, Phone, User, Save, X } from 'lucide-react';
+import { Building2, Search, Package, Settings, Edit2, Trash2, Plus, MapPin, Phone, User, Save, X, Clock, Eye } from 'lucide-react';
 import { warehouseService } from '../services/warehouseService';
 import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -224,13 +224,13 @@ const WarehouseListPage = () => {
                 <div style={{ flex: '1', minWidth: '250px' }}>
                     {activeWarehouse.contact_person && (
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', color: 'var(--text-main)', marginBottom: '0.5rem' }}>
-                            <User size={18} style={{ color: 'var(--text-muted)' }} />
+                            <User size={18} className="text-textMuted" />
                             <span>ผู้ติดต่อ: {activeWarehouse.contact_person}</span>
                         </div>
                     )}
                     {activeWarehouse.phone && (
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', color: 'var(--text-main)' }}>
-                            <Phone size={18} style={{ color: 'var(--text-muted)' }} />
+                            <Phone size={18} className="text-textMuted" />
                             <span>เบอร์โทร: {activeWarehouse.phone}</span>
                         </div>
                     )}
@@ -238,7 +238,7 @@ const WarehouseListPage = () => {
             </div>
 
             <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
-                <Search size={20} style={{ color: 'var(--text-muted)' }} />
+                <Search size={20} className="text-textMuted" />
                 <input
                     type="text"
                     placeholder="ค้นหาชื่อรายการ, SKU..."
@@ -265,23 +265,44 @@ const WarehouseListPage = () => {
                     )}
                 </div>
 
-                <div className="table-responsive-wrapper" style={{ overflowX: 'auto' }}>
+                <div className="table-responsive-wrapper overflow-x-auto">
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', background: 'var(--bg-main)' }}>
+                                <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
                                 <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '30%' }}>ชื่อรายการ</th>
                                 <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ประเภท</th>
                                 <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>SKU</th>
                                 <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวนคงเหลือ</th>
                                 <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>หน่วย</th>
                                 <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
-                                <th style={{ padding: '1rem 1.5rem', width: '100px', textAlign: 'center' }}>จัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredInventory.length > 0 ? (
                                 filteredInventory.map((item) => (
                                     <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                        <td className="actions-column">
+                                            <div className="table-actions">
+                                                <button 
+                                                    onClick={() => navigate(`/dashboard/inventory/${item.id}`)} 
+                                                    className="action-view"
+                                                    title="ดูประวัติการเข้า-ออก"
+                                                >
+                                                    <Eye size={18} />
+                                                </button>
+                                                {hasPermission('warehouses', 'edit') && (
+                                                    <button onClick={() => handleOpenModal(item)} className="action-edit" title="แก้ไข">
+                                                        <Edit2 size={18} />
+                                                    </button>
+                                                )}
+                                                {hasPermission('warehouses', 'delete') && (
+                                                    <button onClick={() => handleDelete(item.id)} className="action-delete" title="ลบ">
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td style={{ padding: '1rem 1.5rem', color: 'var(--text-main)', fontWeight: '500' }}>{item.product_name}</td>
                                         <td style={{ padding: '1rem 1.5rem' }}>
                                             {item.product_type === 'material' ? (
@@ -301,20 +322,6 @@ const WarehouseListPage = () => {
                                             ) : (
                                                 <span style={{ fontSize: '0.75rem', background: '#d1fae5', color: '#10b981', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>ปกติ</span>
                                             )}
-                                        </td>
-                                        <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
-                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                                {hasPermission('warehouses', 'edit') && (
-                                                    <button onClick={() => handleOpenModal(item)} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '0.2rem' }}>
-                                                        <Edit2 size={16} />
-                                                    </button>
-                                                )}
-                                                {hasPermission('warehouses', 'delete') && (
-                                                    <button onClick={() => handleDelete(item.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.2rem' }}>
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                )}
-                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -348,7 +355,7 @@ const WarehouseListPage = () => {
                 </div>
 
                 <form onSubmit={handleSave}>
-                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                    <div className="form-group mb-4">
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ประเภทรายการ *</label>
                         <select
                             required
@@ -362,7 +369,7 @@ const WarehouseListPage = () => {
                         </select>
                     </div>
 
-                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                    <div className="form-group mb-4">
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ชื่อรายการ *</label>
                         <input
                             required
@@ -375,7 +382,7 @@ const WarehouseListPage = () => {
                         />
                     </div>
 
-                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                    <div className="form-group mb-4">
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>รหัส SKU</label>
                         <input
                             type="text"

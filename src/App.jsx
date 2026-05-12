@@ -52,12 +52,13 @@ const SupplierPoDetailPage = React.lazy(() => import('./pages/SupplierPoDetailPa
 const SupplierPoPrintPage = React.lazy(() => import('./pages/SupplierPoPrintPage'));
 const WarehouseListPage = React.lazy(() => import('./pages/WarehouseListPage'));
 const WarehouseDetailPage = React.lazy(() => import('./pages/WarehouseDetailPage'));
+const InventoryHistoryPage = React.lazy(() => import('./pages/InventoryHistoryPage'));
 // Loading fallback component
 const PageLoader = () => (
-  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--text-muted)', background: 'var(--bg-main)' }}>
-    <div style={{ textAlign: 'center' }}>
-      <div className="loading-spinner" style={{ margin: '0 auto 12px', width: '40px', height: '40px' }}></div>
-      <p style={{ fontWeight: '500' }}>กำลังโหลด...</p>
+  <div className="flex justify-center items-center h-screen text-textMuted bg-main">
+    <div className="text-center">
+      <div className="loading-spinner mx-auto mb-3 w-10 h-10"></div>
+      <p className="font-medium">กำลังโหลด...</p>
     </div>
   </div>
 );
@@ -123,6 +124,7 @@ function App() {
                     <Route element={<PermissionRoute module="warehouses" action="view" />}>
                       <Route path="warehouses" element={<WarehouseListPage />} />
                       <Route path="warehouses/:id" element={<WarehouseDetailPage />} />
+                      <Route path="inventory/:id" element={<InventoryHistoryPage />} />
                     </Route>
 
                     {/* Certificates Module */}
@@ -215,7 +217,7 @@ function App() {
 
                     {/* Production Module */}
                     <Route element={<PermissionRoute module="production" action="view" />}>
-                      <Route path="production" element={<div style={{ padding: '2rem' }}><h2>ข้อมูลการผลิต (เร็วๆ นี้)</h2></div>} />
+                      <Route path="production" element={<div className="p-8"><h2>ข้อมูลการผลิต (เร็วๆ นี้)</h2></div>} />
                     </Route>
                     <Route element={<PermissionRoute module="overview" action="view" />}>
                       <Route path="guide" element={<GuidePage />} />

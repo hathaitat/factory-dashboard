@@ -150,7 +150,7 @@ const POTab = () => {
     };
 
     const renderDateBlock = (dateStr, type) => {
-        if (!dateStr) return <span style={{ color: 'var(--text-muted)' }}>ไม่ระบุ</span>;
+        if (!dateStr) return <span className="text-textMuted">ไม่ระบุ</span>;
 
         const isUpcoming = type === 'upcoming';
         const days = isUpcoming ? getDaysLeft(dateStr) : getDaysOverdue(dateStr);
@@ -336,7 +336,7 @@ const POTab = () => {
                                                     {isOverdue ? (
                                                         <span style={{ color: '#ef4444' }}>เลยกำหนดส่ง</span>
                                                     ) : (
-                                                        <span style={{ color: 'var(--text-main)' }}>{dateFormatted}</span>
+                                                        <span className="text-textMain">{dateFormatted}</span>
                                                     )}
                                                 </td>
                                             </tr>
@@ -376,11 +376,11 @@ const POTab = () => {
                                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: idx === 0 ? 'rgba(59, 130, 246, 0.1)' : 'var(--card-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: '800', color: idx === 0 ? '#3b82f6' : 'var(--text-muted)' }}>
                                         {idx + 1}
                                     </div>
-                                    <div style={{ flex: 1 }}>
+                                    <div className="flex-1">
                                         <div style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{cust.name}</div>
                                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '500' }}>ยอดสั่งซื้อรวม</div>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
+                                    <div className="text-right">
                                         <div style={{ fontSize: '1rem', fontWeight: '800', color: 'var(--text-main)' }}>฿{cust.total.toLocaleString()}</div>
                                     </div>
                                 </div>

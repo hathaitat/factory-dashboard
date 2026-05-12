@@ -218,7 +218,7 @@ const InvoiceDetailPage = () => {
             </div>
 
             <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '1.5rem', alignItems: 'start' }}>
-                <div className="glass-panel" style={{ padding: '2rem' }}>
+                <div className="glass-panel p-8">
                     {/* Simplified Preview matching Dashboard Theme */}
                     <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between' }}>
                         <div>
@@ -226,9 +226,9 @@ const InvoiceDetailPage = () => {
                             <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '400px' }}>{company.address}</p>
                             <p style={{ margin: '0.5rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เลขประจำตัวผู้เสียภาษี: {company.taxId}</p>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
+                        <div className="text-right">
                             <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--primary)', marginBottom: '0.5rem' }}>{invoice.invoiceNo}</div>
-                            <div style={{ color: 'var(--text-muted)' }}>วันที่: {new Date(invoice.date).toLocaleDateString('th-TH')}</div>
+                            <div className="text-textMuted">วันที่: {new Date(invoice.date).toLocaleDateString('th-TH')}</div>
                         </div>
                     </div>
 
@@ -243,9 +243,9 @@ const InvoiceDetailPage = () => {
                         <div>
                             <h4 style={{ margin: '0 0 0.8rem 0', color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>ข้อมูลการชำระเงิน</h4>
                             <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '0.5rem', fontSize: '0.9rem' }}>
-                                <span style={{ color: 'var(--text-muted)' }}>PO อ้างอิง:</span> <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>{invoice.referenceNo || '-'}</span>
-                                <span style={{ color: 'var(--text-muted)' }}>เงื่อนไขเครดิต:</span> <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>{parseInt(invoice.creditDays) === 0 ? 'เงินสด' : `${invoice.creditDays} วัน`}</span>
-                                <span style={{ color: 'var(--text-muted)' }}>วันครบกำหนด:</span> <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>{new Date(invoice.dueDate).toLocaleDateString('th-TH')}</span>
+                                <span className="text-textMuted">PO อ้างอิง:</span> <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>{invoice.referenceNo || '-'}</span>
+                                <span className="text-textMuted">เงื่อนไขเครดิต:</span> <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>{parseInt(invoice.creditDays) === 0 ? 'เงินสด' : `${invoice.creditDays} วัน`}</span>
+                                <span className="text-textMuted">วันครบกำหนด:</span> <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>{new Date(invoice.dueDate).toLocaleDateString('th-TH')}</span>
                             </div>
                         </div>
                     </div>
@@ -278,7 +278,7 @@ const InvoiceDetailPage = () => {
                                         <td style={{ padding: '1rem', borderRight: '1px solid var(--border-color)' }}>&nbsp;</td>
                                         <td style={{ padding: '1rem', borderRight: '1px solid var(--border-color)' }}>&nbsp;</td>
                                         <td style={{ padding: '1rem', borderRight: '1px solid var(--border-color)' }}>&nbsp;</td>
-                                        <td style={{ padding: '1rem' }}>&nbsp;</td>
+                                        <td className="p-4">&nbsp;</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -286,34 +286,34 @@ const InvoiceDetailPage = () => {
                     </div>
 
                     {invoice.notes && (
-                        <div style={{ marginBottom: '2rem' }}>
+                        <div className="mb-8">
                             <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>หมายเหตุ</h4>
                             <p style={{ margin: 0, color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>{invoice.notes}</p>
                         </div>
                     )}
                 </div>
 
-                <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                <div className="glass-panel p-6">
                     <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.1rem', color: 'var(--text-main)' }}>สรุปยอดเงิน</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--text-muted)' }}>รวมเป็นเงิน</span>
-                            <span style={{ color: 'var(--text-main)' }}>฿{invoice.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <div className="flex justify-between">
+                            <span className="text-textMuted">รวมเป็นเงิน</span>
+                            <span className="text-textMain">฿{invoice.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         {invoice.discount > 0 && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: 'var(--text-muted)' }}>ส่วนลด</span>
-                                <span style={{ color: 'var(--error)' }}>- ฿{invoice.discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <div className="flex justify-between">
+                                <span className="text-textMuted">ส่วนลด</span>
+                                <span className="text-error">- ฿{invoice.discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.8rem', borderBottom: '1px solid var(--border-color)' }}>
-                            <span style={{ color: 'var(--text-muted)' }}>ภาษีมูลค่าเพิ่ม {invoice.vatRate}%</span>
-                            <span style={{ color: 'var(--text-main)' }}>฿{invoice.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="text-textMuted">ภาษีมูลค่าเพิ่ม {invoice.vatRate}%</span>
+                            <span className="text-textMain">฿{invoice.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
 
                         {(invoice.adjustments || []).map((adj, idx) => (
-                            <div key={`adj-${idx}`} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: 'var(--text-muted)' }}>{adj.label}</span>
+                            <div key={`adj-${idx}`} className="flex justify-between">
+                                <span className="text-textMuted">{adj.label}</span>
                                 <span style={{ color: Number(adj.amount) >= 0 ? 'var(--success)' : 'var(--error)' }}>
                                     {Number(adj.amount) >= 0 ? '+' : ''} ฿{Math.abs(Number(adj.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>

@@ -311,7 +311,7 @@ const EmployeeFormPage = () => {
             {activeTab === 'profile' && (
                 <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '2rem' }}>
                     {/* ... (Existing Form Content) ... */}
-                    <div className="glass-panel" style={{ padding: '2rem' }}>
+                    <div className="glass-panel p-8">
                         <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8b5cf6' }}>
                             <User size={20} /> ข้อมูลทั่วไป
                         </h3>
@@ -380,7 +380,7 @@ const EmployeeFormPage = () => {
                             </div>
                         </div>
 
-                        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                        <div className="form-group mb-6">
                             <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>
                                 <MapPin size={14} style={{ display: 'inline', marginRight: '4px' }} />
                                 ที่อยู่
@@ -396,7 +396,7 @@ const EmployeeFormPage = () => {
                         </div>
                     </div>
 
-                    <div className="glass-panel" style={{ padding: '2rem' }}>
+                    <div className="glass-panel p-8">
                         <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444' }}>
                             <Heart size={20} /> ผู้ติดต่อฉุกเฉิน
                         </h3>
@@ -440,7 +440,7 @@ const EmployeeFormPage = () => {
                         </div>
                     </div>
 
-                    <div className="glass-panel" style={{ padding: '2rem' }}>
+                    <div className="glass-panel p-8">
                         <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981' }}>
                             <DollarSign size={20} /> ข้อมูลการทำงาน
                         </h3>

@@ -255,7 +255,7 @@ const SettingsPage = () => {
 
             <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.5rem' }}>
                 {/* Work Schedule Section */}
-                <div className="glass-panel" style={{ padding: '2rem' }}>
+                <div className="glass-panel p-8">
                     <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8b5cf6' }}>
                         <Briefcase size={20} /> เวลาทำงาน
                     </h3>
@@ -337,7 +337,7 @@ const SettingsPage = () => {
                 </div>
 
                 {/* Document Formats Section */}
-                <div className="glass-panel" style={{ padding: '2rem' }}>
+                <div className="glass-panel p-8">
                     <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6' }}>
                         <FileText size={20} /> รูปแบบเลขที่เอกสาร
                     </h3>
@@ -451,7 +451,7 @@ const SettingsPage = () => {
                                             {wh.name} {wh.is_default && <span style={{ fontSize: '0.75rem', background: '#3b82f6', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '12px', marginLeft: '0.5rem' }}>Default</span>}
                                             {wh.code && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>รหัส: {wh.code}</div>}
                                         </td>
-                                        <td style={{ padding: '1rem' }}>
+                                        <td className="p-4">
                                             <span style={{ fontSize: '0.85rem', background: wh.type === 'supplier' ? '#f59e0b' : '#10b981', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
                                                 {wh.type === 'supplier' ? 'คลังผู้ขาย' : 'คลังของเรา'}
                                             </span>
@@ -487,7 +487,7 @@ const SettingsPage = () => {
                 </div>
 
                 {/* Supplier Categories Section */}
-                <div className="glass-panel" style={{ padding: '2rem' }}>
+                <div className="glass-panel p-8">
                     <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)' }}>
                         <Briefcase size={20} /> ประเภทผู้ขาย (Supplier Categories)
                     </h3>
@@ -609,9 +609,9 @@ const SettingsPage = () => {
 
                         <form id="warehouse-form" onSubmit={handleSaveWarehouse}>
                             {!editingWarehouse?.is_default && (
-                                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                <div className="form-group mb-6">
                                     <label style={{ display: 'block', marginBottom: '0.5rem' }}>ประเภทคลัง</label>
-                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <div className="flex gap-4">
                                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                             <input 
                                                 type="radio" 
@@ -637,7 +637,7 @@ const SettingsPage = () => {
                             )}
 
                             {warehouseFormData.type === 'supplier' && !editingWarehouse?.is_default && (
-                                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                <div className="form-group mb-4">
                                     <label style={{ display: 'block', marginBottom: '0.5rem' }}>เลือกผู้ขาย *</label>
                                     <select
                                         required
@@ -678,7 +678,7 @@ const SettingsPage = () => {
                                 </div>
                             </div>
 
-                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                            <div className="form-group mb-4">
                                 <label style={{ display: 'block', marginBottom: '0.5rem' }}>ที่อยู่</label>
                                 <textarea
                                     value={warehouseFormData.address}
@@ -712,7 +712,7 @@ const SettingsPage = () => {
                                 </div>
                             </div>
 
-                            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                            <div className="form-group mb-6">
                                 <label style={{ display: 'block', marginBottom: '0.5rem' }}>หมายเหตุ</label>
                                 <input
                                     type="text"

@@ -189,7 +189,7 @@ const BillingNoteTab = () => {
 
             {/* Status Breakdown + Total Pending */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                <div className="glass-panel p-6">
                     <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-main)' }}>สถานะใบวางบิล</h3>
                     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                         {[
@@ -278,7 +278,7 @@ const BillingNoteTab = () => {
                     <div style={{ overflowY: 'auto', flex: 1, padding: '0.5rem 0' }}>
                         {data.pendingByCustomer.map((item, index) => (
                             <div key={index} style={{ padding: '0.8rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="hover-row">
-                                <div style={{ flex: 1 }}>
+                                <div className="flex-1">
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
                                         <div style={{ fontWeight: '600', color: 'var(--text-main)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
                                         <span style={{ fontWeight: '600', color: '#f59e0b' }}>฿{item.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>

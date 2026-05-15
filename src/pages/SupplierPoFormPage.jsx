@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Save, X, Plus, Trash2, ArrowLeft, FileText, Clock, Image as ImageIcon, Upload, Loader2 } from 'lucide-react';
+import { Save, X, Plus, Trash2, ArrowLeft, Image as ImageIcon } from 'lucide-react';
 import { supplierPoService } from '../services/supplierPoService';
 import { supplierService } from '../services/supplierService';
 import { supplierProductService } from '../services/supplierProductService';
 import { warehouseService } from '../services/warehouseService';
 import { useDialog } from '../contexts/DialogContext';
-import PageHeader from '../components/PageHeader';
 import { userService } from '../services/userService';
 
 const SupplierPoFormPage = () => {
@@ -21,7 +20,7 @@ const SupplierPoFormPage = () => {
     const [suppliers, setSuppliers] = useState([]);
     const [supplierProducts, setSupplierProducts] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
-    
+
     const [formData, setFormData] = useState({
         po_number: '',
         supplier_id: '',
@@ -41,7 +40,7 @@ const SupplierPoFormPage = () => {
     });
 
     const [items, setItems] = useState([
-        { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }
+        { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, received_quantity: 1, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }
     ]);
 
     const [isLoading, setIsLoading] = useState(true);
@@ -78,9 +77,9 @@ const SupplierPoFormPage = () => {
             if (!isEdit && !duplicateId) {
                 const defaultWh = warehousesData?.find(w => w.is_default);
                 const currentUser = userService.getCurrentUser();
-                
-                setFormData(prev => ({ 
-                    ...prev, 
+
+                setFormData(prev => ({
+                    ...prev,
                     delivery_warehouse_id: defaultWh ? defaultWh.id : prev.delivery_warehouse_id,
                     purchased_by: currentUser ? currentUser.fullName : ''
                 }));
@@ -112,6 +111,7 @@ const SupplierPoFormPage = () => {
                         setItems(poData.supplier_po_items.map(item => ({
                             ...item,
                             id: isEdit ? item.id : Date.now() + Math.random(), // New ID if duplicating
+                            received_quantity: item.received_quantity ?? item.quantity,
                             due_date: item.due_date ? item.due_date.split('T')[0] : ''
                         })));
                     }
@@ -139,7 +139,7 @@ const SupplierPoFormPage = () => {
     const handleSupplierChange = async (e) => {
         const vendorId = e.target.value;
         setFormData(prev => ({ ...prev, supplier_id: vendorId }));
-        
+
         if (!vendorId) {
             setSupplierProducts([]);
             return;
@@ -158,16 +158,16 @@ const SupplierPoFormPage = () => {
 
     const handleImageUpload = async (index, file) => {
         if (!file) return;
-        
+
         try {
             // Show some loading state if needed
             const fileExt = file.name.split('.').pop();
             const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
             const filePath = `po_items/${fileName}`;
-            
+
             const result = await supplierPoService.uploadFile(file, filePath);
             if (result.error) throw result.error;
-            
+
             handleItemChange(index, 'image_url', result.publicUrl);
             showAlert('อัปโหลดรูปภาพสำเร็จ');
         } catch (error) {
@@ -203,7 +203,7 @@ const SupplierPoFormPage = () => {
     };
 
     const addItem = () => {
-        setItems([...items, { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }]);
+        setItems([...items, { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, received_quantity: 1, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }]);
     };
 
     const removeItem = (index) => {
@@ -230,7 +230,7 @@ const SupplierPoFormPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!formData.supplier_id) {
             showAlert('กรุณาเลือกผู้ขาย');
             return;
@@ -245,8 +245,28 @@ const SupplierPoFormPage = () => {
 
         setIsSaving(true);
         try {
+            // Auto-detect status if receiving goods
+            let finalStatus = formData.status;
+            if (finalStatus === 'Completed' || finalStatus === 'Partial') {
+                const isFullyReceived = validItems.every(item =>
+                    Number(item.received_quantity) >= Number(item.quantity)
+                );
+                const isNotReceivedAtAll = validItems.every(item =>
+                    Number(item.received_quantity) === 0 || !item.received_quantity
+                );
+
+                if (isFullyReceived) {
+                    finalStatus = 'Completed';
+                } else if (isNotReceivedAtAll) {
+                    finalStatus = 'Draft';
+                } else {
+                    finalStatus = 'Partial';
+                }
+            }
+
             const payload = {
                 ...formData,
+                status: finalStatus,
                 items: validItems.map(item => {
                     const { id, ...rest } = item;
                     return {
@@ -297,9 +317,8 @@ const SupplierPoFormPage = () => {
                             style={{ padding: '0.6rem 1rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
                         >
                             <option value="Draft">ฉบับร่าง (Draft)</option>
-                            <option value="Waiting">รออนุมัติ (Waiting)</option>
-                            <option value="Approved">อนุมัติแล้ว (Approved)</option>
-                            <option value="Completed">ได้รับสินค้าแล้ว (Completed)</option>
+                            <option value="Partial">รับสินค้าบางส่วน (Partially Received)</option>
+                            <option value="Completed">ได้รับสินค้าครบแล้ว (Completed)</option>
                             <option value="Cancelled">ยกเลิก (Cancelled)</option>
                         </select>
                         <button
@@ -424,8 +443,11 @@ const SupplierPoFormPage = () => {
                                 <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
                                     <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '50px', textAlign: 'center' }}>ลำดับ</th>
                                     <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '40%' }}>รายละเอียดสินค้า (เลือกจากผู้ขายหรือพิมพ์เอง)</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%', textAlign: 'right' }}>จำนวน</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%' }}>หน่วย</th>
+                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%', textAlign: 'right' }}>จำนวนสั่ง</th>
+                                    {(formData.status === 'Completed' || formData.status === 'Partial') && (
+                                        <th style={{ padding: '1rem 1.5rem', color: '#10b981', fontWeight: '600', width: '15%', textAlign: 'right' }}>จำนวนรับจริง</th>
+                                    )}
+                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '10%' }}>หน่วย</th>
                                     <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%', textAlign: 'right' }}>ราคา/หน่วย</th>
                                     <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%', textAlign: 'right' }}>จำนวนเงิน</th>
                                     <th style={{ padding: '1rem', width: '50px' }}></th>
@@ -494,12 +516,12 @@ const SupplierPoFormPage = () => {
                                                     onChange={(e) => handleItemChange(index, 'note', e.target.value)}
                                                     placeholder="ใส่ข้อมูลเพิ่มเติมทีละบรรทัด (เช่น สเปคสินค้า)..."
                                                     rows="2"
-                                                    style={{ 
-                                                        width: '100%', 
-                                                        padding: '0.5rem', 
-                                                        background: 'rgba(255, 255, 255, 0.03)', 
-                                                        borderRadius: '6px', 
-                                                        color: 'var(--text-main)', 
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '0.5rem',
+                                                        background: 'rgba(255, 255, 255, 0.03)',
+                                                        borderRadius: '6px',
+                                                        color: 'var(--text-main)',
                                                         border: '1px dashed var(--border-color)',
                                                         fontSize: '0.85rem',
                                                         resize: 'vertical',
@@ -519,12 +541,12 @@ const SupplierPoFormPage = () => {
                                                     />
                                                     <label
                                                         htmlFor={`item-image-${index}`}
-                                                        style={{ 
-                                                            display: 'flex', 
-                                                            alignItems: 'center', 
-                                                            gap: '0.4rem', 
-                                                            fontSize: '0.75rem', 
-                                                            color: '#3b82f6', 
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.4rem',
+                                                            fontSize: '0.75rem',
+                                                            color: '#3b82f6',
                                                             cursor: 'pointer',
                                                             background: 'rgba(59, 130, 246, 0.05)',
                                                             padding: '0.3rem 0.6rem',
@@ -537,13 +559,13 @@ const SupplierPoFormPage = () => {
                                                 </div>
                                                 {item.image_url && (
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                        <img 
-                                                            src={item.image_url} 
-                                                            alt="preview" 
-                                                            style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-color)' }} 
+                                                        <img
+                                                            src={item.image_url}
+                                                            alt="preview"
+                                                            style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-color)' }}
                                                         />
-                                                        <button 
-                                                            type="button" 
+                                                        <button
+                                                            type="button"
                                                             onClick={() => handleItemChange(index, 'image_url', '')}
                                                             style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '0.7rem' }}
                                                         >
@@ -559,12 +581,31 @@ const SupplierPoFormPage = () => {
                                                 min="0.01"
                                                 step="0.01"
                                                 value={item.quantity}
-                                                onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                                onChange={(e) => {
+                                                    handleItemChange(index, 'quantity', e.target.value);
+                                                    if (formData.status !== 'Completed' && formData.status !== 'Partial') {
+                                                        handleItemChange(index, 'received_quantity', e.target.value);
+                                                    }
+                                                }}
                                                 className="glass-input"
                                                 style={{ width: '100%', padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)', textAlign: 'right' }}
                                                 required
                                             />
                                         </td>
+                                        {(formData.status === 'Completed' || formData.status === 'Partial') && (
+                                            <td className="p-4">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={item.received_quantity ?? 0}
+                                                    onChange={(e) => handleItemChange(index, 'received_quantity', e.target.value)}
+                                                    className="glass-input"
+                                                    style={{ width: '100%', padding: '0.5rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '4px', color: '#10b981', border: '1px solid #10b981', textAlign: 'right', fontWeight: 'bold' }}
+                                                    required
+                                                />
+                                            </td>
+                                        )}
                                         <td style={{ padding: '0.8rem 1.5rem' }}>
                                             <input
                                                 type="text"
@@ -619,7 +660,7 @@ const SupplierPoFormPage = () => {
                                 style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)', resize: 'none', marginBottom: '1.5rem' }}
                                 placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
                             />
-                            
+
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ผู้สั่งซื้อ (PURCHASE BY) *</label>
@@ -657,10 +698,10 @@ const SupplierPoFormPage = () => {
                                 <div className="flex justify-between items-center">
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         <span className="text-textMuted">ภาษีมูลค่าเพิ่ม (VAT)</span>
-                                        <input 
-                                            type="number" 
-                                            name="vat_rate" 
-                                            value={formData.vat_rate} 
+                                        <input
+                                            type="number"
+                                            name="vat_rate"
+                                            value={formData.vat_rate}
                                             onChange={handleChange}
                                             className="glass-input"
                                             style={{ width: '50px', padding: '0.2rem', textAlign: 'center', background: 'var(--bg-main)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '0.8rem' }}

@@ -114,6 +114,11 @@ export const userService = {
     // Delete user
     deleteUser: async (id) => {
         try {
+            const currentUser = userService.getCurrentUser();
+            if (String(id) === String(currentUser?.id)) {
+                throw new Error('ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่ได้');
+            }
+
             const { error } = await supabase
                 .from('staff_members')
                 .delete()

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit, Trash2, FileSpreadsheet, Eye, Printer, FileText, CheckCircle, Clock, XCircle, AlertCircle, Calendar, ShoppingCart, TrendingUp, Copy, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, FileSpreadsheet, Eye, Printer, FileText, Clock, XCircle, Calendar, ShoppingCart, Copy, ChevronDown, ChevronRight } from 'lucide-react';
 import { supplierPoService } from '../services/supplierPoService';
 import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -18,7 +18,6 @@ const SupplierPoListPage = () => {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [dateFilterType, setDateFilterType] = useState('date');
-    const [statusFilter, setStatusFilter] = useState('');
     const [expandedRows, setExpandedRows] = useState(new Set());
 
     useEffect(() => {
@@ -112,9 +111,8 @@ const SupplierPoListPage = () => {
     const getStatusConfig = (status) => {
         const styles = {
             Draft: { color: '#6b7280', bg: '#f3f4f6', text: 'ฉบับร่าง', icon: <FileText size={14} /> },
-            Waiting: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)', text: 'รออนุมัติ', icon: <Clock size={14} /> },
-            Approved: { color: '#10b981', bg: 'rgba(16, 185, 129, 0.08)', text: 'อนุมัติแล้ว', icon: <CheckCircle size={14} /> },
-            Completed: { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)', text: 'ได้รับสินค้าแล้ว', icon: <ShoppingCart size={14} /> },
+            Partial: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)', text: 'รับสินค้าบางส่วน', icon: <Clock size={14} /> },
+            Completed: { color: '#10b981', bg: 'rgba(16, 185, 129, 0.08)', text: 'ได้รับสินค้าครบแล้ว', icon: <ShoppingCart size={14} /> },
             Cancelled: { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)', text: 'ยกเลิก', icon: <XCircle size={14} /> }
         };
         return styles[status] || styles.Draft;
@@ -126,7 +124,7 @@ const SupplierPoListPage = () => {
         const lowerSearch = searchTerm.toLowerCase();
         const matchSearch = (po.po_number || '').toLowerCase().includes(lowerSearch) ||
             (po.suppliers?.name || '').toLowerCase().includes(lowerSearch) ||
-            (po.supplier_po_items || []).some(item => 
+            (po.supplier_po_items || []).some(item =>
                 (item.description || '').toLowerCase().includes(lowerSearch)
             );
 
@@ -167,19 +165,18 @@ const SupplierPoListPage = () => {
         const now = new Date();
         now.setHours(0, 0, 0, 0);
 
-        const waiting = pos.filter(p => p.status === 'Waiting').length;
-        const approved = pos.filter(p => p.status === 'Approved').length;
         const completed = pos.filter(p => p.status === 'Completed').length;
+        const partial = pos.filter(p => p.status === 'Partial').length;
         const draft = pos.filter(p => p.status === 'Draft').length;
-        
-        const overdue = pos.filter(p => 
-            p.status !== 'Completed' && 
-            p.status !== 'Cancelled' && 
-            p.delivery_date && 
+        const cancelled = pos.filter(p => p.status === 'Cancelled').length;
+
+        const overdue = pos.filter(p =>
+            (p.status === 'Draft' || p.status === 'Partial') &&
+            p.delivery_date &&
             new Date(p.delivery_date) < now
         ).length;
 
-        return { waiting, approved, completed, draft, overdue };
+        return { completed, partial, draft, cancelled, overdue };
     }, [pos]);
 
     return (
@@ -197,40 +194,33 @@ const SupplierPoListPage = () => {
                 </div>
             </PageHeader>
 
-            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.8rem', marginBottom: '2rem' }}>
-                <div className="glass-panel" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.8rem', border: '1px solid rgba(239, 68, 68, 0.1)', background: 'rgba(239, 68, 68, 0.02)' }}>
-                    <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '0.5rem', borderRadius: '8px', color: '#ef4444' }}><AlertCircle size={18} /></div>
+            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+                <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.2rem', border: '1px solid rgba(107, 114, 128, 0.1)', background: 'white' }}>
+                    <div style={{ background: 'rgba(107, 114, 128, 0.1)', padding: '0.8rem', borderRadius: '12px', color: '#6b7280' }}><FileText size={24} /></div>
                     <div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>เกินกำหนดส่ง</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#ef4444' }}>{kpis.overdue}</div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>ฉบับร่าง (Draft)</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#6b7280', lineHeight: 1 }}>{kpis.draft}</div>
                     </div>
                 </div>
-                <div className="glass-panel" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.8rem', border: '1px solid rgba(245, 158, 11, 0.1)', background: 'rgba(245, 158, 11, 0.02)' }}>
-                    <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '0.5rem', borderRadius: '8px', color: '#f59e0b' }}><Clock size={18} /></div>
+                <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.2rem', border: '1px solid rgba(245, 158, 11, 0.1)', background: 'white' }}>
+                    <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '0.8rem', borderRadius: '12px', color: '#f59e0b' }}><Clock size={24} /></div>
                     <div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>รออนุมัติ</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#f59e0b' }}>{kpis.waiting}</div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>รับบางส่วน (Partial)</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#f59e0b', lineHeight: 1 }}>{kpis.partial}</div>
                     </div>
                 </div>
-                <div className="glass-panel" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.8rem', border: '1px solid rgba(59, 130, 246, 0.1)', background: 'rgba(59, 130, 246, 0.02)' }}>
-                    <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.5rem', borderRadius: '8px', color: '#3b82f6' }}><CheckCircle size={18} /></div>
+                <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.2rem', border: '1px solid rgba(16, 185, 129, 0.1)', background: 'white' }}>
+                    <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.8rem', borderRadius: '12px', color: '#10b981' }}><ShoppingCart size={24} /></div>
                     <div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>อนุมัติแล้ว</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#3b82f6' }}>{kpis.approved}</div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>รับครบแล้ว (Completed)</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#10b981', lineHeight: 1 }}>{kpis.completed}</div>
                     </div>
                 </div>
-                <div className="glass-panel" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.8rem', border: '1px solid rgba(16, 185, 129, 0.1)', background: 'rgba(16, 185, 129, 0.02)' }}>
-                    <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.5rem', borderRadius: '8px', color: '#10b981' }}><ShoppingCart size={18} /></div>
+                <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.2rem', border: '1px solid rgba(239, 68, 68, 0.1)', background: 'white' }}>
+                    <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '0.8rem', borderRadius: '12px', color: '#ef4444' }}><XCircle size={24} /></div>
                     <div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ได้รับสินค้าแล้ว</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#10b981' }}>{kpis.completed}</div>
-                    </div>
-                </div>
-                <div className="glass-panel" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.8rem', border: '1px solid rgba(107, 114, 128, 0.1)', background: 'rgba(107, 114, 128, 0.02)' }}>
-                    <div style={{ background: 'rgba(107, 114, 128, 0.1)', padding: '0.5rem', borderRadius: '8px', color: '#6b7280' }}><FileText size={18} /></div>
-                    <div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ฉบับร่าง</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#6b7280' }}>{kpis.draft}</div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>ยกเลิก (Cancelled)</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#ef4444', lineHeight: 1 }}>{kpis.cancelled}</div>
                     </div>
                 </div>
             </div>
@@ -278,14 +268,15 @@ const SupplierPoListPage = () => {
                                 <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>วันที่สั่งซื้อ</th>
                                 <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานที่จัดส่ง</th>
                                 <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>กำหนดส่ง</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>ยอดเงินสุทธิ</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
+                                <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', textAlign: 'right' }}>ยอดเงินสุทธิ</th>
+                                <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', textAlign: 'center' }}>การรับสินค้า</th>
+                                <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', textAlign: 'center' }}>สถานะ</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="9" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    <td colSpan="10" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                                         <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
                                         กำลังโหลดข้อมูล...
                                     </td>
@@ -294,7 +285,7 @@ const SupplierPoListPage = () => {
                                 monthYearGroups.map((group) => (
                                     <React.Fragment key={group}>
                                         <tr style={{ background: 'rgba(59, 130, 246, 0.02)' }}>
-                                            <td colSpan="9" style={{ padding: '1rem 1.5rem', fontWeight: '700', color: '#37477C', borderBottom: '1px solid var(--border-color)', borderTop: 'none', fontSize: '1rem' }}>
+                                            <td colSpan="10" style={{ padding: '1rem 1.5rem', fontWeight: '700', color: '#37477C', borderBottom: '1px solid var(--border-color)', borderTop: 'none', fontSize: '1rem' }}>
                                                 <div className="flex justify-between items-center">
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                         <Calendar size={18} color="#3b82f6" />
@@ -312,7 +303,7 @@ const SupplierPoListPage = () => {
                                             const isExpanded = expandedRows.has(po.id);
                                             return (
                                                 <React.Fragment key={po.id}>
-                                                    <tr 
+                                                    <tr
                                                         style={{ borderBottom: '1px solid var(--border-color)', background: isExpanded ? 'rgba(59, 130, 246, 0.02)' : 'var(--card-bg)', cursor: 'pointer' }}
                                                         onClick={() => toggleRow(po.id)}
                                                     >
@@ -322,12 +313,12 @@ const SupplierPoListPage = () => {
                                                         <td className="actions-column">
                                                             <div className="table-actions">
                                                                 <button onClick={(e) => { e.stopPropagation(); window.open(`/dashboard/supplier-pos/${po.id}`, '_blank'); }} className="action-view" title="ดูรายละเอียด"><Eye size={18} /></button>
-                                                                {hasPermission('supplier_pos', 'edit') && (po.status === 'Draft' || po.status === 'Waiting') && (
+                                                                {hasPermission('supplier_pos', 'edit') && (po.status === 'Draft' || po.status === 'Partial') && (
                                                                     <button onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/supplier-pos/${po.id}/edit`); }} className="action-edit" title="แก้ไข"><Edit size={18} /></button>
                                                                 )}
                                                                 <button onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/supplier-pos/create?duplicate=${po.id}`); }} className="action-edit" style={{ color: '#6366f1', background: 'rgba(99, 102, 241, 0.05)' }} title="คัดลอกรายการ"><Copy size={18} /></button>
                                                                 <button onClick={(e) => { e.stopPropagation(); window.open(`/dashboard/supplier-pos/${po.id}/print`, '_blank'); }} className="action-print" title="พิมพ์เอกสาร"><Printer size={18} /></button>
-                                                                {hasPermission('supplier_pos', 'delete') && (po.status === 'Draft' || po.status === 'Waiting') && (
+                                                                {hasPermission('supplier_pos', 'delete') && (po.status === 'Draft') && (
                                                                     <button onClick={(e) => { e.stopPropagation(); handleDelete(po.id, po.po_number); }} className="action-delete" title="ลบ"><Trash2 size={18} /></button>
                                                                 )}
                                                             </div>
@@ -341,8 +332,23 @@ const SupplierPoListPage = () => {
                                                                 {po.delivery_date ? new Date(po.delivery_date).toLocaleDateString('th-TH') : '-'}
                                                             </span>
                                                         </td>
-                                                        <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '500' }}>฿{(po.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                                        <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
+                                                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>
+                                                            ฿{po.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                        </td>
+                                                        <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                            {(() => {
+                                                                const totalQty = po.supplier_po_items?.reduce((sum, item) => sum + Number(item.quantity), 0) || 0;
+                                                                const receivedQty = po.supplier_po_items?.reduce((sum, item) => sum + Number(item.received_quantity || 0), 0) || 0;
+                                                                const percent = totalQty > 0 ? Math.round((receivedQty / totalQty) * 100) : 0;
+
+                                                                return (
+                                                                    <div style={{ fontSize: '1rem', fontWeight: '700', color: percent === 100 ? '#10b981' : (percent > 0 ? '#f59e0b' : 'var(--text-muted)') }}>
+                                                                        {receivedQty.toLocaleString()} / {totalQty.toLocaleString()}
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                        </td>
+                                                        <td style={{ padding: '1rem', textAlign: 'center' }}>
                                                             <span style={{ padding: '0.4rem 0.8rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '600', background: status.bg, color: status.color, border: `1px solid ${status.color}22`, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                                                 {status.icon} {status.text}
                                                             </span>
@@ -351,8 +357,8 @@ const SupplierPoListPage = () => {
                                                     {isExpanded && (
                                                         <tr style={{ background: 'rgba(59, 130, 246, 0.01)' }}>
                                                             <td></td>
-                                                            <td colSpan="8" style={{ padding: '0 1.5rem 1.5rem 1.5rem' }}>
-                                                                <div className="glass-panel" style={{ padding: '1rem', background: 'white', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
+                                                            <td colSpan="9" style={{ padding: '0 1.5rem 1.5rem 1.5rem' }}>
+                                                                <div className="glass-panel mt-3" style={{ padding: '1rem', background: 'white', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
                                                                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                                                                         <thead>
                                                                             <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>

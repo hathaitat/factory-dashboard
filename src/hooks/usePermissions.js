@@ -8,7 +8,7 @@ export const usePermissions = () => {
         // If no user, deny
         if (!user) return false;
 
-        if (module === 'overview' && !user.permissions?.[module]) {
+        if (module === 'overview' && action === 'view') {
             return true;
         }
 

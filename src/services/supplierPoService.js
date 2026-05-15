@@ -84,9 +84,24 @@ export const supplierPoService = {
             if (!poDetails.po_number) {
                 // Auto generate if empty
                 const datePrefix = new Date().toISOString().slice(2, 7).replace('-', '');
-                const countRes = await supabase.from('supplier_pos').select('*', { count: 'exact', head: true });
-                const count = (countRes.count || 0) + 1;
-                poDetails.po_number = `VPO${datePrefix}${String(count).padStart(3, '0')}`;
+                const { data: lastPo } = await supabase
+                    .from('supplier_pos')
+                    .select('po_number')
+                    .like('po_number', `VPO${datePrefix}%`)
+                    .order('po_number', { ascending: false })
+                    .limit(1)
+                    .single();
+                
+                let nextCount = 1;
+                if (lastPo && lastPo.po_number) {
+                    const lastNumberStr = lastPo.po_number.slice(-3); // Get last 3 digits
+                    const lastNumber = parseInt(lastNumberStr, 10);
+                    if (!isNaN(lastNumber)) {
+                        nextCount = lastNumber + 1;
+                    }
+                }
+                
+                poDetails.po_number = `VPO${datePrefix}${String(nextCount).padStart(3, '0')}`;
             }
 
             const { data: poResult, error: poError } = await supabase
@@ -109,6 +124,81 @@ export const supplierPoService = {
                     .insert(itemsToInsert);
 
                 if (itemsError) throw itemsError;
+
+                // Automation: Add items to warehouse inventory if created as Completed
+                if (poDetails.status === 'Completed') {
+                    let targetWarehouseId = poDetails.delivery_warehouse_id || poResult.delivery_warehouse_id;
+
+                    if (!targetWarehouseId) {
+                        const { data: defaultWarehouse } = await supabase
+                            .from('warehouses')
+                            .select('id')
+                            .eq('is_default', true)
+                            .single();
+                        if (defaultWarehouse) targetWarehouseId = defaultWarehouse.id;
+                    }
+
+                    if (targetWarehouseId) {
+                        const { data: currentInventory } = await supabase
+                            .from('warehouse_inventory')
+                            .select('*')
+                            .eq('warehouse_id', targetWarehouseId);
+                        
+                        for (const item of items) {
+                            const rcvQty = item.received_quantity !== undefined ? Number(item.received_quantity) : Number(item.quantity);
+                            if (rcvQty <= 0) continue;
+                            
+                            const existingItem = (currentInventory || []).find(inv => inv.product_name === item.description);
+
+                            if (existingItem) {
+                                const newQty = Number(existingItem.quantity) + rcvQty;
+                                await supabase
+                                    .from('warehouse_inventory')
+                                    .update({ quantity: newQty, last_updated: new Date().toISOString() })
+                                    .eq('id', existingItem.id);
+                                
+                                await supabase.from('inventory_logs').insert([{
+                                    inventory_id: existingItem.id,
+                                    type: 'IN',
+                                    qty: rcvQty,
+                                    old_quantity: existingItem.quantity,
+                                    balance: newQty,
+                                    source_type: 'po',
+                                    source_id: poResult.id,
+                                    reference_no: poDetails.po_number || poResult.id,
+                                    remark: `รับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || poResult.id}`
+                                }]);
+                            } else {
+                                const { data: newItem } = await supabase
+                                    .from('warehouse_inventory')
+                                    .insert([{
+                                        warehouse_id: targetWarehouseId,
+                                        product_type: 'material',
+                                        product_name: item.description || 'Unknown Item',
+                                        quantity: rcvQty,
+                                        unit: item.unit || 'PCS',
+                                        min_stock: 0
+                                    }])
+                                    .select()
+                                    .single();
+                                
+                                if (newItem) {
+                                    await supabase.from('inventory_logs').insert([{
+                                        inventory_id: newItem.id,
+                                        type: 'IN',
+                                        qty: rcvQty,
+                                        old_quantity: 0,
+                                        balance: rcvQty,
+                                        source_type: 'po',
+                                        source_id: poResult.id,
+                                        reference_no: poDetails.po_number || poResult.id,
+                                        remark: `เพิ่มรายการใหม่และรับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || poResult.id}`
+                                    }]);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             return poResult;
@@ -123,6 +213,13 @@ export const supplierPoService = {
         try {
             const { items, ...poDetails } = poData;
             poDetails.updated_at = new Date().toISOString();
+
+            // Get the old PO to check previous status and previous items for inventory diff calculation
+            const { data: oldPo } = await supabase
+                .from('supplier_pos')
+                .select('*, items:supplier_po_items(*)')
+                .eq('id', id)
+                .single();
 
             const { data: poResult, error: poError } = await supabase
                 .from('supplier_pos')
@@ -153,6 +250,88 @@ export const supplierPoService = {
                         .insert(itemsToInsert);
 
                     if (itemsError) throw itemsError;
+                    
+                    // Automation: Add NEWLY received items to warehouse inventory
+                    if (poDetails.status === 'Completed' || poDetails.status === 'Partial') {
+                        let targetWarehouseId = poDetails.delivery_warehouse_id || poResult.delivery_warehouse_id;
+
+                        if (!targetWarehouseId) {
+                            const { data: defaultWarehouse } = await supabase
+                                .from('warehouses')
+                                .select('id')
+                                .eq('is_default', true)
+                                .single();
+                            if (defaultWarehouse) targetWarehouseId = defaultWarehouse.id;
+                        }
+
+                        if (targetWarehouseId) {
+                            const { data: currentInventory } = await supabase
+                                .from('warehouse_inventory')
+                                .select('*')
+                                .eq('warehouse_id', targetWarehouseId);
+                            
+                            for (const item of items) {
+                                const newRcvQty = item.received_quantity !== undefined ? Number(item.received_quantity) : 0;
+                                
+                                // Find old received quantity
+                                const oldItem = (oldPo?.items || []).find(old => old.description === item.description);
+                                const oldRcvQty = oldItem && oldItem.received_quantity !== undefined ? Number(oldItem.received_quantity) : 0;
+                                
+                                const diffRcvQty = newRcvQty - oldRcvQty;
+                                
+                                if (diffRcvQty <= 0) continue; // Skip if no new goods received
+                                
+                                const existingItem = (currentInventory || []).find(inv => inv.product_name === item.description);
+
+                                if (existingItem) {
+                                    const newQty = Number(existingItem.quantity) + diffRcvQty;
+                                    await supabase
+                                        .from('warehouse_inventory')
+                                        .update({ quantity: newQty, last_updated: new Date().toISOString() })
+                                        .eq('id', existingItem.id);
+                                    
+                                    await supabase.from('inventory_logs').insert([{
+                                        inventory_id: existingItem.id,
+                                        type: 'IN',
+                                        qty: diffRcvQty,
+                                        old_quantity: existingItem.quantity,
+                                        balance: newQty,
+                                        source_type: 'po',
+                                        source_id: id,
+                                        reference_no: poDetails.po_number || id,
+                                        remark: `รับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || id} (เพิ่มเติม)`
+                                    }]);
+                                } else {
+                                    const { data: newItem } = await supabase
+                                        .from('warehouse_inventory')
+                                        .insert([{
+                                            warehouse_id: targetWarehouseId,
+                                            product_type: 'material',
+                                            product_name: item.description || 'Unknown Item',
+                                            quantity: diffRcvQty,
+                                            unit: item.unit || 'PCS',
+                                            min_stock: 0
+                                        }])
+                                        .select()
+                                        .single();
+                                    
+                                    if (newItem) {
+                                        await supabase.from('inventory_logs').insert([{
+                                            inventory_id: newItem.id,
+                                            type: 'IN',
+                                            qty: diffRcvQty,
+                                            old_quantity: 0,
+                                            balance: diffRcvQty,
+                                            source_type: 'po',
+                                            source_id: id,
+                                            reference_no: poDetails.po_number || id,
+                                            remark: `เพิ่มรายการใหม่และรับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || id}`
+                                        }]);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -406,9 +585,26 @@ export const supplierPoService = {
                 }
             }
 
+
             return data;
         } catch (error) {
             console.error('Error updating status:', error);
+            throw error;
+        }
+    },
+    
+    // Get all pending items (Draft or Partial) across all POs
+    getPendingItems: async () => {
+        try {
+            const { data, error } = await supabase
+                .from('supplier_po_items')
+                .select('*, supplier_pos!inner(status)')
+                .in('supplier_pos.status', ['Draft', 'Partial']);
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error fetching pending items:', error);
             throw error;
         }
     }

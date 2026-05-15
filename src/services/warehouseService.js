@@ -173,15 +173,82 @@ export const warehouseService = {
                     inventory_id: logData.inventory_id,
                     type: logData.action || logData.type || 'ADJUST',
                     qty: logData.quantity_change || logData.quantity || logData.qty,
-                    remark: logData.remark || ''
+                    old_quantity: logData.previous_quantity || 0,
+                    balance: logData.new_quantity || 0,
+                    source_type: logData.source_type || 'manual',
+                    source_id: logData.source_id || null,
+                    reference_no: logData.reference_no || '',
+                    remark: logData.remark || '',
+                    performed_by: logData.performed_by || ''
                 }]);
 
             if (error) {
+                // Fallback to remark if performed_by column doesn't exist
+                if (error.code === 'PGRST204' || error.message?.includes('column "performed_by" of relation "inventory_logs" does not exist')) {
+                    console.warn('performed_by column missing, falling back to remark');
+                    await supabase
+                        .from('inventory_logs')
+                        .insert([{
+                            inventory_id: logData.inventory_id,
+                            type: logData.action || logData.type || 'ADJUST',
+                            qty: logData.quantity_change || logData.quantity || logData.qty,
+                            old_quantity: logData.previous_quantity || 0,
+                            balance: logData.new_quantity || 0,
+                            source_type: logData.source_type || 'manual',
+                            source_id: logData.source_id || null,
+                            reference_no: logData.reference_no || '',
+                            remark: `${logData.remark}${logData.performed_by ? ` (โดย ${logData.performed_by})` : ''}`
+                        }]);
+                    return;
+                }
                 console.error('Insert Error:', error);
                 throw error;
             }
         } catch (error) {
             console.error('Critical logMovement error:', error);
+            throw error;
+        }
+    },
+
+    adjustStock: async (id, type, qty, remark, performedBy) => {
+        try {
+            // Get current quantity
+            const { data: item, error: fetchError } = await supabase
+                .from('warehouse_inventory')
+                .select('quantity')
+                .eq('id', id)
+                .single();
+            
+            if (fetchError) throw fetchError;
+
+            const oldQty = Number(item.quantity);
+            const change = Number(qty);
+            const newQty = type === 'IN' ? oldQty + change : oldQty - change;
+
+            // Update inventory
+            const { data: updatedItem, error: updateError } = await supabase
+                .from('warehouse_inventory')
+                .update({ quantity: newQty, last_updated: new Date().toISOString() })
+                .eq('id', id)
+                .select()
+                .single();
+            
+            if (updateError) throw updateError;
+
+            // Log movement
+            await warehouseService.logMovement({
+                inventory_id: id,
+                action: type,
+                quantity_change: change,
+                previous_quantity: oldQty,
+                new_quantity: newQty,
+                remark: remark,
+                performed_by: performedBy
+            });
+
+            return updatedItem;
+        } catch (error) {
+            console.error('Error adjusting stock:', error);
             throw error;
         }
     },

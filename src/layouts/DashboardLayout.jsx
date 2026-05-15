@@ -52,9 +52,9 @@ const DashboardLayout = () => {
 
             <aside className={`sidebar glass-panel ${isSidebarOpen ? 'active' : ''}`}>
                 <div className="sidebar-header">
-                    <div className="flex-center gap-3">
-                        <Hexagon className="sidebar-logo" size={28} />
-                        <span className="sidebar-title">MAW OS</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <Hexagon className="sidebar-logo" size={26} />
+                        <span className="sidebar-title" style={{ lineHeight: 1 }}>MAW OS</span>
                     </div>
                     <button className="mobile-close-btn" onClick={closeSidebar}>
                         <X size={24} />
@@ -142,7 +142,7 @@ const DashboardLayout = () => {
                     )}
 
                     {/* 2. Partners & Personnel */}
-                    {(hasPermission('customers', 'view') || hasPermission('suppliers', 'view') || hasPermission('employees', 'view')) && (
+                    {(hasPermission('customers', 'view') || hasPermission('suppliers', 'view') || hasPermission('employees', 'view') || hasPermission('certificates', 'view')) && (
                         <div className={`nav-group ${openGroups.partners ? 'open' : ''}`}>
                             <button className="nav-item group-header" onClick={() => toggleGroup('partners')}>
                                 <Users size={20} style={{ color: '#3b82f6' }} />
@@ -154,16 +154,16 @@ const DashboardLayout = () => {
                             {openGroups.partners && (
                                 <div className="group-content">
                                     {hasPermission('customers', 'view') && (
-                                        <>
-                                            <NavLink to="/dashboard/customers" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
-                                                <Users size={18} style={{ opacity: 0.7 }} />
-                                                <span>ลูกค้า (Customers)</span>
-                                            </NavLink>
-                                            <NavLink to="/dashboard/certificates" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
-                                                <Shield size={18} style={{ opacity: 0.7 }} />
-                                                <span>เอกสาร Certificate</span>
-                                            </NavLink>
-                                        </>
+                                        <NavLink to="/dashboard/customers" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                            <Users size={18} style={{ opacity: 0.7 }} />
+                                            <span>ลูกค้า (Customers)</span>
+                                        </NavLink>
+                                    )}
+                                    {hasPermission('certificates', 'view') && (
+                                        <NavLink to="/dashboard/certificates" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                            <Shield size={18} style={{ opacity: 0.7 }} />
+                                            <span>เอกสาร Certificate</span>
+                                        </NavLink>
                                     )}
                                     {hasPermission('suppliers', 'view') && (
                                         <NavLink to="/dashboard/suppliers" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>

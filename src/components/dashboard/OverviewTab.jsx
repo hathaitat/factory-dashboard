@@ -7,6 +7,8 @@ import { invoiceService } from '../../services/invoiceService';
 import { purchaseOrderService } from '../../services/purchaseOrderService';
 import { quotationService } from '../../services/quotationService';
 import { certificateService } from '../../services/certificateService';
+import { supplierPoService } from '../../services/supplierPoService';
+import { supplierService } from '../../services/supplierService';
 import CustomLineChart from './CustomLineChart';
 
 const OverviewTab = () => {
@@ -20,26 +22,30 @@ const OverviewTab = () => {
         topProducts: [],
         topCustomers: [],
         expiringCertificates: [],
-        lowStockItems: [],
-        totalInventoryItems: 0,
-        rawInvoices: [],
-        rawPurchaseOrders: [],
-        rawQuotations: []
+        rawQuotations: [],
+        rawSupplierPOs: [],
+        rawInventoryLogs: [],
+        rawSuppliers: [],
+        rawCustomers: [],
+        historicalStock: []
     });
 
     useEffect(() => {
         const load = async () => {
             setIsLoading(true);
             try {
-                const [customers, invoices, purchaseOrders, quotations, topProducts, topCustomers, expiringCerts, warehouses] = await Promise.all([
+                const [customers, suppliers, invoices, purchaseOrders, quotations, supplierPos, topProducts, topCustomers, expiringCerts, warehouses, inventoryLogs] = await Promise.all([
                     customerService.getCustomers(),
+                    supplierService.getSuppliers(),
                     invoiceService.getInvoices(),
                     purchaseOrderService.getPurchaseOrders(),
                     quotationService.getQuotations(),
+                    supplierPoService.getSupplierPos(),
                     invoiceService.getTopSellingProducts(5),
                     invoiceService.getTopCustomers(5),
                     certificateService.getExpiringCertificates(30),
-                    warehouseService.getWarehouses()
+                    warehouseService.getWarehouses(),
+                    warehouseService.getAllInventoryLogs(180) // Get more history for stock trend
                 ]);
 
                 // Aggregate warehouse data
@@ -89,7 +95,15 @@ const OverviewTab = () => {
                     totalInventoryItems: flatInventory.length,
                     rawInvoices: invoices || [],
                     rawPurchaseOrders: purchaseOrders || [],
-                    rawQuotations: quotations || []
+                    rawQuotations: quotations || [],
+                    rawSupplierPOs: supplierPos || [],
+                    rawInventoryLogs: (inventoryLogs || []).map(log => ({
+                        ...log,
+                        // Make OUT and negative ADJUSTments negative for the chart to show direction
+                        qty: (log.type === 'OUT' || (log.type === 'ADJUST' && log.qty < 0)) ? -Math.abs(log.qty) : Math.abs(log.qty)
+                    })),
+                    rawSuppliers: suppliers || [],
+                    rawCustomers: customers || []
                 });
             } catch (error) {
                 console.error('Error loading overview:', error);
@@ -106,79 +120,7 @@ const OverviewTab = () => {
 
     return (
         <div className="tab-content">
-            <div className="mb-6">
-                {/* Expiring Certificates */}
-                <div className="glass-panel" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '340px' }}>
-                    <div className="panel-header" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: data.expiringCertificates.length > 0 ? 'rgba(239, 68, 68, 0.05)' : undefined }}>
-                        <h3 style={{ margin: 0, fontSize: '1rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <ShieldAlert size={16} /> Certificate ใกล้หมดอายุ
-                        </h3>
-                        <button onClick={() => navigate('/dashboard/certificates')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem' }}>
-                            ดูทั้งหมด <ExternalLink size={14} />
-                        </button>
-                    </div>
-                    <div style={{ overflowY: 'auto', flex: 1, padding: '0.5rem 0' }}>
-                        {data.expiringCertificates.map((cert, index) => {
-                            const isExpired = cert.expiry_date && new Date(cert.expiry_date) < new Date();
-                            const customers = cert.certificate_customers?.map(cc => cc.customers?.name).filter(Boolean).join(', ');
-                            return (
-                                <div key={index} style={{ padding: '0.8rem 1.5rem', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => navigate(`/dashboard/certificates/${cert.id}/edit`)} className="hover-row">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <div>
-                                            <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '0.9rem' }}>{cert.name}</div>
-                                            {customers && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{customers}</div>}
-                                        </div>
-                                        <span style={{ padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', flexShrink: 0, background: isExpired ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: isExpired ? '#ef4444' : '#f59e0b' }}>
-                                            {isExpired ? 'หมดอายุแล้ว' : 'ใกล้หมดอายุ'}
-                                        </span>
-                                    </div>
-                                    <div style={{ fontSize: '0.8rem', color: isExpired ? '#ef4444' : '#f59e0b', marginTop: '0.3rem' }}>
-                                        หมดอายุ: {cert.expiry_date ? new Date(cert.expiry_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }) : 'ไม่ระบุ'}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                        {data.expiringCertificates.length === 0 && (
-                            <div style={{ padding: '2rem', textAlign: 'center', color: '#10b981' }}>
-                                ไม่มี Certificate ที่ใกล้หมดอายุ 👍
-                            </div>
-                        )}
-                    </div>
-                </div>
 
-                {/* Low Stock Alert */}
-                <div className="glass-panel mt-4" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '340px' }}>
-                    <div className="panel-header" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: data.lowStockItems.length > 0 ? 'rgba(239, 68, 68, 0.05)' : undefined }}>
-                        <h3 style={{ margin: 0, fontSize: '1rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <AlertTriangle size={16} /> สินค้าใกล้หมด/ต้องสั่งเพิ่ม
-                        </h3>
-                        <button onClick={() => navigate('/dashboard?tab=warehouse')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem' }}>
-                            ดูคลังสินค้า <ExternalLink size={14} />
-                        </button>
-                    </div>
-                    <div style={{ overflowY: 'auto', flex: 1, padding: '0.5rem 0' }}>
-                        {data.lowStockItems.map((item, index) => (
-                            <div key={index} style={{ padding: '0.8rem 1.5rem', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => navigate('/dashboard/warehouses')} className="hover-row">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <div>
-                                        <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '0.9rem' }}>{item.product_name}</div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>SKU: {item.sku || '-'}</div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div style={{ fontWeight: '700', color: '#ef4444', fontSize: '0.9rem' }}>{item.quantity.toLocaleString()} {item.unit}</div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Min: {item.min_stock}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                        {data.lowStockItems.length === 0 && (
-                            <div style={{ padding: '2rem', textAlign: 'center', color: '#10b981' }}>
-                                สินค้าในคลังเพียงพอทุกรายการ 👍
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
 
             <div className="kpi-grid">
                 <div className="kpi-card glass-panel cursor-pointer" onClick={() => navigate('/dashboard/customers')}>
@@ -258,10 +200,88 @@ const OverviewTab = () => {
                 title="แนวโน้มและสถิติภาพรวม"
                 metrics={[
                     { id: 'sales', label: 'ยอดขาย (Invoices)', data: data.rawInvoices, dateField: 'date', valueField: 'grandTotal', color: '#10b981', valuePrefix: '฿' },
-                    { id: 'po_amount', label: 'ยอดสั่งซื้อ (POs)', data: data.rawPurchaseOrders, dateField: 'issue_date', valueField: 'grand_total', color: '#3b82f6', valuePrefix: '฿' },
-                    { id: 'quotation_amount', label: 'ยอดเสนอราคา (Quotations)', data: data.rawQuotations, dateField: 'date', valueField: 'grandTotal', color: '#f59e0b', valuePrefix: '฿' }
+                    { id: 'po_amount', label: 'รายการใบสั่งซื้อ (Purchase Orders)', data: data.rawPurchaseOrders, dateField: 'issue_date', valueField: 'grand_total', color: '#3b82f6', valuePrefix: '฿' },
+                    { id: 'supplier_po', label: 'ใบสั่งซื้อผู้ขาย (Vendor PO)', data: data.rawSupplierPOs, dateField: 'date', valueField: 'grand_total', color: '#8b5cf6', valuePrefix: '฿' },
+                    { id: 'stock_movement', label: 'การเคลื่อนไหวสต็อก (Qty)', data: data.rawInventoryLogs, dateField: 'date', valueField: 'qty', color: '#ec4899', yAxisId: 'right', valueSuffix: ' ชิ้น' },
+                    { id: 'customer_growth', label: 'ลูกค้าใหม่ (สะสม)', data: data.rawCustomers, dateField: 'createdAt', color: '#f59e0b', yAxisId: 'right', valueSuffix: ' ราย' },
+                    { id: 'supplier_growth', label: 'Supplier ใหม่ (สะสม)', data: data.rawSuppliers, dateField: 'createdAt', color: '#14b8a6', yAxisId: 'right', valueSuffix: ' ราย' },
+                    { id: 'quotation_amount', label: 'ยอดเสนอราคา (Quotations)', data: data.rawQuotations, dateField: 'date', valueField: 'grandTotal', color: '#94a3b8', valuePrefix: '฿' }
                 ]}
             />
+
+            <div className="mb-6">
+                {/* Expiring Certificates */}
+                <div className="glass-panel" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '340px' }}>
+                    <div className="panel-header" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: data.expiringCertificates.length > 0 ? 'rgba(239, 68, 68, 0.05)' : undefined }}>
+                        <h3 style={{ margin: 0, fontSize: '1rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <ShieldAlert size={16} /> Certificate ใกล้หมดอายุ
+                        </h3>
+                        <button onClick={() => navigate('/dashboard/certificates')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem' }}>
+                            ดูทั้งหมด <ExternalLink size={14} />
+                        </button>
+                    </div>
+                    <div style={{ overflowY: 'auto', flex: 1, padding: '0.5rem 0' }}>
+                        {data.expiringCertificates.map((cert, index) => {
+                            const isExpired = cert.expiry_date && new Date(cert.expiry_date) < new Date();
+                            const customers = cert.certificate_customers?.map(cc => cc.customers?.name).filter(Boolean).join(', ');
+                            return (
+                                <div key={index} style={{ padding: '0.8rem 1.5rem', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => navigate(`/dashboard/certificates/${cert.id}/edit`)} className="hover-row">
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div>
+                                            <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '0.9rem' }}>{cert.name}</div>
+                                            {customers && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{customers}</div>}
+                                        </div>
+                                        <span style={{ padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', flexShrink: 0, background: isExpired ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: isExpired ? '#ef4444' : '#f59e0b' }}>
+                                            {isExpired ? 'หมดอายุแล้ว' : 'ใกล้หมดอายุ'}
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '0.8rem', color: isExpired ? '#ef4444' : '#f59e0b', marginTop: '0.3rem' }}>
+                                        หมดอายุ: {cert.expiry_date ? new Date(cert.expiry_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }) : 'ไม่ระบุ'}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {data.expiringCertificates.length === 0 && (
+                            <div style={{ padding: '2rem', textAlign: 'center', color: '#10b981' }}>
+                                ไม่มี Certificate ที่ใกล้หมดอายุ 👍
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Low Stock Alert */}
+                <div className="glass-panel mt-4" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '340px' }}>
+                    <div className="panel-header" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: data.lowStockItems.length > 0 ? 'rgba(239, 68, 68, 0.05)' : undefined }}>
+                        <h3 style={{ margin: 0, fontSize: '1rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <AlertTriangle size={16} /> สินค้าใกล้หมด/ต้องสั่งเพิ่ม
+                        </h3>
+                        <button onClick={() => navigate('/dashboard?tab=warehouse')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem' }}>
+                            ดูคลังสินค้า <ExternalLink size={14} />
+                        </button>
+                    </div>
+                    <div style={{ overflowY: 'auto', flex: 1, padding: '0.5rem 0' }}>
+                        {data.lowStockItems.map((item, index) => (
+                            <div key={index} style={{ padding: '0.8rem 1.5rem', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => navigate('/dashboard/warehouses')} className="hover-row">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div>
+                                        <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '0.9rem' }}>{item.product_name}</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>SKU: {item.sku || '-'}</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div style={{ fontWeight: '700', color: '#ef4444', fontSize: '0.9rem' }}>{item.quantity.toLocaleString()} {item.unit}</div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Min: {item.min_stock}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        {data.lowStockItems.length === 0 && (
+                            <div style={{ padding: '2rem', textAlign: 'center', color: '#10b981' }}>
+                                สินค้าในคลังเพียงพอทุกรายการ 👍
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
 
             <div className="dashboard-grid">
                 {/* Top Products */}

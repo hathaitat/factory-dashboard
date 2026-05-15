@@ -94,16 +94,36 @@ const UserFormPage = () => {
     };
 
     const handlePermissionChange = (moduleId, actionId) => {
-        setFormData(prev => ({
-            ...prev,
-            permissions: {
-                ...prev.permissions,
-                [moduleId]: {
-                    ...prev.permissions[moduleId],
-                    [actionId]: !prev.permissions[moduleId]?.[actionId]
-                }
+        const currentUser = userService.getCurrentUser();
+        const isEditingSelf = String(id) === String(currentUser?.id);
+
+        // Prevent self-lockout: Cannot disable 'view' or 'edit' for 'users' module if editing self
+        if (isEditingSelf && moduleId === 'users' && (actionId === 'view' || actionId === 'edit')) {
+            return;
+        }
+
+        setFormData(prev => {
+            const currentPerms = prev.permissions[moduleId] || { view: false, create: false, edit: false, delete: false };
+            const newValue = !currentPerms[actionId];
+            
+            let newModulePerms = {
+                ...currentPerms,
+                [actionId]: newValue
+            };
+
+            // Smart Logic: If checking create/edit/delete, automatically check 'view'
+            if (newValue && (actionId === 'create' || actionId === 'edit' || actionId === 'delete')) {
+                newModulePerms.view = true;
             }
-        }));
+
+            return {
+                ...prev,
+                permissions: {
+                    ...prev.permissions,
+                    [moduleId]: newModulePerms
+                }
+            };
+        });
     };
 
     const handleSubmit = async (e) => {

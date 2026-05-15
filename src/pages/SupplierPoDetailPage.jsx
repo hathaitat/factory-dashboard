@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Printer, Edit, ArrowLeft, CheckCircle, Clock, XCircle, Trash2, Building2, MapPin, Phone, User, Package, FileText } from 'lucide-react';
+import { Printer, Edit, ArrowLeft, CheckCircle, Clock, XCircle, Trash2, Building2, Phone, User } from 'lucide-react';
 import { supplierPoService } from '../services/supplierPoService';
 import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
-import PageHeader from '../components/PageHeader';
-import SupplierPoPrintTemplate from '../components/SupplierPoPrintTemplate';
 
 const SupplierPoDetailPage = () => {
     const { id } = useParams();
@@ -88,9 +86,8 @@ const SupplierPoDetailPage = () => {
     const getStatusBadge = (status) => {
         switch (status) {
             case 'Draft': return <span style={{ background: 'rgba(107, 114, 128, 0.1)', color: 'var(--text-muted)', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem' }}>ฉบับร่าง</span>;
-            case 'Waiting': return <span style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem' }}>รออนุมัติ</span>;
-            case 'Approved': return <span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem' }}>อนุมัติแล้ว</span>;
-            case 'Completed': return <span style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem' }}>ได้รับสินค้าแล้ว</span>;
+            case 'Partial': return <span style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem' }}>รับสินค้าบางส่วน</span>;
+            case 'Completed': return <span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem' }}>ได้รับสินค้าครบแล้ว</span>;
             case 'Cancelled': return <span style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem' }}>ยกเลิก</span>;
             default: return <span className="status-badge">{status}</span>;
         }
@@ -108,7 +105,7 @@ const SupplierPoDetailPage = () => {
                         <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>เลขที่: {po.po_number}</div>
                     </div>
                     <div style={{ marginLeft: '1rem' }}>
-                        {getStatusBadge(po.status)}
+                        {getStatusBadge(po.status === 'Completed' && po.supplier_po_items && !po.supplier_po_items.every(i => (i.received_quantity || 0) >= i.quantity) ? 'Partial' : po.status)}
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.8rem' }}>
@@ -128,7 +125,7 @@ const SupplierPoDetailPage = () => {
                     >
                         <Printer size={18} /> พิมพ์ใบสั่งซื้อ
                     </button>
-                    {hasPermission('supplier_pos', 'edit') && (po.status === 'Draft' || po.status === 'Waiting') && (
+                    {hasPermission('supplier_pos', 'edit') && (po.status === 'Draft' || po.status === 'Partial' || (po.status === 'Completed' && po.supplier_po_items && !po.supplier_po_items.every(i => (i.received_quantity || 0) >= i.quantity))) && (
                         <button
                             onClick={() => navigate(`/dashboard/supplier-pos/${id}/edit`)}
                             style={{
@@ -144,10 +141,10 @@ const SupplierPoDetailPage = () => {
                                 fontWeight: '600'
                             }}
                         >
-                            <Edit size={18} /> แก้ไข
+                            <Edit size={18} /> แก้ไข / รับสินค้า
                         </button>
                     )}
-                    {hasPermission('supplier_pos', 'delete') && (po.status === 'Draft' || po.status === 'Waiting') && (
+                    {hasPermission('supplier_pos', 'delete') && (po.status === 'Draft') && (
                         <button
                             onClick={handleDelete}
                             style={{
@@ -208,10 +205,10 @@ const SupplierPoDetailPage = () => {
                                             <td style={{ padding: '1.2rem 1rem' }}>
                                                 <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '1rem', marginBottom: '0.4rem' }}>{item.description}</div>
                                                 {item.note && (
-                                                    <div style={{ 
-                                                        fontSize: '0.85rem', 
-                                                        color: 'var(--text-muted)', 
-                                                        marginTop: '0.4rem', 
+                                                    <div style={{
+                                                        fontSize: '0.85rem',
+                                                        color: 'var(--text-muted)',
+                                                        marginTop: '0.4rem',
                                                         whiteSpace: 'pre-wrap',
                                                         padding: '0.4rem 0.6rem',
                                                         background: 'rgba(0,0,0,0.02)',
@@ -224,17 +221,24 @@ const SupplierPoDetailPage = () => {
                                                 {item.image_url && (
                                                     <div style={{ marginTop: '0.8rem' }}>
                                                         <a href={item.image_url} target="_blank" rel="noopener noreferrer">
-                                                            <img 
-                                                                src={item.image_url} 
-                                                                alt="product spec" 
-                                                                style={{ maxWidth: '250px', maxHeight: '200px', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border-color)', display: 'block' }} 
+                                                            <img
+                                                                src={item.image_url}
+                                                                alt="product spec"
+                                                                style={{ maxWidth: '250px', maxHeight: '200px', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border-color)', display: 'block' }}
                                                             />
                                                         </a>
                                                     </div>
                                                 )}
                                                 {item.due_date && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>กำหนดส่ง: {new Date(item.due_date).toLocaleDateString('th-TH')}</div>}
                                             </td>
-                                            <td style={{ padding: '1.2rem 1rem', textAlign: 'right', color: 'var(--text-main)' }}>{item.quantity.toLocaleString()} {item.unit}</td>
+                                            <td style={{ padding: '1.2rem 1rem', textAlign: 'right', color: 'var(--text-main)' }}>
+                                                {item.quantity.toLocaleString()} {item.unit}
+                                                {(po.status === 'Completed' || po.status === 'Partial') && (
+                                                    <div style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: '600', marginTop: '4px' }}>
+                                                        (รับแล้ว: {item.received_quantity !== undefined ? item.received_quantity : item.quantity})
+                                                    </div>
+                                                )}
+                                            </td>
                                             <td style={{ padding: '1.2rem 1rem', textAlign: 'right', color: 'var(--text-muted)' }}>฿{item.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                             <td style={{ padding: '1.2rem 1rem', textAlign: 'right', fontWeight: '600', color: 'var(--text-main)' }}>฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                         </tr>
@@ -258,31 +262,31 @@ const SupplierPoDetailPage = () => {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    {hasPermission('supplier_pos', 'edit') && (
+                    {hasPermission('supplier_pos', 'edit') && po.status !== 'Cancelled' && (
                         <div className="glass-panel" style={{ padding: '1.5rem', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-                            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--primary)', fontWeight: '600' }}>เปลี่ยนสถานะรายการ:</h3>
+                            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--primary)', fontWeight: '600' }}>การจัดการเอกสาร:</h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                                {po.status === 'Waiting' && (
-                                    <button onClick={() => handleStatusUpdate('Approved')} className="btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', color: '#10b981', borderColor: '#10b981', background: 'white', padding: '1rem' }}>
-                                        <CheckCircle size={20} /> <span className="font-semibold">อนุมัติการสั่งซื้อ</span>
-                                    </button>
-                                )}
-                                {po.status === 'Approved' && (
-                                    <button onClick={() => handleStatusUpdate('Completed')} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', padding: '1rem' }}>
-                                        <CheckCircle size={20} /> <span className="font-semibold">ได้รับสินค้าครบถ้วน (นำเข้าคลัง)</span>
-                                    </button>
-                                )}
                                 {po.status === 'Draft' && (
-                                    <button onClick={() => handleStatusUpdate('Waiting')} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', padding: '1rem' }}>
-                                        <Clock size={20} /> <span className="font-semibold">ส่งขออนุมัติ</span>
-                                    </button>
+                                    <>
+                                        <button onClick={() => navigate(`/dashboard/supplier-pos/${id}/edit`)} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', padding: '1rem' }}>
+                                            <CheckCircle size={20} /> <span className="font-semibold">รับสินค้าเข้าคลัง (Receive)</span>
+                                        </button>
+                                        <button onClick={() => handleStatusUpdate('Cancelled')} className="btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', color: '#ef4444', borderColor: '#ef4444', background: 'white', padding: '1rem' }}>
+                                            <XCircle size={20} /> <span className="font-semibold">ยกเลิกรายการ</span>
+                                        </button>
+                                    </>
                                 )}
-                                {['Waiting', 'Approved'].includes(po.status) && (
-                                    <button onClick={() => handleStatusUpdate('Cancelled')} className="btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', color: '#ef4444', borderColor: '#ef4444', background: 'white', padding: '1rem' }}>
-                                        <XCircle size={20} /> <span className="font-semibold">ยกเลิกรายการ</span>
-                                    </button>
+                                {(po.status === 'Partial' || (po.status === 'Completed' && po.supplier_po_items && !po.supplier_po_items.every(i => (i.received_quantity || 0) >= i.quantity))) && (
+                                    <>
+                                        <button onClick={() => navigate(`/dashboard/supplier-pos/${id}/edit`)} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', padding: '1rem' }}>
+                                            <CheckCircle size={20} /> <span className="font-semibold">รับสินค้าเพิ่มเติม</span>
+                                        </button>
+                                        <button onClick={handleCancel} className="btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', color: '#ef4444', borderColor: '#ef4444', background: 'white', padding: '1rem' }}>
+                                            <XCircle size={20} /> <span className="font-semibold">ยกเลิกใบสั่งซื้อ (หักสต็อกคืน)</span>
+                                        </button>
+                                    </>
                                 )}
-                                {po.status === 'Completed' && (
+                                {po.status === 'Completed' && po.supplier_po_items && po.supplier_po_items.every(i => (i.received_quantity || 0) >= i.quantity) && (
                                     <button onClick={handleCancel} className="btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', color: '#ef4444', borderColor: '#ef4444', background: 'white', padding: '1rem' }}>
                                         <XCircle size={20} /> <span className="font-semibold">ยกเลิกใบสั่งซื้อ (หักสต็อกคืน)</span>
                                     </button>

@@ -8,7 +8,7 @@ import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 
 const UserListPage = () => {
     const navigate = useNavigate();
-    const { hasPermission } = usePermissions();
+    const { hasPermission, user: currentUser } = usePermissions();
     const { showConfirm, showAlert, showError } = useDialog();
     const [users, setUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -142,7 +142,7 @@ const UserListPage = () => {
                                                         <Edit size={16} />
                                                     </button>
                                                 )}
-                                                {hasPermission('users', 'delete') && (
+                                                {hasPermission('users', 'delete') && String(user?.id) !== String(currentUser?.id) && (
                                                     <button
                                                         className="action-delete"
                                                         onClick={() => handleDelete(user.id, user.fullName)}
@@ -171,12 +171,20 @@ const UserListPage = () => {
                                                     const permCount = Object.values(value).filter(Boolean).length;
                                                     if (permCount === 0) return null;
                                                     const labels = {
+                                                        overview: 'ภาพรวม',
                                                         customers: 'ลูกค้า',
-                                                        invoices: 'ใบกำกับภาษี',
-                                                        billing: 'ใบวางบิล',
+                                                        suppliers: 'ผู้ขาย',
+                                                        supplier_pos: 'PO ผู้ขาย',
+                                                        warehouses: 'คลังสินค้า',
+                                                        certificates: 'Cert.',
+                                                        purchase_orders: 'PO ลูกค้า',
+                                                        quotations: 'เสนอราคา',
+                                                        invoices: 'Invoice',
+                                                        billing: 'วางบิล/รับเงิน',
                                                         employees: 'พนักงาน',
                                                         company: 'บริษัท',
                                                         users: 'ผู้ใช้',
+                                                        settings: 'ตั้งค่า',
                                                         production: 'ผลิต'
                                                     };
                                                     return (

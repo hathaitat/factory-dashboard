@@ -351,128 +351,174 @@ const CustomLineChart = ({
 
     return (
         <div className={`glass-panel ${className}`} style={{ padding: '1.5rem', marginBottom: '1.5rem', ...style }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <TrendingUp size={20} style={{ color: finalChartObj.configs[0]?.color || '#3b82f6' }} />
+            <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '700', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <TrendingUp size={22} style={{ color: finalChartObj.configs[0]?.color || '#3b82f6' }} />
                         {title}
                     </h3>
-
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                        {enableGroupBy && (
-                            <div style={{ display: 'flex', background: 'rgba(0,0,0,0.1)', borderRadius: '8px', padding: '0.2rem', marginRight: '0.5rem' }}>
-                                <button onClick={() => setIsGroupByMode(false)} style={{ padding: '0.3rem 0.8rem', borderRadius: '6px', border: 'none', background: !isGroupByMode ? 'var(--card-hover)' : 'transparent', color: !isGroupByMode ? 'var(--text-main)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: !isGroupByMode ? '600' : '500' }}>ยอดรวม</button>
-                                <button onClick={() => setIsGroupByMode(true)} style={{ padding: '0.3rem 0.8rem', borderRadius: '6px', border: 'none', background: isGroupByMode ? 'var(--card-hover)' : 'transparent', color: isGroupByMode ? 'var(--text-main)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: isGroupByMode ? '600' : '500', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Users size={14} /> แยกตาม{groupByLabel}</button>
-                            </div>
-                        )}
-
-                        {!isGroupByMode && metrics.length > 1 && metrics.map(m => {
-                            const isActive = activeMetricIds.includes(m.id);
-                            return (
-                                <button key={m.id} onClick={() => toggleMetric(m.id)} style={{ padding: '0.3rem 0.8rem', borderRadius: '20px', border: `1px solid ${isActive ? m.color : 'var(--border-color)'}`, background: isActive ? `${m.color}15` : 'transparent', color: isActive ? m.color : 'var(--text-muted)', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', transition: 'all 0.2s' }}>
-                                    {isActive && <Check size={12} />}
-                                    {m.label}
-                                </button>
-                            );
-                        })}
-
-                        {isGroupByMode && (
-                            <div style={{ position: 'relative' }} ref={dropdownRef}>
-                                <button onClick={() => setShowGroupDropdown(!showGroupDropdown)} style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    เลือก{groupByLabel} ({selectedGroups.length}/{maxMultiSelect}) <ChevronDown size={14} />
-                                </button>
-                                {showGroupDropdown && (
-                                    <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '0.5rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.5rem', width: '250px', maxHeight: '350px', overflowY: 'auto', zIndex: 100, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-                                        {availableGroups.length > 0 && (
-                                            <div style={{ display: 'flex', gap: '0.5rem', padding: '0.5rem', borderBottom: '1px solid var(--border-color)', marginBottom: '0.5rem' }}>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSelectedGroups(availableGroups.slice(0, maxMultiSelect));
-                                                    }}
-                                                    style={{ flex: 1, padding: '0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer' }}
-                                                >
-                                                    เลือกทั้งหมด
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSelectedGroups(availableGroups.slice(0, 1));
-                                                    }}
-                                                    style={{ flex: 1, padding: '0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
-                                                >
-                                                    ล้างทั้งหมด
-                                                </button>
-                                            </div>
-                                        )}
-                                        {availableGroups.length === 0 ? <div style={{ padding: '0.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>ไม่มีข้อมูล{groupByLabel}</div> : availableGroups.map(group => {
-                                            const isSelected = selectedGroups.includes(group);
-                                            return (
-                                                <div key={group} onClick={() => toggleGroup(group)} style={{ padding: '0.5rem 0.8rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'transparent', color: isSelected ? '#3b82f6' : 'var(--text-main)', fontSize: '0.85rem', marginBottom: '0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{group}</span>
-                                                    {isSelected && <Check size={14} />}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {isGroupByMode && selectedGroups.map((group, index) => {
-                            const config = finalChartObj.configs.find(c => c.label === group);
-                            const color = config ? config.color : '#888';
-                            return (
-                                <div key={group} style={{ padding: '0.2rem 0.6rem', borderRadius: '20px', border: `1px solid ${color}`, background: `${color}15`, color: color, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem', maxWidth: '150px' }}>
-                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{group}</span>
-                                    <X size={12} className="cursor-pointer" onClick={() => toggleGroup(group)} />
-                                </div>
-                            );
-                        })}
-                    </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', background: 'rgba(0,0,0,0.1)', borderRadius: '8px', padding: '0.2rem', flexWrap: 'wrap' }}>
-                        {[{ key: 'labels', icon: <FileDigit size={14} />, label: 'ตัวเลข', val: showLabels, set: setShowLabels, tooltip: 'แสดงตัวเลขระบุค่าของแต่ละจุดบนกราฟ เพื่อให้อ่านค่าได้ชัดเจน' },
-                        { key: 'table', icon: <Table size={14} />, label: 'ตาราง', val: showTable, set: setShowTable, tooltip: 'แสดงข้อมูลสรุปในรูปแบบตารางที่ด้านล่างกราฟ แบ่งตามรายการและค่าเฉลี่ย' },
+                {/* Metric Filters Row */}
+                <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1.2rem' }}>
+                    {enableGroupBy && (
+                        <div style={{ display: 'flex', background: 'rgba(0,0,0,0.1)', borderRadius: '12px', padding: '0.25rem', marginRight: '0.5rem' }}>
+                            <button onClick={() => setIsGroupByMode(false)} style={{ padding: '0.4rem 1rem', borderRadius: '10px', border: 'none', background: !isGroupByMode ? 'white' : 'transparent', color: !isGroupByMode ? 'var(--text-main)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: !isGroupByMode ? '700' : '500', boxShadow: !isGroupByMode ? '0 2px 4px rgba(0,0,0,0.05)' : 'none' }}>ยอดรวม</button>
+                            <button onClick={() => setIsGroupByMode(true)} style={{ padding: '0.4rem 1rem', borderRadius: '10px', border: 'none', background: isGroupByMode ? 'white' : 'transparent', color: isGroupByMode ? 'var(--text-main)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: isGroupByMode ? '700' : '500', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: isGroupByMode ? '0 2px 4px rgba(0,0,0,0.05)' : 'none' }}><Users size={16} /> แยกตาม{groupByLabel}</button>
+                        </div>
+                    )}
+
+                    {!isGroupByMode && metrics.length > 1 && metrics.map(m => {
+                        const isActive = activeMetricIds.includes(m.id);
+                        return (
+                            <button 
+                                key={m.id} 
+                                onClick={() => toggleMetric(m.id)} 
+                                style={{ 
+                                    padding: '0.5rem 1.2rem', 
+                                    borderRadius: '30px', 
+                                    border: `1.5px solid ${isActive ? m.color : 'var(--border-color)'}`, 
+                                    background: isActive ? `${m.color}10` : 'white', 
+                                    color: isActive ? m.color : 'var(--text-muted)', 
+                                    fontSize: '0.9rem', 
+                                    fontWeight: '600',
+                                    cursor: 'pointer', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '0.5rem', 
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: isActive ? `0 4px 12px ${m.color}20` : 'none'
+                                }}
+                            >
+                                {isActive && <Check size={16} strokeWidth={3} />}
+                                {m.label}
+                            </button>
+                        );
+                    })}
+
+                    {isGroupByMode && (
+                        <div style={{ position: 'relative' }} ref={dropdownRef}>
+                            <button onClick={() => setShowGroupDropdown(!showGroupDropdown)} style={{ padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'white', color: 'var(--text-main)', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600' }}>
+                                เลือก{groupByLabel} ({selectedGroups.length}/{maxMultiSelect}) <ChevronDown size={16} />
+                            </button>
+                            {showGroupDropdown && (
+                                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '0.5rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '0.6rem', width: '280px', maxHeight: '350px', overflowY: 'auto', zIndex: 100, boxShadow: '0 15px 35px rgba(0,0,0,0.2)' }}>
+                                    {availableGroups.length > 0 && (
+                                        <div style={{ display: 'flex', gap: '0.5rem', padding: '0.5rem', borderBottom: '1px solid var(--border-color)', marginBottom: '0.5rem' }}>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedGroups(availableGroups.slice(0, maxMultiSelect));
+                                                }}
+                                                style={{ flex: 1, padding: '0.4rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer', fontWeight: '600' }}
+                                            >
+                                                เลือกทั้งหมด
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedGroups(availableGroups.slice(0, 1));
+                                                }}
+                                                style={{ flex: 1, padding: '0.4rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: '500' }}
+                                            >
+                                                ล้างทั้งหมด
+                                            </button>
+                                        </div>
+                                    )}
+                                    {availableGroups.length === 0 ? <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ไม่มีข้อมูล{groupByLabel}</div> : availableGroups.map(group => {
+                                        const isSelected = selectedGroups.includes(group);
+                                        return (
+                                            <div key={group} onClick={() => toggleGroup(group)} style={{ padding: '0.6rem 0.8rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isSelected ? 'rgba(59, 130, 246, 0.08)' : 'transparent', color: isSelected ? '#3b82f6' : 'var(--text-main)', fontSize: '0.85rem', marginBottom: '0.2rem', transition: 'background 0.2s' }}>
+                                                <span style={{ fontWeight: isSelected ? '600' : '400' }}>{group}</span>
+                                                {isSelected && <Check size={16} />}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {isGroupByMode && selectedGroups.map((group, index) => {
+                        const config = finalChartObj.configs.find(c => c.label === group);
+                        const color = config ? config.color : '#888';
+                        return (
+                            <div key={group} style={{ padding: '0.3rem 0.8rem', borderRadius: '30px', border: `1px solid ${color}`, background: `${color}10`, color: color, fontSize: '0.8rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <span>{group}</span>
+                                <X size={14} className="cursor-pointer" onClick={() => toggleGroup(group)} />
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Controls Row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ display: 'flex', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '0.3rem', gap: '0.2rem' }}>
+                        {[{ key: 'labels', icon: <FileDigit size={16} />, label: 'ตัวเลข', val: showLabels, set: setShowLabels, tooltip: 'แสดงตัวเลขระบุค่าของแต่ละจุดบนกราฟ' },
+                        { key: 'table', icon: <Table size={16} />, label: 'ตาราง', val: showTable, set: setShowTable, tooltip: 'แสดงข้อมูลสรุปในรูปแบบตาราง' },
                         ...(!isCategorical ? [
-                            { key: 'ma', icon: <Activity size={14} />, label: 'เส้นเฉลี่ยเคลื่อนที่', val: showMA, set: setShowMA, tooltip: 'เส้นที่ช่วยลดความผันผวนของข้อมูลรายวัน เพื่อให้เห็นแนวโน้ม (Trend) ที่แท้จริง' },
-                            { key: 'avg', icon: <BarChart3 size={14} />, label: 'เส้นค่าเฉลี่ย', val: showAvgLine, set: setShowAvgLine, tooltip: 'เส้นตรงที่ระบุค่าเฉลี่ยกลางของข้อมูลทั้งหมด เพื่อใช้เปรียบเทียบว่าวันไหนสูงหรือต่ำกว่าปกติ' },
-                            { key: 'cum', icon: <Layers size={14} />, label: 'สะสม', val: showCumulative, set: setShowCumulative, tooltip: 'แสดงกราฟแบบยอดรวมสะสมเพิ่มขึ้นเรื่อยๆ ตั้งแต่จุดเริ่มต้น เพื่อดูการเติบโตในภาพรวม' }
+                            { key: 'ma', icon: <Activity size={16} />, label: 'เส้นเฉลี่ยเคลื่อนที่', val: showMA, set: setShowMA, tooltip: 'เส้นเฉลี่ยเคลื่อนที่ (Moving Average) 3 วัน' },
+                            { key: 'avg', icon: <BarChart3 size={16} />, label: 'เส้นค่าเฉลี่ย', val: showAvgLine, set: setShowAvgLine, tooltip: 'เส้นค่าเฉลี่ยรวมทั้งช่วงเวลา' },
+                            { key: 'cum', icon: <Layers size={16} />, label: 'สะสม', val: showCumulative, set: setShowCumulative, tooltip: 'แสดงยอดรวมสะสมแบบต่อเนื่อง' }
                         ] : []),
-                        { key: 'insights', icon: <Lightbulb size={14} />, label: 'วิเคราะห์', val: showInsights, set: setShowInsights, tooltip: 'แสดงข้อมูลสรุปผลการวิเคราะห์ เช่น วันที่ยอดสูงสุด และข้อสังเกตที่น่าสนใจ' }
+                        { key: 'insights', icon: <Lightbulb size={16} />, label: 'วิเคราะห์', val: showInsights, set: setShowInsights, tooltip: 'แสดงข้อสังเกตและข้อมูลเชิงลึก' }
                         ].map(btn => (
                             <div key={btn.key} className="tooltip-container">
-                                <button onClick={() => btn.set(!btn.val)} style={{ padding: '0.35rem 0.5rem', borderRadius: '6px', border: 'none', background: btn.val ? 'var(--card-hover)' : 'transparent', color: btn.val ? 'var(--text-main)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>{btn.icon} {btn.label}</button>
+                                <button 
+                                    onClick={() => btn.set(!btn.val)} 
+                                    style={{ 
+                                        padding: '0.4rem 0.8rem', 
+                                        borderRadius: '8px', 
+                                        border: 'none', 
+                                        background: btn.val ? 'white' : 'transparent', 
+                                        color: btn.val ? 'var(--text-main)' : 'var(--text-muted)', 
+                                        cursor: 'pointer', 
+                                        fontSize: '0.8rem', 
+                                        fontWeight: btn.val ? '700' : '500',
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '0.3rem',
+                                        boxShadow: btn.val ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {btn.icon} {btn.label}
+                                </button>
                                 <div className="tooltip-box">{btn.tooltip}</div>
                             </div>
                         ))}
                     </div>
 
-                    {!isCategorical && (
-                        <select value={period} onChange={(e) => setPeriod(e.target.value)} className="glass-input" style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: 'var(--bg-main)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
-                            <option value="daily">รายวัน (30 วันล่าสุด)</option>
-                            <option value="weekly">รายสัปดาห์ (12 สัปดาห์ล่าสุด)</option>
-                            <option value="monthly">รายเดือน (12 เดือนล่าสุด)</option>
-                            <option value="yearly">รายปี (5 ปีล่าสุด)</option>
-                            <option value="custom">กำหนดเอง (Custom)</option>
-                        </select>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                        {!isCategorical && (
+                            <select value={period} onChange={(e) => setPeriod(e.target.value)} className="glass-input" style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: 'white', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '0.9rem', fontWeight: '600' }}>
+                                <option value="daily">รายวัน (30 วันล่าสุด)</option>
+                                <option value="weekly">รายสัปดาห์ (12 สัปดาห์ล่าสุด)</option>
+                                <option value="monthly">รายเดือน (12 เดือนล่าสุด)</option>
+                                <option value="yearly">รายปี (5 ปีล่าสุด)</option>
+                                <option value="custom">กำหนดเอง (Custom)</option>
+                            </select>
+                        )}
 
-                    {!isCategorical && period === 'custom' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="glass-input" style={{ padding: '0.4rem', borderRadius: '6px', background: 'var(--bg-main)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} />
-                            <span className="text-textMuted">ถึง</span>
-                            <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="glass-input" style={{ padding: '0.4rem', borderRadius: '6px', background: 'var(--bg-main)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} />
-                        </div>
-                    )}
+                        {!isCategorical && period === 'custom' && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="glass-input" style={{ padding: '0.4rem', borderRadius: '8px', background: 'white', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} />
+                                <span className="text-textMuted">ถึง</span>
+                                <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="glass-input" style={{ padding: '0.4rem', borderRadius: '8px', background: 'white', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '0.85rem' }} />
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
             {/* Smart KPI Summary Cards */}
             {summaryKPIs.length > 0 && (
-                <div style={{ display: 'flex', gap: '0.8rem', marginBottom: '1.2rem', flexWrap: 'wrap' }}>
+                <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                    gap: '1rem', 
+                    marginBottom: '1.5rem' 
+                }}>
                     {summaryKPIs.map(kpi => (
                         <div key={kpi.id} className="tooltip-container" style={{ flex: '1 1 180px', minWidth: '160px' }}>
                             <div style={{ padding: '0.8rem 1rem', borderRadius: '10px', background: `${kpi.color}08`, border: `1px solid ${kpi.color}20`, height: '100%' }}>

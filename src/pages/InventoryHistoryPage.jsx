@@ -133,6 +133,13 @@ const InventoryHistoryPage = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.8rem' }}>
                     <button
+                        onClick={() => navigate(`/dashboard/supplier-pos/create?subcontract_inventory_id=${item.id}&subcontract_material=${encodeURIComponent(item.product_name)}&subcontract_warehouse=${item.warehouse_id}`)}
+                        className="btn-secondary"
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderColor: '#8b5cf6', color: '#8b5cf6' }}
+                    >
+                        <Building2 size={18} /> เปิด PO ผลิต
+                    </button>
+                    <button
                         onClick={() => setShowAdjustModal(true)}
                         className="btn-primary"
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem' }}

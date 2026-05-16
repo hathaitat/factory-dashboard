@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.1.0] - 2026-05-16 - "Supplier PO & UAT Readiness"
+
+### Added
+- **AI Agent Guidelines (`AGENTS.md`)**: Formalized development rules, safety boundaries, and design standards for AI-assisted coding.
+- **UAT Test Framework (`uat_test_script.md`)**: Created a comprehensive test script covering 6 critical modules for formal manual testing.
+- **NPM Test Integration**: Added `npm run test` script to provide easy access to UAT documentation.
+
+### Improved
+- **Supplier PO Print Layout**: 
+  - Hard-coded A4 dimensions (210mm x 297mm) with 15mm safety margins.
+  - Optimized vertical spacing to ensure document fits on a single page.
+  - Added product image support within PO table items.
+  - Standardized font sizes and border consistency for professional output.
+- **CRM/SRM Testing**: Expanded test cases to include data integrity checks for referenced entities and tab-based navigation.
+
+### Fixed
+- Fixed vertical overflow issue in Supplier PO print template when items exceeded 5 rows.
+- Refined signature block alignment in print templates.
+
 ## [1.0.0] - 2026-04-27 - "Factory Dashboard V1"
 
 ### Added

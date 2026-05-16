@@ -96,12 +96,13 @@ const SupplierPoPrintPage = () => {
                 padding: '40px 20px', 
                 display: 'flex', 
                 justifyContent: 'center',
+                alignItems: 'flex-start',
                 overflowY: 'auto',
                 flex: 1
             }}>
                 <div style={{ 
                     boxShadow: '0 0 10px rgba(0,0,0,0.1)',
-                    backgroundColor: 'white'
+                    width: 'fit-content'
                 }}>
                     <SupplierPoPrintTemplate po={po} company={company} />
                 </div>

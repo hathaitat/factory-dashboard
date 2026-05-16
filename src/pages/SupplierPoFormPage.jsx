@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Save, X, Plus, Trash2, ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { Save, X, Plus, Trash2, ArrowLeft, Image as ImageIcon, Building2 } from 'lucide-react';
 import { supplierPoService } from '../services/supplierPoService';
 import { supplierService } from '../services/supplierService';
 import { supplierProductService } from '../services/supplierProductService';
@@ -13,6 +13,12 @@ const SupplierPoFormPage = () => {
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const duplicateId = queryParams.get('duplicate');
+    const isReceiveMode = queryParams.get('mode') === 'receive';
+    
+    // Subcontracting params
+    const subcontractInventoryId = queryParams.get('subcontract_inventory_id');
+    const subcontractMaterial = queryParams.get('subcontract_material');
+    const [subcontractQty, setSubcontractQty] = useState('');
     const isEdit = Boolean(id);
     const navigate = useNavigate();
     const { showAlert, showError, showConfirm } = useDialog();
@@ -40,7 +46,7 @@ const SupplierPoFormPage = () => {
     });
 
     const [items, setItems] = useState([
-        { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, received_quantity: 1, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }
+        { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, received_quantity: 0, previous_received: 0, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }
     ]);
 
     const [isLoading, setIsLoading] = useState(true);
@@ -107,13 +113,22 @@ const SupplierPoFormPage = () => {
                         grand_total: poData.grand_total || 0
                     });
 
+                    // If in receive mode and currently Draft, suggest Partial status
+                    if (isReceiveMode && poData.status === 'Draft') {
+                        setFormData(prev => ({ ...prev, status: 'Partial' }));
+                    }
+
                     if (poData.supplier_po_items && poData.supplier_po_items.length > 0) {
-                        setItems(poData.supplier_po_items.map(item => ({
-                            ...item,
-                            id: isEdit ? item.id : Date.now() + Math.random(), // New ID if duplicating
-                            received_quantity: item.received_quantity ?? item.quantity,
-                            due_date: item.due_date ? item.due_date.split('T')[0] : ''
-                        })));
+                        setItems(poData.supplier_po_items.map(item => {
+                            const isDraft = poData.status === 'Draft';
+                            return {
+                                ...item,
+                                id: isEdit ? item.id : Date.now() + Math.random(), // New ID if duplicating
+                                received_quantity: isDraft ? 0 : (item.received_quantity ?? 0),
+                                previous_received: isDraft ? 0 : (item.received_quantity || 0),
+                                due_date: item.due_date ? item.due_date.split('T')[0] : ''
+                            };
+                        }));
                     }
                 }
             }
@@ -199,11 +214,24 @@ const SupplierPoFormPage = () => {
             item.amount = (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
         }
 
+        // Validate received_quantity against quantity
+        if (field === 'received_quantity' || field === 'quantity') {
+            const maxQty = parseFloat(item.quantity) || 0;
+            let currentRcv = parseFloat(item.received_quantity) || 0;
+            if (currentRcv > maxQty) {
+                item.received_quantity = maxQty;
+                // Only show alert if user is actively changing the received_quantity
+                if (field === 'received_quantity') {
+                    showAlert(`ยอดรับรวมทั้งหมดต้องไม่เกินจำนวนที่สั่ง (${maxQty})`);
+                }
+            }
+        }
+
         setItems(newItems);
     };
 
     const addItem = () => {
-        setItems([...items, { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, received_quantity: 1, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }]);
+        setItems([...items, { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, received_quantity: 0, previous_received: 0, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }]);
     };
 
     const removeItem = (index) => {
@@ -268,7 +296,7 @@ const SupplierPoFormPage = () => {
                 ...formData,
                 status: finalStatus,
                 items: validItems.map(item => {
-                    const { id, ...rest } = item;
+                    const { id, previous_received, ...rest } = item;
                     return {
                         ...rest,
                         supplier_product_id: rest.supplier_product_id || null, // null if custom item
@@ -281,8 +309,27 @@ const SupplierPoFormPage = () => {
                 await supplierPoService.updateSupplierPo(id, payload);
                 await showAlert('บันทึกข้อมูลสำเร็จ');
             } else {
-                await supplierPoService.createSupplierPo(payload);
-                await showAlert('สร้างใบสั่งซื้อสำเร็จ');
+                const savedPo = await supplierPoService.createSupplierPo(payload);
+                
+                // Automatically deduct stock for subcontracting ONLY ON CREATE
+                if (subcontractInventoryId && Number(subcontractQty) > 0) {
+                    try {
+                        const currentUser = userService.getCurrentUser();
+                        await warehouseService.adjustStock(
+                            subcontractInventoryId, 
+                            'OUT', 
+                            subcontractQty, 
+                            `เบิกไปแปรรูปชิ้นส่วนตามใบสั่งจ้างผลิต (PO: ${savedPo.po_number || savedPo.id})`,
+                            currentUser?.fullName || 'system'
+                        );
+                        await showAlert('สร้างใบสั่งซื้อ และตัดยอดสต็อกวัตถุดิบสำเร็จ');
+                    } catch (err) {
+                        console.error('Failed to deduct subcontract material:', err);
+                        await showAlert('บันทึกใบสั่งซื้อสำเร็จ แต่ไม่สามารถตัดสต็อกวัตถุดิบได้ กรุณาไปตัดสต็อกด้วยตนเองที่หน้าคลังสินค้า');
+                    }
+                } else {
+                    await showAlert('สร้างใบสั่งซื้อสำเร็จ');
+                }
             }
             navigate('/dashboard/supplier-pos');
         } catch (error) {
@@ -305,9 +352,40 @@ const SupplierPoFormPage = () => {
             </button>
 
             <form onSubmit={handleSubmit}>
+                {subcontractInventoryId && !isEdit && (
+                    <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', borderLeft: '4px solid #8b5cf6' }}>
+                        <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8b5cf6' }}>
+                            <Building2 size={20} /> วัตถุดิบที่ต้องเบิกใช้สำหรับการจ้างผลิต
+                        </h3>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                            เมื่อบันทึกใบสั่งซื้อนี้เป็นครั้งแรก ระบบจะทำการ <b>"เบิกตัดสต็อก"</b> วัตถุดิบรายการนี้ออกจากคลังให้โดยอัตโนมัติ
+                        </p>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            <div style={{ flex: 2 }}>
+                                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>รายการวัตถุดิบ (อ้างอิงจากคลังที่เลือก)</label>
+                                <input type="text" value={subcontractMaterial} disabled className="glass-input" style={{ width: '100%', padding: '0.8rem', opacity: 0.7 }} />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>จำนวนที่ต้องการเบิกใช้</label>
+                                <input 
+                                    type="number" 
+                                    min="0.01"
+                                    step="0.01"
+                                    value={subcontractQty} 
+                                    onChange={e => setSubcontractQty(e.target.value)} 
+                                    className="glass-input" 
+                                    style={{ width: '100%', padding: '0.8rem', borderColor: '#8b5cf6' }}
+                                    placeholder="ระบุจำนวน"
+                                    required={!!subcontractInventoryId}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                     <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>
-                        {isEdit ? 'แก้ไขใบสั่งซื้อผู้ขาย' : 'สร้างใบสั่งซื้อผู้ขาย'}
+                        {isReceiveMode ? 'รับสินค้าเข้าคลัง' : (isEdit ? 'แก้ไขใบสั่งซื้อผู้ขาย' : 'สร้างใบสั่งซื้อผู้ขาย')}
                     </h1>
                     <div className="flex gap-4">
                         <select
@@ -440,25 +518,25 @@ const SupplierPoFormPage = () => {
                     <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                             <thead>
-                                <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '50px', textAlign: 'center' }}>ลำดับ</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '40%' }}>รายละเอียดสินค้า (เลือกจากผู้ขายหรือพิมพ์เอง)</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%', textAlign: 'right' }}>จำนวนสั่ง</th>
-                                    {(formData.status === 'Completed' || formData.status === 'Partial') && (
-                                        <th style={{ padding: '1rem 1.5rem', color: '#10b981', fontWeight: '600', width: '15%', textAlign: 'right' }}>จำนวนรับจริง</th>
+                                <tr className="border-b border-border text-left">
+                                    <th className="px-6 py-4 text-textMuted font-medium w-[50px] text-center">ลำดับ</th>
+                                    <th className="px-6 py-4 text-textMuted font-medium w-[40%]">รายละเอียดสินค้า (เลือกจากผู้ขายหรือพิมพ์เอง)</th>
+                                    <th className="px-6 py-4 text-textMuted font-medium w-[15%] text-right">จำนวนสั่ง</th>
+                                    {(formData.status === 'Completed' || formData.status === 'Partial' || isReceiveMode) && (
+                                        <th className="px-6 py-4 text-[#10b981] font-semibold w-[15%] text-right">ยอดรับรวมทั้งหมด</th>
                                     )}
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '10%' }}>หน่วย</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%', textAlign: 'right' }}>ราคา/หน่วย</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '15%', textAlign: 'right' }}>จำนวนเงิน</th>
-                                    <th style={{ padding: '1rem', width: '50px' }}></th>
+                                    <th className="px-6 py-4 text-textMuted font-medium w-[10%]">หน่วย</th>
+                                    <th className="px-6 py-4 text-textMuted font-medium w-[15%] text-right">ราคา/หน่วย</th>
+                                    <th className="px-6 py-4 text-textMuted font-medium w-[15%] text-right">จำนวนเงิน</th>
+                                    <th className="p-4 w-[50px]"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {items.map((item, index) => (
-                                    <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                        <td style={{ padding: '0.8rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>{index + 1}</td>
-                                        <td style={{ padding: '0.8rem 1.5rem' }}>
-                                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                    <tr key={item.id} className="border-b border-border">
+                                        <td className="px-6 py-3.5 text-center text-textMuted">{index + 1}</td>
+                                        <td className="px-6 py-3.5">
+                                            <div className="relative flex items-center">
                                                 <input
                                                     type="text"
                                                     list={`supplier-products-${index}`}
@@ -475,31 +553,20 @@ const SupplierPoFormPage = () => {
                                                         onClick={() => {
                                                             handleItemChange(index, 'description', '');
                                                         }}
-                                                        style={{
-                                                            position: 'absolute',
-                                                            right: '8px',
-                                                            background: 'none',
-                                                            border: 'none',
-                                                            color: 'var(--text-muted)',
-                                                            cursor: 'pointer',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            padding: '2px'
-                                                        }}
+                                                        className="absolute right-2 bg-none border-none text-textMuted cursor-pointer flex items-center justify-center p-0.5"
                                                     >
                                                         <X size={14} />
                                                     </button>
                                                 )}
                                             </div>
                                             {supplierProducts.length > 0 ? (
-                                                <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></div>
+                                                <div className="text-[0.75rem] text-[#10b981] mt-1 flex items-center gap-1">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></div>
                                                     มีสินค้าให้เลือก {supplierProducts.length} รายการ (ดับเบิลคลิกเพื่อดู)
                                                 </div>
                                             ) : (
-                                                <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b' }}></div>
+                                                <div className="text-[0.75rem] text-[#f59e0b] mt-1 flex items-center gap-1">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]"></div>
                                                     ผู้ขายนี้ยังไม่มีสินค้าในระบบ (พิมพ์เองได้เลย)
                                                 </div>
                                             )}
@@ -508,66 +575,45 @@ const SupplierPoFormPage = () => {
                                                     <option key={p.id} value={p.name}>฿{p.price}</option>
                                                 ))}
                                             </datalist>
-
-                                            <div style={{ marginTop: '0.8rem' }}>
-                                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>รายละเอียดเพิ่มเติม (Note):</label>
+                                            
+                                            <div className="mt-3">
+                                                <label className="block text-[0.75rem] text-textMuted mb-1">รายละเอียดเพิ่มเติม (Note):</label>
                                                 <textarea
                                                     value={item.note || ''}
                                                     onChange={(e) => handleItemChange(index, 'note', e.target.value)}
                                                     placeholder="ใส่ข้อมูลเพิ่มเติมทีละบรรทัด (เช่น สเปคสินค้า)..."
                                                     rows="2"
-                                                    style={{
-                                                        width: '100%',
-                                                        padding: '0.5rem',
-                                                        background: 'rgba(255, 255, 255, 0.03)',
-                                                        borderRadius: '6px',
-                                                        color: 'var(--text-main)',
-                                                        border: '1px dashed var(--border-color)',
-                                                        fontSize: '0.85rem',
-                                                        resize: 'vertical',
-                                                        minHeight: '45px'
-                                                    }}
+                                                    className="w-full p-2 bg-white/5 rounded-md text-textMain border border-dashed border-border text-[0.85rem] resize-y min-h-[45px]"
                                                 />
                                             </div>
 
-                                            <div style={{ marginTop: '0.8rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <div style={{ position: 'relative' }}>
+                                            <div className="mt-3 flex items-center gap-4">
+                                                <div className="relative">
                                                     <input
                                                         type="file"
                                                         id={`item-image-${index}`}
                                                         accept="image/*"
                                                         onChange={(e) => handleImageUpload(index, e.target.files[0])}
-                                                        style={{ display: 'none' }}
+                                                        className="hidden"
                                                     />
                                                     <label
                                                         htmlFor={`item-image-${index}`}
-                                                        style={{
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '0.4rem',
-                                                            fontSize: '0.75rem',
-                                                            color: '#3b82f6',
-                                                            cursor: 'pointer',
-                                                            background: 'rgba(59, 130, 246, 0.05)',
-                                                            padding: '0.3rem 0.6rem',
-                                                            borderRadius: '4px',
-                                                            border: '1px solid rgba(59, 130, 246, 0.2)'
-                                                        }}
+                                                        className="flex items-center gap-1.5 text-[0.75rem] text-[#3b82f6] cursor-pointer bg-[#3b82f6]/5 px-2.5 py-1 rounded border border-[#3b82f6]/20"
                                                     >
                                                         <ImageIcon size={14} /> {item.image_url ? 'เปลี่ยนรูปภาพ' : 'เพิ่มรูปภาพ'}
                                                     </label>
                                                 </div>
                                                 {item.image_url && (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <div className="flex items-center gap-2">
                                                         <img
                                                             src={item.image_url}
                                                             alt="preview"
-                                                            style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-color)' }}
+                                                            className="w-[30px] h-[30px] object-cover rounded border border-border"
                                                         />
                                                         <button
                                                             type="button"
                                                             onClick={() => handleItemChange(index, 'image_url', '')}
-                                                            style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '0.7rem' }}
+                                                            className="bg-none border-none text-[#f87171] cursor-pointer text-[0.7rem]"
                                                         >
                                                             ลบรูป
                                                         </button>
@@ -575,7 +621,7 @@ const SupplierPoFormPage = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="p-4">
+                                        <td className="px-6 py-3.5">
                                             <input
                                                 type="number"
                                                 min="0.01"
@@ -583,20 +629,18 @@ const SupplierPoFormPage = () => {
                                                 value={item.quantity}
                                                 onChange={(e) => {
                                                     handleItemChange(index, 'quantity', e.target.value);
-                                                    if (formData.status !== 'Completed' && formData.status !== 'Partial') {
-                                                        handleItemChange(index, 'received_quantity', e.target.value);
-                                                    }
                                                 }}
                                                 className="glass-input"
                                                 style={{ width: '100%', padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)', textAlign: 'right' }}
                                                 required
                                             />
                                         </td>
-                                        {(formData.status === 'Completed' || formData.status === 'Partial') && (
-                                            <td className="p-4">
+                                        {(formData.status === 'Completed' || formData.status === 'Partial' || isReceiveMode) && (
+                                        <td className="px-6 py-3.5">
                                                 <input
                                                     type="number"
-                                                    min="0"
+                                                    min={item.previous_received || 0}
+                                                    max={item.quantity}
                                                     step="0.01"
                                                     value={item.received_quantity ?? 0}
                                                     onChange={(e) => handleItemChange(index, 'received_quantity', e.target.value)}
@@ -604,9 +648,19 @@ const SupplierPoFormPage = () => {
                                                     style={{ width: '100%', padding: '0.5rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '4px', color: '#10b981', border: '1px solid #10b981', textAlign: 'right', fontWeight: 'bold' }}
                                                     required
                                                 />
+                                                {item.previous_received > 0 && (
+                                                    <div className="text-[0.75rem] text-textMuted mt-1">
+                                                        รับแล้วรอบก่อน: {item.previous_received}
+                                                    </div>
+                                                )}
+                                                {item.received_quantity > (item.previous_received || 0) && (
+                                                    <div className="text-[0.75rem] text-[#3b82f6] mt-0.5 font-medium">
+                                                        + รับเพิ่มครั้งนี้: {(item.received_quantity - (item.previous_received || 0)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                                    </div>
+                                                )}
                                             </td>
                                         )}
-                                        <td style={{ padding: '0.8rem 1.5rem' }}>
+                                        <td className="px-6 py-3.5">
                                             <input
                                                 type="text"
                                                 value={item.unit}
@@ -616,7 +670,7 @@ const SupplierPoFormPage = () => {
                                                 style={{ width: '100%', padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
                                             />
                                         </td>
-                                        <td style={{ padding: '0.8rem 1.5rem' }}>
+                                        <td className="px-6 py-3.5">
                                             <input
                                                 type="number"
                                                 min="0"
@@ -627,17 +681,17 @@ const SupplierPoFormPage = () => {
                                                 style={{ width: '100%', padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)', textAlign: 'right' }}
                                             />
                                         </td>
-                                        <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right', fontWeight: '500' }}>
-                                            <div style={{ marginBottom: '0.2rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                                        <td className="px-6 py-3.5 text-right font-medium">
+                                            <div className="mb-1 text-[0.9rem] text-textMuted">
                                                 {item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}
                                             </div>
                                             ฿{(parseFloat(item.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
-                                        <td style={{ padding: '0.8rem' }}>
+                                        <td className="p-4">
                                             <button
                                                 type="button"
                                                 onClick={() => removeItem(index)}
-                                                style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: '0.4rem' }}
+                                                className="bg-none border-none text-error cursor-pointer p-1.5"
                                             >
                                                 <Trash2 size={16} />
                                             </button>

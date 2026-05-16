@@ -268,7 +268,7 @@ const SupplierPoDetailPage = () => {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                                 {po.status === 'Draft' && (
                                     <>
-                                        <button onClick={() => navigate(`/dashboard/supplier-pos/${id}/edit`)} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', padding: '1rem' }}>
+                                        <button onClick={() => navigate(`/dashboard/supplier-pos/${id}/edit?mode=receive`)} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', padding: '1rem' }}>
                                             <CheckCircle size={20} /> <span className="font-semibold">รับสินค้าเข้าคลัง (Receive)</span>
                                         </button>
                                         <button onClick={() => handleStatusUpdate('Cancelled')} className="btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', color: '#ef4444', borderColor: '#ef4444', background: 'white', padding: '1rem' }}>
@@ -278,7 +278,7 @@ const SupplierPoDetailPage = () => {
                                 )}
                                 {(po.status === 'Partial' || (po.status === 'Completed' && po.supplier_po_items && !po.supplier_po_items.every(i => (i.received_quantity || 0) >= i.quantity))) && (
                                     <>
-                                        <button onClick={() => navigate(`/dashboard/supplier-pos/${id}/edit`)} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', padding: '1rem' }}>
+                                        <button onClick={() => navigate(`/dashboard/supplier-pos/${id}/edit?mode=receive`)} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', padding: '1rem' }}>
                                             <CheckCircle size={20} /> <span className="font-semibold">รับสินค้าเพิ่มเติม</span>
                                         </button>
                                         <button onClick={handleCancel} className="btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', color: '#ef4444', borderColor: '#ef4444', background: 'white', padding: '1rem' }}>

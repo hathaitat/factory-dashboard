@@ -4,23 +4,27 @@
     font-family: 'Sarabun', sans-serif;
     background: white;
     width: 210mm;
-    min-height: 279mm;
+    height: 297mm;
     margin: 0 auto;
-    padding: 10mm 15mm;
+    padding: 15mm;
     color: #000;
     position: relative;
     box-sizing: border-box;
 }
 
 @media print {
+    @page {
+        size: A4;
+        margin: 0;
+    }
     .po-print-paper {
         margin: 0 !important;
         box-shadow: none !important;
-        padding: 10mm 15mm !important;
+        padding: 15mm !important;
         page-break-after: always;
         overflow: hidden;
         width: 210mm !important;
-        height: 279mm !important;
+        height: 297mm !important;
     }
 }
 

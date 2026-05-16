@@ -19,7 +19,8 @@ const MODULES = [
     { id: 'company', label: 'ข้อมูลบริษัท' },
     { id: 'users', label: 'สิทธิ์การใช้งาน' },
     { id: 'settings', label: 'ตั้งค่าระบบ' },
-    { id: 'production', label: 'ข้อมูลการผลิต' }
+    { id: 'production', label: 'ข้อมูลการผลิต' },
+    { id: 'internal_items', label: 'ของใช้ในโรงงาน (Internal Items)' }
 ];
 
 const ACTIONS = [

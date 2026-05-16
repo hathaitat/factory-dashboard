@@ -136,6 +136,18 @@ const DashboardLayout = () => {
                                             <span>การผลิต</span>
                                         </NavLink>
                                     )}
+                                    {hasPermission('internal_items', 'view') && (
+                                        <>
+                                            <NavLink to="/dashboard/internal-items" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                                <ShoppingCart size={18} style={{ opacity: 0.7 }} />
+                                                <span>ของใช้ในโรงงาน</span>
+                                            </NavLink>
+                                            <NavLink to="/dashboard/internal-requisitions" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                                <Clock size={18} style={{ opacity: 0.7 }} />
+                                                <span>ประวัติการเบิก/สั่งซื้อ</span>
+                                            </NavLink>
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>

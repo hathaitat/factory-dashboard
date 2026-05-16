@@ -53,6 +53,10 @@ const SupplierPoPrintPage = React.lazy(() => import('./pages/SupplierPoPrintPage
 const WarehouseListPage = React.lazy(() => import('./pages/WarehouseListPage'));
 const WarehouseDetailPage = React.lazy(() => import('./pages/WarehouseDetailPage'));
 const InventoryHistoryPage = React.lazy(() => import('./pages/InventoryHistoryPage'));
+const InternalItemListPage = React.lazy(() => import('./pages/InternalItemListPage'));
+const InternalRequisitionListPage = React.lazy(() => import('./pages/InternalRequisitionListPage'));
+const InternalRequisitionFormPage = React.lazy(() => import('./pages/InternalRequisitionFormPage'));
+const InternalRequisitionDetailPage = React.lazy(() => import('./pages/InternalRequisitionDetailPage'));
 // Loading fallback component
 const PageLoader = () => (
   <div className="flex justify-center items-center h-screen text-textMuted bg-main">
@@ -125,6 +129,19 @@ function App() {
                       <Route path="warehouses" element={<WarehouseListPage />} />
                       <Route path="warehouses/:id" element={<WarehouseDetailPage />} />
                       <Route path="inventory/:id" element={<InventoryHistoryPage />} />
+                    </Route>
+
+                    {/* Internal Items & Requisitions Module */}
+                    <Route element={<PermissionRoute module="internal_items" action="view" />}>
+                      <Route path="internal-items" element={<InternalItemListPage />} />
+                      <Route path="internal-requisitions" element={<InternalRequisitionListPage />} />
+                      <Route path="internal-requisitions/:id" element={<InternalRequisitionDetailPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="internal_items" action="create" />}>
+                      <Route path="internal-requisitions/new" element={<InternalRequisitionFormPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="internal_items" action="edit" />}>
+                      <Route path="internal-requisitions/:id/edit" element={<InternalRequisitionFormPage />} />
                     </Route>
 
                     {/* Certificates Module */}

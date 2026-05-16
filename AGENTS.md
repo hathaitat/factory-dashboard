@@ -6,7 +6,7 @@
 - **ใช้ TypeScript เท่านั้น**: ทุกไฟล์ใหม่และไฟล์ที่แก้ไขควรใช้ TypeScript เพื่อความปลอดภัยของ Type
 - **ตั้งชื่อ Component**: ใช้ `PascalCase` (เช่น `SupplierCard.tsx`)
 - **ตั้งชื่อ Function**: ใช้ `camelCase` (เช่น `calculateTotalAmount()`)
-- **Styling**: ให้ใช้ `Tailwind CSS` สำหรับการตกแต่งหน้าจอถ้าเป็นไปได้
+- **Styling**: ใช้ `Tailwind CSS` สำหรับการตกแต่งหน้าจอ
 - **Logic Separation**: หลีกเลี่ยงการเขียน Logic ใหญ่ๆ รวมไว้ใน Component เดียว ควรแยกเป็น Hook หรือ Helper Function
 
 ## 🏗 Project Structure

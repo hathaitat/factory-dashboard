@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.2.0] - 2026-05-16 - "Internal Requisition System"
+
+### Added
+- **Internal Requisition Module**: Fully integrated system for tracking factory supplies and equipment purchases/withdrawals.
+  - New DB Schema with categories, items, and requisition history.
+  - Category-based inventory management with low-stock alerts.
+  - Auto-numbering for PUR (Purchase) and WDR (Withdrawal) documents.
+  - Stock adjustment logic that automatically updates inventory upon completion.
+- **Dashboard Integration**: Added "ของใช้ในโรงงาน" tab to the main Overview page to show stock KPIs and recent history.
+- **Permission Matrix Update**: Added `internal_items` module to User Permissions for granular access control.
+- **Updated AGENTS.md**: Added mandatory guidelines for adding new modules (Permissions and Dashboard integration).
+
+### Improved
+- **Sidebar Navigation**: Organized Internal Items and Requisitions under the Warehouse & Production group.
+
 ## [1.1.0] - 2026-05-16 - "Supplier PO & UAT Readiness"
 
 ### Added

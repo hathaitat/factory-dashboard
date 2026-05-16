@@ -17,6 +17,7 @@ const EmployeeTab = lazy(() => import('../components/dashboard/EmployeeTab'));
 const CalendarTab = lazy(() => import('../components/dashboard/CalendarTab'));
 const SupplierTab = lazy(() => import('../components/dashboard/SupplierTab'));
 const WarehouseTab = lazy(() => import('../components/dashboard/WarehouseTab'));
+const InternalRequisitionTab = lazy(() => import('../components/dashboard/InternalRequisitionTab'));
 
 const TabLoader = () => (
     <div className="tab-loading">
@@ -36,6 +37,7 @@ const TABS = [
     { id: 'supplier', label: 'ผู้ขาย', icon: Truck, module: 'suppliers', action: 'view' },
     { id: 'warehouse', label: 'คลังสินค้า', icon: Package, module: 'warehouses', action: 'view' },
     { id: 'employee', label: 'พนักงาน', icon: Clock, module: 'employees', action: 'view' },
+    { id: 'internal', label: 'ของใช้ในโรงงาน', icon: ShoppingCart, module: 'internal_items', action: 'view' },
     { id: 'calendar', label: 'ปฏิทินงาน', icon: CalendarIcon, module: 'purchase_orders', action: 'view' },
 ];
 
@@ -66,6 +68,7 @@ const OverviewPage = () => {
             case 'supplier': return <SupplierTab />;
             case 'warehouse': return <WarehouseTab />;
             case 'employee': return <EmployeeTab />;
+            case 'internal': return <InternalRequisitionTab />;
             case 'calendar': return <CalendarTab />;
             default: return <OverviewTab />;
         }

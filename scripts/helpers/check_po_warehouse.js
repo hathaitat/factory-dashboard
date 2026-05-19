@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.join(__dirname, '../.env.development') });
+dotenv.config({ path: path.join(__dirname, '../../.env.development') });
 
 const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY);
 const PO_ID = 'bf4ce3d1-70ba-4638-a57d-f102381e7be5';

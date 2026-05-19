@@ -6,7 +6,7 @@
  *    npm install -D playwright
  * 
  * 2. รันสคริปต์นี้เพื่อทดสอบ (Make sure the Vite dev server is running on http://localhost:5173):
- *    node scripts/uat_bot_test.js
+ *    node scripts/uat/uat_bot_test.js
  * 
  * สคริปต์นี้จะทำหน้าที่เป็น Bot เพื่อดำเนินการตาม UAT Test Script โดยมีขั้นตอนดังนี้:
  * - บล็อกอินด้วย admin_bell และเลี่ยงการกรอกช่อง Honeypot (website_url_confirm) เพื่อผ่านระบบดักจับบอท
@@ -25,7 +25,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, '../.env.development') });
+dotenv.config({ path: path.join(__dirname, '../../.env.development') });
 
 // กำหนดค่าต่างๆ สำหรับการทดสอบ
 const BASE_URL = 'http://localhost:5173';
@@ -144,7 +144,7 @@ async function runBotTest() {
         // รันสคริปต์เพื่อรีเซ็ตข้อมูล PO ก่อนทำการทดสอบ
         console.log('🔄 Resetting PO data in database via script...');
         try {
-            execSync('node scripts/reset_po_received_qty.js', { stdio: 'inherit' });
+            execSync('node scripts/uat/reset_po_received_qty.js', { stdio: 'inherit' });
         } catch (e) {
             console.error('⚠️ Could not run reset script via execSync:', e.message);
         }

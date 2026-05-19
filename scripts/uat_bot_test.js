@@ -18,6 +18,7 @@
 import { chromium } from 'playwright';
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 
 // กำหนดค่าต่างๆ สำหรับการทดสอบ
 const BASE_URL = 'http://localhost:5173';
@@ -125,6 +126,63 @@ async function runBotTest() {
         await page.waitForTimeout(1500);
         await page.screenshot({ path: path.join(SCREENSHOT_DIR, '08_user_permissions_page.png') });
         console.log('📸 User Permissions Page Loaded.');
+
+        // --- ขั้นตอนที่ 2.4: ทดสอบการรับสินค้า PO แบบหลายรอบ (DOC-09: Multi-Step PO Receipt) ---
+        console.log('\n📦 Step 2.4: Testing Multi-Step PO Goods Receipt (DOC-09)...');
+        
+        // รันสคริปต์เพื่อรีเซ็ตข้อมูล PO ก่อนทำการทดสอบ
+        console.log('🔄 Resetting PO data in database via script...');
+        try {
+            execSync('node scripts/reset_po_received_qty.js', { stdio: 'inherit' });
+        } catch (e) {
+            console.error('⚠️ Could not run reset script via execSync:', e.message);
+        }
+
+        const poId = 'bf4ce3d1-70ba-4638-a57d-f102381e7be5';
+        const poEditUrl = `${BASE_URL}/dashboard/supplier-pos/${poId}/edit?mode=receive`;
+        const poDetailUrl = `${BASE_URL}/dashboard/supplier-pos/${poId}`;
+
+        // ครั้งที่ 1: รายการแรกรับ 80, รายการสองไม่รับ (0)
+        console.log('🔄 ครั้งที่ 1: รายการแรกรับ 80, รายการสองรับ 0...');
+        await page.goto(poEditUrl);
+        await page.waitForTimeout(2000);
+        await page.fill('table tbody tr:nth-child(1) td:nth-child(4) input', '80');
+        await page.fill('table tbody tr:nth-child(2) td:nth-child(4) input', '0');
+        await page.screenshot({ path: path.join(SCREENSHOT_DIR, '09_po_receipt_run1.png') });
+        await page.click('button:has-text("บันทึก")');
+        await page.waitForTimeout(1000);
+        await page.click('text=ตกลง');
+        await page.waitForURL(poDetailUrl);
+        await page.waitForTimeout(2000);
+        console.log('✅ ครั้งที่ 1 สำเร็จ!');
+
+        // ครั้งที่ 2: รายการแรกรับเพิ่ม 10 (เป็น 90), รายการสองรับ 80
+        console.log('🔄 ครั้งที่ 2: รายการแรกรับเพิ่ม 10 (รวม 90), รายการสองรับ 80...');
+        await page.goto(poEditUrl);
+        await page.waitForTimeout(2000);
+        await page.fill('table tbody tr:nth-child(1) td:nth-child(4) input', '90');
+        await page.fill('table tbody tr:nth-child(2) td:nth-child(4) input', '80');
+        await page.screenshot({ path: path.join(SCREENSHOT_DIR, '10_po_receipt_run2.png') });
+        await page.click('button:has-text("บันทึก")');
+        await page.waitForTimeout(1000);
+        await page.click('text=ตกลง');
+        await page.waitForURL(poDetailUrl);
+        await page.waitForTimeout(2000);
+        console.log('✅ ครั้งที่ 2 สำเร็จ!');
+
+        // ครั้งที่ 3: รายการแรกรับเพิ่ม 15 (ระบบ clamp เป็น 100), รายการสองรับเพิ่ม 20 (รวม 100)
+        console.log('🔄 ครั้งที่ 3: รายการแรกรับเพิ่ม 15 (รวม 100), รายการสองรับเพิ่ม 20 (รวม 100)...');
+        await page.goto(poEditUrl);
+        await page.waitForTimeout(2000);
+        await page.fill('table tbody tr:nth-child(1) td:nth-child(4) input', '100');
+        await page.fill('table tbody tr:nth-child(2) td:nth-child(4) input', '100');
+        await page.screenshot({ path: path.join(SCREENSHOT_DIR, '11_po_receipt_run3.png') });
+        await page.click('button:has-text("บันทึก")');
+        await page.waitForTimeout(1000);
+        await page.click('text=ตกลง');
+        await page.waitForURL(poDetailUrl);
+        await page.waitForTimeout(2000);
+        console.log('✅ ครั้งที่ 3 สำเร็จ!');
 
         // --- ขั้นตอนที่ 3: ออกจากระบบ (Logout Flow) ---
         console.log('\n🚪 Step 3: Logging out of the system...');

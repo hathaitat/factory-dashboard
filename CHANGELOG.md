@@ -8,6 +8,12 @@
   - Implemented SQL database migration `20260519000001_sync_total_received_qty.sql` adding a trigger function `update_supplier_po_total_received` on `supplier_po_items` to automatically keep `total_received_quantity` inside the `supplier_pos` table in sync with the sum of items' `received_quantity`.
   - Updated `createSupplierPo` and `updateSupplierPo` in `src/services/supplierPoService.js` to compute and send `total_received_quantity` to ensure frontend-level consistency.
 
+### Added
+- **Multi-Step PO Receipt UAT & Bot Testing**:
+  - Added new test case `DOC-09` (Multi-Step PO Goods Receipt) to `uat_test_script.md`.
+  - Implemented automated reset script `scripts/reset_po_received_qty.js` to automatically prepare the database state.
+  - Updated `scripts/uat_bot_test.js` to perform three consecutive goods receipt steps (80/0, 90/80, 100/100) and verify the final Completed status.
+
 ## [1.3.0] - 2026-05-19 - "Automated UAT Bot Test Integration"
 
 ### Added

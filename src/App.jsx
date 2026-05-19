@@ -57,6 +57,7 @@ const InternalItemListPage = React.lazy(() => import('./pages/InternalItemListPa
 const InternalRequisitionListPage = React.lazy(() => import('./pages/InternalRequisitionListPage'));
 const InternalRequisitionFormPage = React.lazy(() => import('./pages/InternalRequisitionFormPage'));
 const InternalRequisitionDetailPage = React.lazy(() => import('./pages/InternalRequisitionDetailPage'));
+const InternalItemHistoryPage = React.lazy(() => import('./pages/InternalItemHistoryPage'));
 // Loading fallback component
 const PageLoader = () => (
   <div className="flex justify-center items-center h-screen text-textMuted bg-main">
@@ -131,16 +132,21 @@ function App() {
                       <Route path="inventory/:id" element={<InventoryHistoryPage />} />
                     </Route>
 
-                    {/* Internal Items & Requisitions Module */}
+                    {/* Internal Items Module */}
                     <Route element={<PermissionRoute module="internal_items" action="view" />}>
                       <Route path="internal-items" element={<InternalItemListPage />} />
+                      <Route path="internal-items/:id/history" element={<InternalItemHistoryPage />} />
+                    </Route>
+
+                    {/* Internal Requisitions Module */}
+                    <Route element={<PermissionRoute module="internal_requisitions" action="view" />}>
                       <Route path="internal-requisitions" element={<InternalRequisitionListPage />} />
                       <Route path="internal-requisitions/:id" element={<InternalRequisitionDetailPage />} />
                     </Route>
-                    <Route element={<PermissionRoute module="internal_items" action="create" />}>
+                    <Route element={<PermissionRoute module="internal_requisitions" action="create" />}>
                       <Route path="internal-requisitions/new" element={<InternalRequisitionFormPage />} />
                     </Route>
-                    <Route element={<PermissionRoute module="internal_items" action="edit" />}>
+                    <Route element={<PermissionRoute module="internal_requisitions" action="edit" />}>
                       <Route path="internal-requisitions/:id/edit" element={<InternalRequisitionFormPage />} />
                     </Route>
 

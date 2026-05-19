@@ -1,6 +1,20 @@
 # Changelog
 
+## [1.3.0] - 2026-05-19 - "Automated UAT Bot Test Integration"
+
+### Added
+- **Automated UAT Bot Testing Suite**:
+  - Successfully executed a comprehensive automated "bot test" on the running application using the credentials `admin_bell` / `bellbabl1.`.
+  - Implemented honeypot bypass logic (leaving `website_url_confirm` blank) to simulate real-user logging in and verify authorization.
+  - Validated navigation, data loading, and layout rendering for 6 core pages: *คลังสินค้า (Warehouse)*, *ของใช้ในโรงงาน (Internal Items)*, *ลูกค้า (Customers)*, *รายชื่อพนักงาน (Employees)*, *ข้อมูลบริษัท (Company Info)*, และ *สิทธิ์การใช้งาน (User Permissions)*.
+  - Created a permanent, runnable automated Playwright test script at `scripts/uat_bot_test.js` to allow easy local execution and continuous validation.
+- **UAT Test Script Updates**:
+  - Integrated automated testing documentation, credentials, and steps into `uat_test_script.md`.
+  - Added an absolute link to the recorded WebP video session demonstrating the bot test's successful execution.
+  - Updated critical test case statuses (`AUTH-01`, `DB-01`, `DB-04`, and `SYS-04`) to **Passed (Bot)**.
+
 ## [1.2.0] - 2026-05-16 - "Internal Requisition System"
+
 
 ### Added
 - **Internal Requisition Module**: Fully integrated system for tracking factory supplies and equipment purchases/withdrawals.

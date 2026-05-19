@@ -185,7 +185,9 @@ const UserListPage = () => {
                                                         company: 'บริษัท',
                                                         users: 'ผู้ใช้',
                                                         settings: 'ตั้งค่า',
-                                                        production: 'ผลิต'
+                                                        production: 'ผลิต',
+                                                        internal_items: 'ของใช้',
+                                                        internal_requisitions: 'ประวัติสั่งซื้อ'
                                                     };
                                                     return (
                                                         <span key={key} style={{

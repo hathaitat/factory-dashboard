@@ -20,7 +20,8 @@ const MODULES = [
     { id: 'users', label: 'สิทธิ์การใช้งาน' },
     { id: 'settings', label: 'ตั้งค่าระบบ' },
     { id: 'production', label: 'ข้อมูลการผลิต' },
-    { id: 'internal_items', label: 'ของใช้ในโรงงาน (Internal Items)' }
+    { id: 'internal_items', label: 'ของใช้ในโรงงาน (Items)' },
+    { id: 'internal_requisitions', label: 'ประวัติการเบิก/สั่งซื้อ (History)' }
 ];
 
 const ACTIONS = [

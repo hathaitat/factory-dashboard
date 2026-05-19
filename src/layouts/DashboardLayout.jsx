@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Activity, Settings, LogOut, Hexagon, Users, Building, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle, Truck, Package, ChevronDown, ChevronUp } from 'lucide-react';
+import { LayoutDashboard, Activity, Settings, LogOut, Hexagon, Users, Building, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle, Truck, Package, ChevronDown, ChevronUp, Bell, ArrowRight, History as HistoryIcon } from 'lucide-react';
 import { userService } from '../services/userService';
+import { internalRequisitionService } from '../services/internalRequisitionService';
 import { usePermissions } from '../hooks/usePermissions';
 import '../styles/DashboardLayout.css';
 
@@ -12,6 +13,10 @@ const DashboardLayout = () => {
     const { hasPermission } = usePermissions();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [pendingCount, setPendingCount] = useState(0);
+    const [recentNotifications, setRecentNotifications] = useState([]);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const notificationRef = useRef(null);
 
     // State for collapsible menus
     const [openGroups, setOpenGroups] = useState({
@@ -24,9 +29,43 @@ const DashboardLayout = () => {
         setOpenGroups(prev => ({ ...prev, [group]: !prev[group] }));
     };
 
+    const fetchPendingData = async () => {
+        try {
+            // Only fetch if user has permission to see/manage internal items
+            if (hasPermission('internal_items', 'edit') || hasPermission('internal_items', 'create')) {
+                const [count, recent] = await Promise.all([
+                    internalRequisitionService.getPendingApprovalCount(),
+                    internalRequisitionService.getRecentPendingRequisitions(5)
+                ]);
+                setPendingCount(count);
+                setRecentNotifications(recent);
+            }
+        } catch (err) {
+            console.error('Error fetching pending notifications:', err);
+        }
+    };
+
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-        return () => clearInterval(timer);
+        
+        fetchPendingData();
+        const pendingTimer = setInterval(fetchPendingData, 30000); // Refresh every 30s
+        
+        return () => {
+            clearInterval(timer);
+            clearInterval(pendingTimer);
+        };
+    }, []);
+
+    // Close notifications when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+                setShowNotifications(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     const handleLogout = () => {
@@ -137,16 +176,16 @@ const DashboardLayout = () => {
                                         </NavLink>
                                     )}
                                     {hasPermission('internal_items', 'view') && (
-                                        <>
-                                            <NavLink to="/dashboard/internal-items" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
-                                                <ShoppingCart size={18} style={{ opacity: 0.7 }} />
-                                                <span>ของใช้ในโรงงาน</span>
-                                            </NavLink>
-                                            <NavLink to="/dashboard/internal-requisitions" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
-                                                <Clock size={18} style={{ opacity: 0.7 }} />
-                                                <span>ประวัติการเบิก/สั่งซื้อ</span>
-                                            </NavLink>
-                                        </>
+                                        <NavLink to="/dashboard/internal-items" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                            <Package size={18} style={{ opacity: 0.7 }} />
+                                            <span>ของใช้ในโรงงาน</span>
+                                        </NavLink>
+                                    )}
+                                    {hasPermission('internal_requisitions', 'view') && (
+                                        <NavLink to="/dashboard/internal-requisitions" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                            <HistoryIcon size={18} style={{ opacity: 0.7 }} />
+                                            <span>ประวัติการเบิก/สั่งซื้อ</span>
+                                        </NavLink>
                                     )}
                                 </div>
                             )}
@@ -252,7 +291,8 @@ const DashboardLayout = () => {
 
             <main className="main-content">
                 <header className="top-bar glass-panel">
-                    <div className="flex-center gap-4">
+                    {/* Left: Menu & Breadcrumbs */}
+                    <div className="flex items-center gap-4">
                         <button className="menu-toggle-btn" onClick={toggleSidebar}>
                             <Menu size={24} />
                         </button>
@@ -261,18 +301,90 @@ const DashboardLayout = () => {
                         </div>
                     </div>
 
-                    <div className="desktop-clock">
-                        <div className="clock-date">
-                            {currentTime.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    {/* Right: Clock, Notifications & Profile */}
+                    <div className="flex items-center gap-4">
+                        <div className="desktop-clock">
+                            <div className="clock-date">
+                                {currentTime.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                            </div>
+                            <div className="clock-time">
+                                {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                            </div>
                         </div>
-                        <div className="clock-time">
-                            {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+
+                        {/* Notification Bell Dropdown */}
+                        {(hasPermission('internal_items', 'edit') || hasPermission('internal_items', 'create')) && (
+                            <div className="notification-wrapper" ref={notificationRef}>
+                                <div 
+                                    className={`flex items-center gap-2 p-2 px-3 rounded-lg cursor-pointer transition-all ${showNotifications ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-textMuted hover:bg-white/5 hover:text-primary'}`}
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                >
+                                    <Bell size={20} />
+                                    <span className="hidden xl:inline font-medium text-xs uppercase tracking-wider">Alerts</span>
+                                    {pendingCount > 0 && (
+                                        <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold ${showNotifications ? 'bg-white text-primary' : 'bg-[#ef4444] text-white'}`}>
+                                            {pendingCount > 99 ? '99+' : pendingCount}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {showNotifications && (
+                                    <div className="notification-dropdown">
+                                        <div className="max-h-[400px] overflow-y-auto">
+                                            {recentNotifications.length > 0 ? (
+                                                recentNotifications.map((notif) => (
+                                                    <div 
+                                                        key={notif.id} 
+                                                        className="notification-item unread"
+                                                        onClick={() => {
+                                                            setShowNotifications(false);
+                                                            navigate(`/dashboard/internal-requisitions/${notif.id}`);
+                                                        }}
+                                                    >
+                                                        <div className="notification-item-title">
+                                                            ใบสั่งซื้อใหม่: {notif.requisition_number}
+                                                        </div>
+                                                        <div className="text-xs text-textMain opacity-80 mb-1">
+                                                            โดย {notif.requested_by} • {notif.items?.[0]?.count || 0} รายการ
+                                                        </div>
+                                                        <div className="notification-item-time">
+                                                            {new Date(notif.created_at).toLocaleDateString('th-TH')} {new Date(notif.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="notification-empty">
+                                                    <Bell size={32} className="opacity-10 mx-auto mb-2" />
+                                                    <p>ไม่มีรายการแจ้งเตือนใหม่</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="notification-footer">
+                                            <button 
+                                                className="view-all-btn flex items-center gap-2"
+                                                onClick={() => {
+                                                    setShowNotifications(false);
+                                                    navigate('/dashboard/internal-items?tab=history');
+                                                }}
+                                            >
+                                                ดูทั้งหมด <ArrowRight size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="sidebar-divider" style={{ height: '24px', margin: '0', opacity: 0.2 }}></div>
+
+                        <div className="user-profile">
+                            <div className="status-indicator online"></div>
+                            <div className="flex flex-col text-right">
+                                <span className="user-name" style={{ lineHeight: 1.2 }}>{currentUser?.fullName || 'administrator'}</span>
+                                <span className="text-[10px] text-textMuted uppercase tracking-tighter">Online Now</span>
+                            </div>
+                            <div className="avatar">{currentUser?.fullName?.charAt(0) || 'B'}</div>
                         </div>
-                    </div>
-                    <div className="user-profile">
-                        <div className="status-indicator online"></div>
-                        <span className="user-name">{currentUser?.fullName || 'administrator'}</span>
-                        <div className="avatar">{currentUser?.fullName?.charAt(0) || 'B'}</div>
                     </div>
                 </header>
 

@@ -183,29 +183,38 @@ export const internalRequisitionService = {
         }
     },
 
-    completeRequisition: async (id) => {
+    approveAndDeductStock: async (id, approvedBy) => {
         try {
-            // Get the requisition with items
+            // 1. Get requisition data with items
             const req = await internalRequisitionService.getRequisitionById(id);
-            if (!req) throw new Error('ไม่พบใบเบิก');
-            if (req.status === 'Completed') throw new Error('ใบเบิกนี้เสร็จสิ้นแล้ว');
+            if (!req) throw new Error('ไม่พบข้อมูลใบเบิก/สั่งซื้อ');
+            if (req.status === 'Completed' || req.status === 'Approved') {
+                throw new Error('รายการนี้ถูกอนุมัติหรือตัดสต๊อกไปแล้ว');
+            }
 
-            // Update stock for each item
+            // 2. Loop through each item and deduct stock
             for (const item of (req.items || [])) {
                 if (item.item_id) {
-                    const stockChange = req.type === 'purchase'
-                        ? item.quantity   // Purchase = stock IN
-                        : -item.quantity; // Withdraw = stock OUT
-
-                    await internalItemService.adjustStock(item.item_id, stockChange);
+                    await internalItemService.adjustStockWithLog(
+                        item.item_id,
+                        'OUT',             // ตัดสต๊อกออกไปใช้
+                        item.quantity,
+                        item.unit_price || null,
+                        `เบิกใช้ตามใบสั่งซื้อ ${req.requisition_number}`,
+                        approvedBy || 'System',
+                        'requisition',
+                        req.id,
+                        req.requisition_number
+                    );
                 }
             }
 
-            // Update status
+            // 3. Update requisition status
             const { data, error } = await supabase
                 .from('internal_requisitions')
                 .update({
-                    status: 'Completed',
+                    status: 'Completed', // เปลี่ยนเป็นเสร็จสมบูรณ์ทันที
+                    approved_by: approvedBy,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', id)
@@ -215,7 +224,7 @@ export const internalRequisitionService = {
             if (error) throw error;
             return data;
         } catch (error) {
-            console.error('Error completing requisition:', error);
+            console.error('Error in approveAndDeductStock:', error);
             throw error;
         }
     },
@@ -237,6 +246,39 @@ export const internalRequisitionService = {
         } catch (error) {
             console.error('Error updating status:', error);
             throw error;
+        }
+    },
+
+    getPendingApprovalCount: async () => {
+        try {
+            const { count, error } = await supabase
+                .from('internal_requisitions')
+                .select('id', { count: 'exact', head: true })
+                .eq('status', 'Draft');
+            if (error) throw error;
+            return count || 0;
+        } catch (error) {
+            console.error('Error fetching pending count:', error);
+            return 0;
+        }
+    },
+
+    getRecentPendingRequisitions: async (limit = 5) => {
+        try {
+            const { data, error } = await supabase
+                .from('internal_requisitions')
+                .select(`
+                    id, requisition_number, requested_by, date, created_at,
+                    items:internal_requisition_items(count)
+                `)
+                .eq('status', 'Draft')
+                .order('created_at', { ascending: false })
+                .limit(limit);
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching recent pending:', error);
+            return [];
         }
     }
 };

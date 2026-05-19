@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, PackageMinus, Plus, Search, Eye, Trash2, Calendar, User, DollarSign, Clock } from 'lucide-react';
+import { ShoppingCart, Plus, Search, Eye, Trash2, Calendar, Clock } from 'lucide-react';
 import { internalRequisitionService } from '../services/internalRequisitionService';
 import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
 import PageHeader from '../components/PageHeader';
 
-const InternalRequisitionListPage = () => {
+const InternalRequisitionListPage = ({ embedded = false }) => {
     const navigate = useNavigate();
     const { showAlert, showError, showConfirm } = useDialog();
     const { hasPermission } = usePermissions();
@@ -74,11 +74,13 @@ const InternalRequisitionListPage = () => {
 
     return (
         <div>
-            <PageHeader 
-                title="ประวัติการเบิก/สั่งซื้อ" 
-                subtitle="จัดการรายการสั่งซื้อและเบิกของใช้ในโรงงาน" 
-                icon={<Clock size={28} />} 
-            />
+            {!embedded && (
+                <PageHeader 
+                    title="ประวัติการสั่งซื้อ" 
+                    subtitle="จัดการรายการสั่งซื้อของใช้ในโรงงาน" 
+                    icon={<Clock size={28} />} 
+                />
+            )}
 
             {/* Filters & Actions */}
             <div className="glass-panel p-5 mb-5">
@@ -93,11 +95,7 @@ const InternalRequisitionListPage = () => {
                             className="glass-input w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-main text-textMain" 
                         />
                     </div>
-                    <select value={filterType} onChange={e => setFilterType(e.target.value)} className="glass-input px-3 py-2 rounded-lg border border-border bg-main text-textMain">
-                        <option value="">ทุกประเภท</option>
-                        <option value="purchase">สั่งซื้อ (Purchase)</option>
-                        <option value="withdraw">เบิก (Withdraw)</option>
-                    </select>
+
                     <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="glass-input px-3 py-2 rounded-lg border border-border bg-main text-textMain">
                         <option value="">ทุกสถานะ</option>
                         <option value="Draft">Draft</option>
@@ -107,7 +105,7 @@ const InternalRequisitionListPage = () => {
                     </select>
                     {hasPermission('internal_items', 'create') && (
                         <button onClick={() => navigate('/dashboard/internal-requisitions/new')} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white border-none cursor-pointer font-medium text-sm hover:opacity-90 transition-opacity">
-                            <Plus size={16} /> สร้างใบเบิก/สั่งซื้อ
+                            <Plus size={16} /> สร้างใบสั่งซื้อ
                         </button>
                     )}
                 </div>
@@ -144,15 +142,9 @@ const InternalRequisitionListPage = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            {req.type === 'purchase' ? (
-                                                <span className="inline-flex items-center gap-1 text-[#3b82f6] text-sm font-medium">
-                                                    <ShoppingCart size={14} /> สั่งซื้อ
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 text-[#f59e0b] text-sm font-medium">
-                                                    <PackageMinus size={14} /> เบิกของ
-                                                </span>
-                                            )}
+                                            <span className="inline-flex items-center gap-1 text-[#3b82f6] text-sm font-medium">
+                                                <ShoppingCart size={14} /> สั่งซื้อ
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2 text-textMain">

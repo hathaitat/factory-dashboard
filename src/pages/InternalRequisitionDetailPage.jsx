@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit2, CheckCircle, XCircle, Printer, Calendar, User, ShoppingCart, PackageMinus, Info, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Edit2, CheckCircle, XCircle, Printer, Calendar, User, ShoppingCart, Info, Clock, AlertTriangle, ShieldCheck, Package, PackageCheck, X, Save, DollarSign } from 'lucide-react';
 import { internalRequisitionService } from '../services/internalRequisitionService';
+import { internalItemService } from '../services/internalItemService';
+import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
 
@@ -10,8 +12,14 @@ const InternalRequisitionDetailPage = () => {
     const navigate = useNavigate();
     const { showAlert, showError, showConfirm } = useDialog();
     const { hasPermission } = usePermissions();
+    const currentUser = userService.getCurrentUser();
     const [requisition, setRequisition] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Stock Receive Modal
+    const [showReceiveModal, setShowReceiveModal] = useState(false);
+    const [receiveItems, setReceiveItems] = useState([]);
+    const [isReceiving, setIsReceiving] = useState(false);
 
     useEffect(() => { loadData(); }, [id]);
 
@@ -22,8 +30,8 @@ const InternalRequisitionDetailPage = () => {
             if (data) {
                 setRequisition(data);
             } else {
-                showError('ไม่พบข้อมูลใบเบิก');
-                navigate('/dashboard/internal-requisitions');
+                showError('ไม่พบข้อมูลใบสั่งซื้อ');
+                navigate('/dashboard/internal-items?tab=history');
             }
         } catch (err) {
             showError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
@@ -35,7 +43,6 @@ const InternalRequisitionDetailPage = () => {
     const handleStatusChange = async (newStatus) => {
         const statusText = {
             'Approved': 'อนุมัติ',
-            'Completed': 'เสร็จสิ้น (จะทำการอัปเดตสต๊อก)',
             'Cancelled': 'ยกเลิก'
         }[newStatus] || newStatus;
 
@@ -43,15 +50,28 @@ const InternalRequisitionDetailPage = () => {
         if (!ok) return;
 
         try {
-            if (newStatus === 'Completed') {
-                await internalRequisitionService.completeRequisition(id);
-            } else {
-                await internalRequisitionService.updateStatus(id, newStatus);
-            }
-            showAlert(`เปลี่ยนสถานะเป็น ${newStatus} สำเร็จ`);
+            await internalRequisitionService.updateStatus(id, newStatus);
+            showAlert(`เปลี่ยนสถานะเป็น ${statusText} สำเร็จ`);
             loadData();
         } catch (err) {
             showError(err.message || 'ไม่สามารถเปลี่ยนสถานะได้');
+        }
+    };
+
+    // Handle Approval & Stock Deduction
+    const handleApproveAndDeduct = async () => {
+        const ok = await showConfirm(`ยืนยันการอนุมัติและตัดสต๊อกสินค้าทั้งหมดในใบสั่งซื้อนี้?\n\nระบบจะหักสต๊อกและบันทึกประวัติการเบิกใช้อัตโนมัติ`);
+        if (!ok) return;
+
+        setIsLoading(true); // Reuse loading state for the whole page during action
+        try {
+            await internalRequisitionService.approveAndDeductStock(id, currentUser?.fullName || 'system');
+            showAlert(`อนุมัติและตัดสต๊อกเรียบร้อยแล้ว`);
+            loadData();
+        } catch (err) {
+            showError(err.message || 'เกิดข้อผิดพลาดในการอนุมัติ');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -75,7 +95,7 @@ const InternalRequisitionDetailPage = () => {
             {/* Top Navigation */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                    <button onClick={() => navigate('/dashboard/internal-requisitions')} className="p-2 rounded-lg bg-transparent border border-border cursor-pointer text-textMuted hover:text-textMain hover:border-primary transition-all"><ArrowLeft size={20} /></button>
+                    <button onClick={() => navigate('/dashboard/internal-items?tab=history')} className="p-2 rounded-lg bg-transparent border border-border cursor-pointer text-textMuted hover:text-textMain hover:border-primary transition-all"><ArrowLeft size={20} /></button>
                     <div>
                         <h2 className="text-xl font-bold text-textMain m-0">{requisition.requisition_number}</h2>
                         <div className="flex items-center gap-3 mt-1">
@@ -117,8 +137,6 @@ const InternalRequisitionDetailPage = () => {
                                         <th className="px-6 py-3 text-left font-medium">ชื่อสินค้า</th>
                                         <th className="px-6 py-3 text-right font-medium">จำนวน</th>
                                         <th className="px-6 py-3 text-center font-medium">หน่วย</th>
-                                        <th className="px-6 py-3 text-right font-medium">ราคา/หน่วย</th>
-                                        <th className="px-6 py-3 text-right font-medium">รวม</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -126,19 +144,11 @@ const InternalRequisitionDetailPage = () => {
                                         <tr key={item.id} className="border-b border-border hover:bg-white/5 transition-colors">
                                             <td className="px-6 py-4 text-textMuted text-sm">{idx + 1}</td>
                                             <td className="px-6 py-4 font-medium text-textMain">{item.item_name}</td>
-                                            <td className="px-6 py-4 text-right text-textMain">{item.quantity.toLocaleString()}</td>
+                                            <td className="px-6 py-4 text-right text-textMain font-semibold">{(item.quantity || 0).toLocaleString()}</td>
                                             <td className="px-6 py-4 text-center text-textMuted text-sm">{item.unit || '-'}</td>
-                                            <td className="px-6 py-4 text-right text-textMuted">฿{item.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                            <td className="px-6 py-4 text-right font-semibold text-textMain">฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                         </tr>
                                     ))}
                                 </tbody>
-                                <tfoot>
-                                    <tr className="bg-white/5 font-bold">
-                                        <td colSpan="5" className="px-6 py-4 text-right text-textMuted">ยอดรวมสุทธิ</td>
-                                        <td className="px-6 py-4 text-right text-2xl text-[#10b981]">฿{requisition.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    </tr>
-                                </tfoot>
                             </table>
                         </div>
                     </div>
@@ -163,7 +173,7 @@ const InternalRequisitionDetailPage = () => {
                         </h3>
                         <div className="flex flex-col gap-4">
                             <div className="flex justify-between items-start">
-                                <span className="text-sm text-textMuted flex items-center gap-2"><User size={14} /> ผู้ขอเบิก:</span>
+                                <span className="text-sm text-textMuted flex items-center gap-2"><User size={14} /> ผู้ขอสั่งซื้อ:</span>
                                 <span className="text-sm font-medium text-textMain text-right">{requisition.requested_by || '-'}</span>
                             </div>
                             <div className="flex justify-between items-start">
@@ -171,14 +181,15 @@ const InternalRequisitionDetailPage = () => {
                                 <span className="text-sm font-medium text-textMain text-right">{requisition.approved_by || '-'}</span>
                             </div>
                             <div className="flex justify-between items-start">
-                                <span className="text-sm text-textMuted flex items-center gap-2">
-                                    {requisition.type === 'purchase' ? <ShoppingCart size={14} /> : <PackageMinus size={14} />} 
-                                    ประเภท:
-                                </span>
-                                <span className={`text-sm font-bold ${requisition.type === 'purchase' ? 'text-[#3b82f6]' : 'text-[#f59e0b]'}`}>
-                                    {requisition.type === 'purchase' ? 'สั่งซื้อ (Purchase)' : 'เบิก (Withdraw)'}
-                                </span>
+                                <span className="text-sm text-textMuted flex items-center gap-2"><ShoppingCart size={14} /> ประเภท:</span>
+                                <span className="text-sm font-bold text-[#3b82f6]">สั่งซื้อ (Purchase)</span>
                             </div>
+                            {requisition.total_amount > 0 && (
+                                <div className="flex justify-between items-start">
+                                    <span className="text-sm text-textMuted flex items-center gap-2"><DollarSign size={14} /> มูลค่ารวม:</span>
+                                    <span className="text-sm font-bold text-[#10b981]">฿{requisition.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                </div>
+                            )}
                             <div className="mt-2 pt-4 border-t border-border flex flex-col gap-1">
                                 <div className="text-[10px] text-textMuted uppercase font-bold tracking-widest">สร้างเมื่อ</div>
                                 <div className="text-xs text-textMain">{new Date(requisition.created_at).toLocaleString('th-TH')}</div>
@@ -194,13 +205,8 @@ const InternalRequisitionDetailPage = () => {
                             </h3>
                             <div className="flex flex-col gap-2">
                                 {requisition.status === 'Draft' && (
-                                    <button onClick={() => handleStatusChange('Approved')} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#3b82f6] text-white border-none cursor-pointer font-bold hover:opacity-90 transition-all">
-                                        <CheckCircle size={18} /> อนุมัติ (Approved)
-                                    </button>
-                                )}
-                                {(requisition.status === 'Approved' || requisition.status === 'Draft') && (
-                                    <button onClick={() => handleStatusChange('Completed')} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#10b981] text-white border-none cursor-pointer font-bold hover:opacity-90 transition-all">
-                                        <Package size={18} /> เสร็จสิ้น & ตัดสต๊อก
+                                    <button onClick={handleApproveAndDeduct} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#10b981] text-white border-none cursor-pointer font-bold hover:opacity-90 transition-all">
+                                        <PackageCheck size={18} /> อนุมัติและตัดสต๊อก
                                     </button>
                                 )}
                                 {requisition.status !== 'Completed' && requisition.status !== 'Cancelled' && (
@@ -211,7 +217,7 @@ const InternalRequisitionDetailPage = () => {
                                 {requisition.status === 'Completed' && (
                                     <div className="p-3 rounded-lg bg-[#10b9811a] text-[#10b981] text-xs flex items-start gap-2 leading-relaxed">
                                         <CheckCircle size={16} className="shrink-0" />
-                                        รายการนี้เสร็จสิ้นและปรับยอดสต๊อกเรียบร้อยแล้ว ไม่สามารถแก้ไขได้
+                                        รายการนี้ถูกอนุมัติและตัดสต๊อกเรียบร้อยแล้ว ไม่สามารถแก้ไขได้
                                     </div>
                                 )}
                                 {requisition.status === 'Cancelled' && (
@@ -225,6 +231,8 @@ const InternalRequisitionDetailPage = () => {
                     )}
                 </div>
             </div>
+
+
         </div>
     );
 };

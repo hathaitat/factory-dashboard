@@ -3,6 +3,7 @@ import { Package, AlertTriangle, Clock, ShoppingCart, PackageMinus, TrendingUp, 
 import { internalItemService } from '../../services/internalItemService';
 import { internalRequisitionService } from '../../services/internalRequisitionService';
 import { useDialog } from '../../contexts/DialogContext';
+import CustomLineChart from './CustomLineChart';
 
 const InternalRequisitionTab = () => {
     const { showError } = useDialog();
@@ -10,6 +11,7 @@ const InternalRequisitionTab = () => {
         totalItems: 0,
         lowStockItems: [],
         recentRequisitions: [],
+        rawRequisitions: [],
         totalValue: 0
     });
     const [isLoading, setIsLoading] = useState(true);
@@ -32,6 +34,7 @@ const InternalRequisitionTab = () => {
                 totalItems: activeItems.length,
                 lowStockItems: lowStock,
                 recentRequisitions: requisitions.slice(0, 5),
+                rawRequisitions: requisitions,
                 totalValue: totalVal
             });
         } catch (err) {
@@ -75,6 +78,17 @@ const InternalRequisitionTab = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Trend Chart */}
+            <CustomLineChart
+                title="แนวโน้มการเบิกและสั่งซื้อของใช้"
+                metrics={[
+                    { id: 'purchase_amount', label: 'ยอดสั่งซื้อ (฿)', data: stats.rawRequisitions.filter(r => r.type === 'purchase'), dateField: 'date', valueField: 'total_amount', color: '#3b82f6', valuePrefix: '฿' },
+                    { id: 'withdraw_count', label: 'จำนวนการเบิก (ครั้ง)', data: stats.rawRequisitions.filter(r => r.type === 'withdraw'), dateField: 'date', color: '#f59e0b', yAxisId: 'right', valueSuffix: ' ครั้ง' },
+                    { id: 'requisition_total', label: 'ยอดรวมทั้งหมด (฿)', data: stats.rawRequisitions, dateField: 'date', valueField: 'total_amount', color: '#10b981', valuePrefix: '฿' }
+                ]}
+                defaultMetric="purchase_amount"
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Low Stock Alerts */}

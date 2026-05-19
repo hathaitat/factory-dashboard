@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.3.3] - 2026-05-19 - "Supplier Automated UAT Test & Script Organization"
+
+### Added
+- **Supplier Automated UAT Test Script**:
+  - Implemented `scripts/uat/supplier_bot_test.js` to test the full E2E CRUD lifecycle of Supplier (ผู้ขาย) data via UI (Create, Read, Update, Delete) with Dialog integrations.
+  - Added new test scenario `CS-13` to `uat_test_script.md` and set status to **Passed (Bot)**.
+
+### Improved
+- **Script Directory Reorganization**:
+  - Moved UAT testing scripts to `scripts/uat/` and diagnostic helper scripts to `scripts/helpers/` to keep the codebase clean and tidy.
+
 ## [1.3.2] - 2026-05-19 - "PO Cancellation Stock Deduction & UAT Verification"
 
 ### Fixed

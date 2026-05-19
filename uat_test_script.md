@@ -25,7 +25,7 @@
         *   **ตั้งค่าระบบ (System Settings):** เข้าหน้า *ข้อมูลบริษัท (Company Info)* และ *สิทธิ์การใช้งาน (User Permissions)*
     *   *การตรวจสอบความถูกต้อง:* ในแต่ละหน้า บอทจะรอให้ตัวโหลดข้อมูล (Loading Spinner) ทำงานจนเสร็จสิ้น และตรวจสอบว่าหน้าจอแสดงผลข้อมูลได้ถูกต้อง ไม่มีหน้าว่างเปล่า (Blank Page) หรือ JavaScript Crash เกิดขึ้น
 3.  **การจัดการข้อมูลผู้ขาย (Supplier CRUD Bot Test):**
-    *   รันสคริปต์ `node scripts/uat/supplier_bot_test.js`
+    *   รันสคริปต์ `node scripts/uat/suppliers/supplier_bot_test.js`
     *   บอทจะล็อกอินแล้วนำเข้าสู่หน้าจอ `/dashboard/suppliers`
     *   กด "เพิ่ม Supplier" และกรอกข้อมูลสุ่ม (เช่น รหัส `SUP-XXXX` และ ชื่อ `บริษัท ทดสอบจัดส่ง จำกัด (XXXX)`)
     *   บันทึกข้อมูล และค้นหาข้อมูลจากแถวตารางในหน้ารายการ

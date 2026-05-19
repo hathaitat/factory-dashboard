@@ -4,7 +4,7 @@
  * วิธีการใช้งาน (Usage):
  * 1. รันเซิร์ฟเวอร์ Vite dev (http://localhost:5173)
  * 2. รันสคริปต์ทดสอบนี้:
- *    node scripts/uat/supplier_bot_test.js
+ *    node scripts/uat/suppliers/supplier_bot_test.js
  */
 
 import { chromium } from 'playwright';
@@ -15,7 +15,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, '../../.env.development') });
+dotenv.config({ path: path.join(__dirname, '../../../.env.development') });
 
 const BASE_URL = 'http://localhost:5173';
 const USERNAME = 'admin_bell';

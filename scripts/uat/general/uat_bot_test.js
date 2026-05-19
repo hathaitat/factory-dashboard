@@ -6,11 +6,11 @@
  *    npm install -D playwright
  * 
  * 2. รันสคริปต์นี้เพื่อทดสอบ (Make sure the Vite dev server is running on http://localhost:5173):
- *    node scripts/uat/uat_bot_test.js
+ *    node scripts/uat/general/uat_bot_test.js
  * 
  * สคริปต์นี้จะทำหน้าที่เป็น Bot เพื่อดำเนินการตาม UAT Test Script โดยมีขั้นตอนดังนี้:
  * - บล็อกอินด้วย admin_bell และเลี่ยงการกรอกช่อง Honeypot (website_url_confirm) เพื่อผ่านระบบดักจับบอท
- * - ตรวจสอบการรีไดเร็กต์มายังหน้า Dashboard
+ * - ตรวจสอบการรีไดเรกต์มายังหน้า Dashboard
  * - กดขยายเมนู Sidebar และคลิกเข้าสู่หน้าจอที่เกี่ยวข้อง
  * - บันทึกภาพ Screenshot ของแต่ละหน้าจอที่ทดสอบสำเร็จในโฟลเดอร์ `tests/screenshots/`
  */
@@ -25,7 +25,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, '../../.env.development') });
+dotenv.config({ path: path.join(__dirname, '../../../.env.development') });
 
 // กำหนดค่าต่างๆ สำหรับการทดสอบ
 const BASE_URL = 'http://localhost:5173';
@@ -109,7 +109,7 @@ async function runBotTest() {
         // หมวดหมู่ที่ 2: คู่ค้าและพนักงาน (Partners & Personnel)
         console.log('\n👥 Step 2.2: Expanding "คู่ค้าและพนักงาน" group...');
         await page.click('text=คู่ค้าและพนักงาน');
-
+ 
         console.log('📌 Navigating to "ลูกค้า (Customers)"...');
         await page.click('text=ลูกค้า (Customers)');
         await page.waitForTimeout(1500);
@@ -144,7 +144,7 @@ async function runBotTest() {
         // รันสคริปต์เพื่อรีเซ็ตข้อมูล PO ก่อนทำการทดสอบ
         console.log('🔄 Resetting PO data in database via script...');
         try {
-            execSync('node scripts/uat/reset_po_received_qty.js', { stdio: 'inherit' });
+            execSync('node scripts/uat/purchasing/reset_po_received_qty.js', { stdio: 'inherit' });
         } catch (e) {
             console.error('⚠️ Could not run reset script via execSync:', e.message);
         }

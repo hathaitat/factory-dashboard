@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.2] - 2026-05-19 - "PO Cancellation Stock Deduction & UAT Verification"
+
+### Fixed
+- **PO Cancellation Stock Deduction Logic**:
+  - Updated `cancelSupplierPo` in `src/services/supplierPoService.js` to support partial or fully received status, accurately deducting inventory based on the actually received quantity (`received_quantity`) instead of the ordered quantity (`quantity`).
+- **UAT Bot Test Button Selectors**:
+  - Replaced ambiguous button selectors (like `text=ตกลง` and `text=ยืนยัน`) in `scripts/uat_bot_test.js` with specific `button:has-text(...)` selectors to prevent clicking incorrect title/body texts.
+
+### Added
+- **PO Cancellation & Stock Deduction Verification (Step 2.5)**:
+  - Added step 2.5 to `scripts/uat_bot_test.js` to verify that when a PO is cancelled, the inventory level of received items in the delivery warehouse is correctly deducted in the database via direct Supabase assertions.
+
 ## [1.3.1] - 2026-05-19 - "Supplier PO Received Qty DB Sync"
 
 ### Fixed

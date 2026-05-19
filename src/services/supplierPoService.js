@@ -390,8 +390,9 @@ export const supplierPoService = {
             if (poError) throw poError;
             if (po.status === 'Cancelled') throw new Error('ใบสั่งซื้อนี้ถูกยกเลิกไปแล้ว');
 
-            // 2. If it was completed, check if we have enough stock to return
-            if (po.status === 'Completed' && po.items && po.items.length > 0) {
+            // 2. If it has received items (status is Completed or Partial), check if we have enough stock to return
+            const hasReceivedItems = (po.status === 'Completed' || po.status === 'Partial') && po.items && po.items.length > 0;
+            if (hasReceivedItems) {
                 const targetWarehouseId = po.delivery_warehouse_id;
                 if (!targetWarehouseId) throw new Error('ไม่พบข้อมูลคลังสินค้าที่จัดส่ง');
 
@@ -401,43 +402,51 @@ export const supplierPoService = {
                     .select('*')
                     .eq('warehouse_id', targetWarehouseId);
 
-                // Validation Loop
-                for (const item of po.items) {
-                    const existingItem = (currentInventory || []).find(inv => 
-                        inv.product_name === item.description
-                    );
+                // Filter items that have actually been received (> 0)
+                const itemsToDeduct = po.items.filter(item => Number(item.received_quantity || 0) > 0);
 
-                    if (!existingItem || Number(existingItem.quantity) < Number(item.quantity)) {
-                        throw new Error(`สต็อกสินค้า "${item.description}" ไม่เพียงพอสำหรับการยกเลิก (ต้องการหักออก ${item.quantity} แต่มีในคลัง ${existingItem?.quantity || 0})`);
+                if (itemsToDeduct.length > 0) {
+                    // Validation Loop
+                    for (const item of itemsToDeduct) {
+                        const existingItem = (currentInventory || []).find(inv => 
+                            inv.product_name === item.description
+                        );
+
+                        const qtyToDeduct = Number(item.received_quantity || 0);
+
+                        if (!existingItem || Number(existingItem.quantity) < qtyToDeduct) {
+                            throw new Error(`สต็อกสินค้า "${item.description}" ไม่เพียงพอสำหรับการยกเลิก (ต้องการหักออก ${qtyToDeduct} แต่มีในคลัง ${existingItem?.quantity || 0})`);
+                        }
                     }
-                }
 
-                // Deduction Loop
-                for (const item of po.items) {
-                    const existingItem = currentInventory.find(inv => inv.product_name === item.description);
-                    const newQty = Number(existingItem.quantity) - Number(item.quantity);
-                    const { error: updateError } = await supabase
-                        .from('warehouse_inventory')
-                        .update({
-                            quantity: newQty,
-                            last_updated: new Date().toISOString()
-                        })
-                        .eq('id', existingItem.id);
-                        
-                    if (updateError) throw updateError;
+                    // Deduction Loop
+                    for (const item of itemsToDeduct) {
+                        const existingItem = currentInventory.find(inv => inv.product_name === item.description);
+                        const qtyToDeduct = Number(item.received_quantity || 0);
+                        const newQty = Number(existingItem.quantity) - qtyToDeduct;
+                        const { error: updateError } = await supabase
+                            .from('warehouse_inventory')
+                            .update({
+                                quantity: newQty,
+                                last_updated: new Date().toISOString()
+                            })
+                            .eq('id', existingItem.id);
+                            
+                        if (updateError) throw updateError;
 
-                    // Log the cancellation movement
-                    await supabase.from('inventory_logs').insert([{
-                        inventory_id: existingItem.id,
-                        type: 'OUT',
-                        qty: item.quantity,
-                        old_quantity: existingItem.quantity,
-                        balance: newQty,
-                        source_type: 'po',
-                        source_id: id,
-                        reference_no: po.po_number || 'N/A',
-                        remark: `หักสต็อกออกเนื่องจากการยกเลิกใบสั่งซื้อเลขที่ ${po.po_number || id}`
-                    }]);
+                        // Log the cancellation movement
+                        await supabase.from('inventory_logs').insert([{
+                            inventory_id: existingItem.id,
+                            type: 'OUT',
+                            qty: qtyToDeduct,
+                            old_quantity: existingItem.quantity,
+                            balance: newQty,
+                            source_type: 'po',
+                            source_id: id,
+                            reference_no: po.po_number || 'N/A',
+                            remark: `หักสต็อกออกเนื่องจากการยกเลิกใบสั่งซื้อเลขที่ ${po.po_number || id}`
+                        }]);
+                    }
                 }
             }
 

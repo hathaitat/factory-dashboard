@@ -19,6 +19,13 @@ import { chromium } from 'playwright';
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '../.env.development') });
 
 // กำหนดค่าต่างๆ สำหรับการทดสอบ
 const BASE_URL = 'http://localhost:5173';
@@ -46,6 +53,10 @@ async function runBotTest() {
     });
 
     const page = await context.newPage();
+
+    // Register page console and error event handlers
+    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+    page.on('pageerror', err => console.log('PAGE ERROR:', err.message));
 
     try {
         // --- ขั้นตอนที่ 1: เข้าสู่ระบบ (Login Flow) ---
@@ -150,10 +161,10 @@ async function runBotTest() {
         await page.fill('table tbody tr:nth-child(2) td:nth-child(4) input', '0');
         await page.screenshot({ path: path.join(SCREENSHOT_DIR, '09_po_receipt_run1.png') });
         await page.click('button:has-text("บันทึก")');
+        await page.waitForTimeout(1500); // รอระบบประมวลผลและแสดง Alert สำเร็จ
+        await page.click('button:has-text("ตกลง")'); // คลิกตกลงใน Alert สำเร็จ
+        await page.waitForURL(`${BASE_URL}/dashboard/supplier-pos`);
         await page.waitForTimeout(1000);
-        await page.click('text=ตกลง');
-        await page.waitForURL(poDetailUrl);
-        await page.waitForTimeout(2000);
         console.log('✅ ครั้งที่ 1 สำเร็จ!');
 
         // ครั้งที่ 2: รายการแรกรับเพิ่ม 10 (เป็น 90), รายการสองรับ 80
@@ -164,10 +175,10 @@ async function runBotTest() {
         await page.fill('table tbody tr:nth-child(2) td:nth-child(4) input', '80');
         await page.screenshot({ path: path.join(SCREENSHOT_DIR, '10_po_receipt_run2.png') });
         await page.click('button:has-text("บันทึก")');
+        await page.waitForTimeout(1500); // รอระบบประมวลผลและแสดง Alert สำเร็จ
+        await page.click('button:has-text("ตกลง")'); // คลิกตกลงใน Alert สำเร็จ
+        await page.waitForURL(`${BASE_URL}/dashboard/supplier-pos`);
         await page.waitForTimeout(1000);
-        await page.click('text=ตกลง');
-        await page.waitForURL(poDetailUrl);
-        await page.waitForTimeout(2000);
         console.log('✅ ครั้งที่ 2 สำเร็จ!');
 
         // ครั้งที่ 3: รายการแรกรับเพิ่ม 15 (ระบบ clamp เป็น 100), รายการสองรับเพิ่ม 20 (รวม 100)
@@ -178,11 +189,96 @@ async function runBotTest() {
         await page.fill('table tbody tr:nth-child(2) td:nth-child(4) input', '100');
         await page.screenshot({ path: path.join(SCREENSHOT_DIR, '11_po_receipt_run3.png') });
         await page.click('button:has-text("บันทึก")');
+        await page.waitForTimeout(1500); // รอระบบประมวลผลและแสดง Alert สำเร็จ
+        await page.click('button:has-text("ตกลง")'); // คลิกตกลงใน Alert สำเร็จ
+        await page.waitForURL(`${BASE_URL}/dashboard/supplier-pos`);
         await page.waitForTimeout(1000);
-        await page.click('text=ตกลง');
-        await page.waitForURL(poDetailUrl);
-        await page.waitForTimeout(2000);
         console.log('✅ ครั้งที่ 3 สำเร็จ!');
+
+        // --- ขั้นตอนที่ 2.5: ทดสอบการยกเลิกใบสั่งซื้อและหักสต็อกคืนคลัง (PO Cancellation & Inventory Deduction) ---
+        console.log('\n📦 Step 2.5: Testing PO Cancellation & Inventory Deduction...');
+        
+        // ไปที่หน้า Detail ของ PO เพื่อเตรียมตรวจสอบและกดยกเลิก
+        console.log('📌 Going to PO Detail page for cancellation test...');
+        await page.goto(poDetailUrl);
+        await page.waitForTimeout(2000);
+
+        // 1. ตรวจสอบสต็อกใน Database ก่อนกดยกเลิก
+        const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY);
+        
+        // ดึงข้อมูลสินค้าจาก PO ก่อนเพื่อเอาชื่อรายการ
+        const { data: poItems } = await supabase
+            .from('supplier_po_items')
+            .select('*')
+            .eq('po_id', poId);
+            
+        // ดึงข้อมูลคลังสินค้าปลายทาง
+        const { data: poData } = await supabase
+            .from('supplier_pos')
+            .select('delivery_warehouse_id')
+            .eq('id', poId)
+            .single();
+            
+        const warehouseId = poData.delivery_warehouse_id;
+        
+        console.log('📊 Fetching current warehouse stock before cancellation...');
+        const { data: invBefore } = await supabase
+            .from('warehouse_inventory')
+            .select('*')
+            .eq('warehouse_id', warehouseId);
+            
+        const stockMapBefore = {};
+        if (invBefore) {
+            invBefore.forEach(inv => {
+                stockMapBefore[inv.product_name] = Number(inv.quantity);
+            });
+        }
+        console.log('Stock Before:', stockMapBefore);
+
+        console.log('🖱️ Clicking "ยกเลิกใบสั่งซื้อ (หักสต็อกคืน)" button...');
+        await page.click('button:has-text("ยกเลิกใบสั่งซื้อ")');
+        await page.waitForTimeout(1000);
+        await page.screenshot({ path: path.join(SCREENSHOT_DIR, '11.5_po_cancel_confirm.png') });
+        // ยืนยันใน Confirm Dialog
+        await page.click('button:has-text("ยืนยัน")');
+        await page.waitForTimeout(3000);
+        await page.screenshot({ path: path.join(SCREENSHOT_DIR, '11.6_po_cancel_after_confirm.png') });
+        // คลิก ตกลง ใน Alert แจ้งสำเร็จ
+        await page.click('button:has-text("ตกลง")');
+        await page.waitForTimeout(2000);
+        
+        await page.screenshot({ path: path.join(SCREENSHOT_DIR, '12_po_cancelled.png') });
+        console.log('📸 PO Cancelled Page Saved.');
+
+        // 3. ตรวจสอบสต็อกใน Database หลังกดยกเลิก
+        console.log('📊 Fetching warehouse stock after cancellation to verify deduction...');
+        const { data: invAfter } = await supabase
+            .from('warehouse_inventory')
+            .select('*')
+            .eq('warehouse_id', warehouseId);
+            
+        const stockMapAfter = {};
+        if (invAfter) {
+            invAfter.forEach(inv => {
+                stockMapAfter[inv.product_name] = Number(inv.quantity);
+            });
+        }
+        console.log('Stock After:', stockMapAfter);
+        
+        // ตรวจสอบว่าสินค้าแต่ละรายการใน PO ถูกหักสต็อกออกไปตามจำนวนที่เคยรับจริง (100 ชิ้น)
+        for (const item of poItems) {
+            const qtyReceived = Number(item.received_quantity || 0);
+            const beforeQty = stockMapBefore[item.description] || 0;
+            const afterQty = stockMapAfter[item.description] || 0;
+            const diff = beforeQty - afterQty;
+            
+            console.log(`- Product: "${item.description}": Before = ${beforeQty}, After = ${afterQty}, Deducted = ${diff} (Expected deduction = ${qtyReceived})`);
+            
+            if (diff !== qtyReceived) {
+                throw new Error(`Deduction mismatch for "${item.description}"! Expected ${qtyReceived} to be deducted, but got ${diff}`);
+            }
+        }
+        console.log('✅ Stock deduction verified successfully in database!');
 
         // --- ขั้นตอนที่ 3: ออกจากระบบ (Logout Flow) ---
         console.log('\n🚪 Step 3: Logging out of the system...');

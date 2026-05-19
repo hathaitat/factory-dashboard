@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1] - 2026-05-19 - "Supplier PO Received Qty DB Sync"
+
+### Fixed
+- **Supplier PO Received Quantity Synchronization**:
+  - Resolved database data integrity bug where `total_received_quantity` remained `0.00` in the `supplier_pos` table despite updates.
+  - Implemented SQL database migration `20260519000001_sync_total_received_qty.sql` adding a trigger function `update_supplier_po_total_received` on `supplier_po_items` to automatically keep `total_received_quantity` inside the `supplier_pos` table in sync with the sum of items' `received_quantity`.
+  - Updated `createSupplierPo` and `updateSupplierPo` in `src/services/supplierPoService.js` to compute and send `total_received_quantity` to ensure frontend-level consistency.
+
 ## [1.3.0] - 2026-05-19 - "Automated UAT Bot Test Integration"
 
 ### Added

@@ -104,6 +104,10 @@ export const supplierPoService = {
                 poDetails.po_number = `VPO${datePrefix}${String(nextCount).padStart(3, '0')}`;
             }
 
+            // Calculate total received quantity
+            const totalReceivedQuantity = items ? items.reduce((sum, item) => sum + (Number(item.received_quantity) || 0), 0) : 0;
+            poDetails.total_received_quantity = totalReceivedQuantity;
+
             const { data: poResult, error: poError } = await supabase
                 .from('supplier_pos')
                 .insert([poDetails])
@@ -220,6 +224,10 @@ export const supplierPoService = {
                 .select('*, items:supplier_po_items(*)')
                 .eq('id', id)
                 .single();
+
+            // Calculate total received quantity
+            const totalReceivedQuantity = items ? items.reduce((sum, item) => sum + (Number(item.received_quantity) || 0), 0) : 0;
+            poDetails.total_received_quantity = totalReceivedQuantity;
 
             const { data: poResult, error: poError } = await supabase
                 .from('supplier_pos')

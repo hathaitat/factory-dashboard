@@ -335,7 +335,7 @@ const SupplierPoListPage = () => {
                                                         <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>
                                                             ฿{po.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                         </td>
-                                                        <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                        <td style={{ padding: '1rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                                                             {(() => {
                                                                 const totalQty = po.supplier_po_items?.reduce((sum, item) => sum + Number(item.quantity), 0) || 0;
                                                                 const receivedQty = po.supplier_po_items?.reduce((sum, item) => sum + Number(item.received_quantity || 0), 0) || 0;
@@ -348,7 +348,7 @@ const SupplierPoListPage = () => {
                                                                 );
                                                             })()}
                                                         </td>
-                                                        <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                        <td style={{ padding: '1rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                                                             <span style={{ padding: '0.4rem 0.8rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '600', background: status.bg, color: status.color, border: `1px solid ${status.color}22`, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                                                 {status.icon} {status.text}
                                                             </span>

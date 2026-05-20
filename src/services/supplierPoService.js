@@ -9,7 +9,7 @@ export const supplierPoService = {
                 .select(`
                     *,
                     suppliers (id, code, name),
-                    warehouses (name),
+                    warehouses (name, code),
                     supplier_po_items (*)
                 `)
                 .order('created_at', { ascending: false });
@@ -56,6 +56,7 @@ export const supplierPoService = {
                 .select(`
                     *,
                     suppliers (*),
+                    warehouses (*),
                     supplier_po_items (*)
                 `)
                 .eq('id', id)

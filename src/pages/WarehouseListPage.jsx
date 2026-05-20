@@ -208,7 +208,7 @@ const WarehouseListPage = () => {
                         }}
                     >
                         <Building2 size={18} />
-                        {wh.name}
+                        {wh.code ? `[${wh.code}] ` : ''}{wh.name}
                         {wh.is_default && <span style={{ fontSize: '0.7rem', background: 'rgba(255,255,255,0.2)', padding: '0.2rem 0.5rem', borderRadius: '12px' }}>Default</span>}
                     </button>
                 ))}

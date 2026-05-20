@@ -29,6 +29,13 @@ const InventoryHistoryPage = () => {
     const [adjustQty, setAdjustQty] = useState('');
     const [adjustRemark, setAdjustRemark] = useState('');
 
+    // BOM Rules state
+    const [bomRules, setBomRules] = useState([]);
+    const [supplierProducts, setSupplierProducts] = useState([]);
+    const [showBomModal, setShowBomModal] = useState(false);
+    const [editingBomRule, setEditingBomRule] = useState(null);
+    const [newBomRule, setNewBomRule] = useState({ supplier_product_id: '', raw_material_qty: '', finished_product_qty: '' });
+
     useEffect(() => {
         loadData();
     }, [id]);
@@ -49,6 +56,15 @@ const InventoryHistoryPage = () => {
 
             const pItems = await supplierPoService.getPendingItems();
             setPendingItems(pItems || []);
+
+            // Load BOM Rules and Products
+            const rulesData = await warehouseService.getInventoryBomRules(id);
+            setBomRules(rulesData || []);
+            
+            const { supplierProductService } = await import('../services/supplierProductService');
+            const prods = await supplierProductService.getAllProducts();
+            setSupplierProducts(prods || []);
+
         } catch (error) {
             console.error('Error loading inventory history:', error);
             showError('ไม่สามารถโหลดข้อมูลประวัติสินค้าได้');
@@ -102,6 +118,51 @@ const InventoryHistoryPage = () => {
             showError('เกิดข้อผิดพลาดในการปรับยอดสต็อก');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleSaveBomRule = async (e) => {
+        e.preventDefault();
+        if (!newBomRule.supplier_product_id || !newBomRule.raw_material_qty || !newBomRule.finished_product_qty) {
+            showError('กรุณากรอกข้อมูลให้ครบถ้วน');
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            await warehouseService.saveInventoryBomRule(
+                id, 
+                newBomRule.supplier_product_id, 
+                newBomRule.raw_material_qty, 
+                newBomRule.finished_product_qty
+            );
+            showAlert('บันทึกการตั้งค่าสูตรการผลิตเรียบร้อยแล้ว');
+            setShowBomModal(false);
+            setNewBomRule({ supplier_product_id: '', raw_material_qty: '', finished_product_qty: '' });
+            
+            // Reload rules
+            const rulesData = await warehouseService.getInventoryBomRules(id);
+            setBomRules(rulesData || []);
+        } catch (error) {
+            console.error('Error saving BOM rule:', error);
+            showError('เกิดข้อผิดพลาดในการบันทึกสูตรการผลิต (ข้อมูลอาจซ้ำซ้อน)');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDeleteBomRule = async (ruleId) => {
+        const confirmed = await showConfirm('คุณต้องการลบสูตรการผลิตนี้ใช่หรือไม่?');
+        if (!confirmed) return;
+
+        try {
+            await warehouseService.deleteInventoryBomRule(ruleId);
+            showAlert('ลบสูตรการผลิตเรียบร้อยแล้ว');
+            const rulesData = await warehouseService.getInventoryBomRules(id);
+            setBomRules(rulesData || []);
+        } catch (error) {
+            console.error('Error deleting BOM rule:', error);
+            showError('เกิดข้อผิดพลาดในการลบสูตรการผลิต');
         }
     };
 
@@ -171,7 +232,7 @@ const InventoryHistoryPage = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
                         <Building2 size={16} /> คลังสินค้า
                     </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-main)' }}>{item.warehouse?.name || '-'}</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-main)' }}>{item.warehouse ? `${item.warehouse.code ? `[${item.warehouse.code}] ` : ''}${item.warehouse.name}` : '-'}</div>
                 </div>
 
                 <div className="glass-panel" style={{ padding: '1rem', borderLeft: '4px solid var(--primary)' }}>
@@ -215,6 +276,57 @@ const InventoryHistoryPage = () => {
                         -{stats.totalOut.toLocaleString()} <span style={{ fontSize: '0.9rem', fontWeight: '400', color: 'var(--text-muted)' }}>{item.unit}</span>
                     </div>
                 </div>
+            </div>
+
+            {/* BOM Rules Section */}
+            <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, color: 'var(--primary)' }}>
+                        <Building2 size={20} /> ตั้งค่าสูตรการผลิต (BOM Rules)
+                    </h3>
+                    <button 
+                        onClick={() => setShowBomModal(true)} 
+                        className="btn-primary" 
+                        style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                    >
+                        <Plus size={16} /> เพิ่มสูตรการผลิต
+                    </button>
+                </div>
+                
+                {bomRules.length > 0 ? (
+                    <div className="table-responsive-wrapper">
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255, 255, 255, 0.02)' }}>
+                                    <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--text-muted)' }}>สินค้าที่ผลิตได้ (Finished Product)</th>
+                                    <th style={{ padding: '1rem', textAlign: 'right', color: 'var(--text-muted)' }}>ใช้วัตถุดิบ ({item.unit})</th>
+                                    <th style={{ padding: '1rem', textAlign: 'right', color: 'var(--text-muted)' }}>ผลิตได้ (หน่วย)</th>
+                                    <th style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>อัตราส่วนต่อ 1 ชิ้น</th>
+                                    <th style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {bomRules.map(rule => (
+                                    <tr key={rule.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                        <td style={{ padding: '1rem' }}>{rule.supplier_products?.name || 'Unknown'}</td>
+                                        <td style={{ padding: '1rem', textAlign: 'right', color: '#8b5cf6', fontWeight: '500' }}>{Number(rule.raw_material_qty).toLocaleString()}</td>
+                                        <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--primary)', fontWeight: '500' }}>{Number(rule.finished_product_qty).toLocaleString()} {rule.supplier_products?.unit || 'PCS'}</td>
+                                        <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                            {(Number(rule.raw_material_qty) / Number(rule.finished_product_qty)).toFixed(4)} {item.unit}
+                                        </td>
+                                        <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                            <button onClick={() => handleDeleteBomRule(rule.id)} style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer' }}>ลบ</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px' }}>
+                        ยังไม่มีการตั้งค่าสูตรการผลิตสำหรับวัตถุดิบรายการนี้
+                    </div>
+                )}
             </div>
 
             {/* History Table */}
@@ -383,6 +495,82 @@ const InventoryHistoryPage = () => {
                                     <Save size={18} /> {isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
                                 </button>
                             </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* BOM Modal */}
+            {showBomModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
+                    <div className="glass-panel" style={{ width: '90%', maxWidth: '500px', padding: '2rem', background: 'white' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)' }}>
+                                <Building2 size={20} /> เพิ่มการตั้งค่าสูตรการผลิต
+                            </h3>
+                            <button onClick={() => setShowBomModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={24} /></button>
+                        </div>
+                        <form onSubmit={handleSaveBomRule}>
+                            <div style={{ marginBottom: '1.2rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>สินค้าที่ผลิตได้ (Finished Product)</label>
+                                <select
+                                    value={newBomRule.supplier_product_id}
+                                    onChange={e => setNewBomRule({ ...newBomRule, supplier_product_id: e.target.value })}
+                                    className="glass-input"
+                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)' }}
+                                    required
+                                >
+                                    <option value="">-- เลือกสินค้า --</option>
+                                    {supplierProducts.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name} {p.suppliers?.name ? `(${p.suppliers.name})` : ''}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>ใช้วัตถุดิบ ({item.unit})</label>
+                                    <input 
+                                        type="number" 
+                                        step="0.0001"
+                                        min="0.0001"
+                                        value={newBomRule.raw_material_qty}
+                                        onChange={e => setNewBomRule({ ...newBomRule, raw_material_qty: e.target.value })}
+                                        className="glass-input"
+                                        style={{ width: '100%', padding: '0.8rem', borderColor: '#8b5cf6' }}
+                                        required
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '1.5rem' }}>
+                                    <ArrowLeft size={20} color="#8b5cf6" style={{ transform: 'rotate(180deg)' }} />
+                                </div>
+                                <div style={{ gridColumn: '2' }}>
+                                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>ผลิตได้ (หน่วยสินค้า)</label>
+                                    <input 
+                                        type="number" 
+                                        step="0.01"
+                                        min="0.01"
+                                        value={newBomRule.finished_product_qty}
+                                        onChange={e => setNewBomRule({ ...newBomRule, finished_product_qty: e.target.value })}
+                                        className="glass-input"
+                                        style={{ width: '100%', padding: '0.8rem', borderColor: 'var(--primary)' }}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div style={{ padding: '1rem', background: 'rgba(139, 92, 246, 0.05)', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.85rem', color: '#8b5cf6', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                                <div>*</div>
+                                <div>
+                                    <strong>ตัวอย่าง:</strong> ถ้าการผลิต PIN 200 ตัว ต้องใช้เหล็กนี้ 10 กก.<br/>
+                                    ให้ใส่ <code>ใช้วัตถุดิบ: 10</code> และ <code>ผลิตได้: 200</code><br/>
+                                    (ระบบจะคำนวณอัตราส่วนต่อ 1 ชิ้นให้อัตโนมัติเวลาเปิด PO)
+                                </div>
+                            </div>
+
+                            <button type="submit" disabled={isSaving} className="btn-primary" style={{ width: '100%', padding: '0.8rem' }}>
+                                {isSaving ? 'กำลังบันทึก...' : 'บันทึกสูตรการผลิต'}
+                            </button>
                         </form>
                     </div>
                 </div>

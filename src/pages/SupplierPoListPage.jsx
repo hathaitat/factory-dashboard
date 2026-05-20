@@ -326,7 +326,7 @@ const SupplierPoListPage = () => {
                                                         <td onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/supplier-pos/${po.id}`); }} style={{ padding: '1.2rem 1.5rem', fontWeight: '600', color: '#3b82f6', fontFamily: 'monospace' }}>{po.po_number}</td>
                                                         <td style={{ padding: '1.2rem 1.5rem' }}>{po.suppliers?.name || '-'}</td>
                                                         <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>{po.date ? new Date(po.date).toLocaleDateString('th-TH') : '-'}</td>
-                                                        <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>{po.warehouses?.name || '-'}</td>
+                                                        <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>{po.warehouses ? `${po.warehouses.code ? `[${po.warehouses.code}] ` : ''}${po.warehouses.name}` : '-'}</td>
                                                         <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
                                                             <span style={{ color: po.delivery_date && new Date(po.delivery_date) < new Date() && po.status !== 'Completed' ? 'var(--error)' : 'inherit' }}>
                                                                 {po.delivery_date ? new Date(po.delivery_date).toLocaleDateString('th-TH') : '-'}

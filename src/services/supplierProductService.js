@@ -26,6 +26,25 @@ export const supplierProductService = {
         }
     },
 
+    // Get all supplier products (for mapping BOM)
+    getAllProducts: async () => {
+        try {
+            const { data, error } = await supabase
+                .from('supplier_products')
+                .select(`
+                    *,
+                    suppliers(name)
+                `)
+                .order('name', { ascending: true });
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error fetching all supplier products:', error);
+            return [];
+        }
+    },
+
     // Create a new product for a supplier
     createProduct: async (productData) => {
         try {
@@ -105,7 +124,7 @@ export const supplierProductService = {
             return false;
         }
     },
-    
+
     // Get price history for a product from actual POs
     getProductPriceHistory: async (productId, startDate, endDate) => {
         try {

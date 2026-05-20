@@ -124,7 +124,7 @@ const WarehouseDetailPage = () => {
             </button>
 
             <PageHeader
-                title={`คลังสินค้า: ${warehouse.name}`}
+                title={`คลังสินค้า: ${warehouse.code ? `[${warehouse.code}] ` : ''}${warehouse.name}`}
                 subtitle={`รหัสคลัง: ${warehouse.code || '-'}`}
             />
 

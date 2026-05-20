@@ -115,6 +115,77 @@ export const warehouseService = {
         }
     },
 
+    // === Inventory BOM Rules ===
+
+    getInventoryBomRules: async (inventoryId) => {
+        try {
+            const { data, error } = await supabase
+                .from('inventory_bom_rules')
+                .select(`
+                    *,
+                    supplier_products(name, unit)
+                `)
+                .eq('inventory_id', inventoryId);
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error fetching inventory BOM rules:', error);
+            return [];
+        }
+    },
+
+    getAllInventoryBomRules: async () => {
+        try {
+            const { data, error } = await supabase
+                .from('inventory_bom_rules')
+                .select('*');
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error fetching all BOM rules:', error);
+            return [];
+        }
+    },
+
+    saveInventoryBomRule: async (inventoryId, supplierProductId, rawQty, finishedQty) => {
+        try {
+            const payload = {
+                inventory_id: inventoryId,
+                supplier_product_id: supplierProductId,
+                raw_material_qty: rawQty,
+                finished_product_qty: finishedQty,
+                updated_at: new Date().toISOString()
+            };
+
+            const { data, error } = await supabase
+                .from('inventory_bom_rules')
+                .upsert(payload, { onConflict: 'inventory_id,supplier_product_id' })
+                .select()
+                .single();
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error saving inventory BOM rule:', error);
+            throw error;
+        }
+    },
+    
+    deleteInventoryBomRule: async (id) => {
+        try {
+            const { error } = await supabase
+                .from('inventory_bom_rules')
+                .delete()
+                .eq('id', id);
+            if (error) throw error;
+            return true;
+        } catch (error) {
+            console.error('Error deleting inventory BOM rule:', error);
+            throw error;
+        }
+    },
+
     // === Inventory Logs & Tracking ===
 
     getInventoryLogs: async (inventoryId) => {
@@ -144,7 +215,7 @@ export const warehouseService = {
                     *,
                     inventory:warehouse_inventory(
                         product_name,
-                        warehouse:warehouses(name)
+                        warehouse:warehouses(name, code)
                     )
                 `)
                 .gte('created_at', startDate.toISOString())
@@ -155,7 +226,7 @@ export const warehouseService = {
             return (data || []).map(log => ({
                 ...log,
                 productName: log.inventory?.product_name || 'ไม่ระบุ',
-                warehouseName: log.inventory?.warehouse?.name || 'ไม่ระบุ',
+                warehouseName: log.inventory?.warehouse ? `${log.inventory.warehouse.code ? `[${log.inventory.warehouse.code}] ` : ''}${log.inventory.warehouse.name}` : 'ไม่ระบุ',
                 date: log.created_at
             }));
         } catch (error) {
@@ -342,7 +413,7 @@ export const warehouseService = {
                 .from('warehouse_inventory')
                 .select(`
                     *,
-                    warehouse:warehouses(name)
+                    warehouse:warehouses(name, code)
                 `)
                 .eq('id', id)
                 .single();

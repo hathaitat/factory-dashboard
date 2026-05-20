@@ -1,5 +1,46 @@
 # Changelog
 
+## [1.3.5] - 2026-05-19 - "Warehouse Code Enforcements & Formatting Display"
+
+### Fixed
+- **Subcontract PO ReferenceError & BOM auto-calculation**:
+  - Resolved `ReferenceError: subcontractMaterialsList is not defined` inside `handleItemChange` in `SupplierPoFormPage.jsx` by checking `subcontractInventoryId` directly.
+  - Automatically calculate and populate `subcontractQty` based on matching BOM rules when item quantity is modified.
+  - Added UI to display the detailed calculation steps (e.g. `(คำนวณจากสูตร: สินค้า (200 x 1.000) = 200.00)`) and a warning note positioned directly above the `subcontractQty` input to instruct users to verify the auto-calculated amount.
+- **BOM Rules RLS Policies**:
+  - Fixed database RLS policies on `inventory_bom_rules` to support public access (anon role), resolving 400/404 errors during save operations.
+
+### Added
+- **Warehouse Code Validation**:
+  - Enforced warehouse code field as required (`*`) in the warehouse form in `SettingsPage.jsx`.
+
+### Improved
+- **Code-First Warehouse Name Rendering**:
+  - Automatically display the warehouse code first followed by the warehouse name (`[CODE] NAME`) across all views, dropdowns, lists, and pages:
+    - **Warehouse list tabs** in `WarehouseListPage.jsx`.
+    - **Warehouse management list** in `SettingsPage.jsx`.
+    - **Dashboard summary lists** in `WarehouseTab.jsx`.
+    - **Target delivery warehouses** in `SupplierPoFormPage.jsx` select dropdown options.
+    - **Warehouse details page title** in `WarehouseDetailPage.jsx` and `WarehouseInventoryComponent.jsx`.
+    - **Vendor PO detail view** in `SupplierPoDetailPage.jsx` and PO lists in `SupplierPoListPage.jsx`.
+    - **Inventory movement stats panel** in `InventoryHistoryPage.jsx`.
+  - Updated `warehouseService.js` and `supplierPoService.js` Supabase select queries to fetch warehouse codes and format logged warehouse names accordingly.
+
+## [1.3.4] - 2026-05-19 - "Goods Receipt Incremental Input Logic"
+
+### Added
+- **Incremental Received Qty Logic (รับเพิ่มรอบนี้)**:
+  - Transitioned the Goods Receipt (PO Receiving) input interface in `SupplierPoFormPage.jsx` from cumulative input to incremental input (received this round).
+  - The input field now resets to `0` representing items received in *this round* instead of displaying/editing the cumulative total.
+  - Automatically calculates and previews the updated cumulative received quantity (`ยอดรับรวมใหม่`) below the input field if the entered incremental quantity is greater than 0.
+  - Limits the incremental input range to `[0, quantity - previous_received]` and provides user feedback via a custom `showAlert()` popup when the user exceeds the maximum allowed quantity for the current round (clamping it to the remaining amount).
+  - Strips UI-only properties (`received_this_round`, `previous_received`) from the payload before saving to the database.
+
+### Improved
+- **UAT Bot Test Adaptation**:
+  - Updated `scripts/uat/general/uat_bot_test.js` to use incremental inputs (Round 1: 80/0, Round 2: 10/80, Round 3: 15/20) matching the new UI logic.
+  - Added alert dismissal handling to the test script for Round 3 to verify clamping alert popups and ensure the E2E test runs successfully.
+
 ## [1.3.3] - 2026-05-19 - "Supplier Automated UAT Test & Script Organization"
 
 ### Added

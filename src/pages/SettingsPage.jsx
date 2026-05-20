@@ -448,7 +448,7 @@ const SettingsPage = () => {
                                 {warehouses.map((wh) => (
                                     <tr key={wh.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                                         <td style={{ padding: '1rem', fontWeight: '500', color: 'var(--text-main)' }}>
-                                            {wh.name} {wh.is_default && <span style={{ fontSize: '0.75rem', background: '#3b82f6', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '12px', marginLeft: '0.5rem' }}>Default</span>}
+                                            {wh.code ? `[${wh.code}] ` : ''}{wh.name} {wh.is_default && <span style={{ fontSize: '0.75rem', background: '#3b82f6', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '12px', marginLeft: '0.5rem' }}>Default</span>}
                                             {wh.code && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>รหัส: {wh.code}</div>}
                                         </td>
                                         <td className="p-4">
@@ -667,8 +667,9 @@ const SettingsPage = () => {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label style={{ display: 'block', marginBottom: '0.5rem' }}>รหัสคลัง</label>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem' }}>รหัสคลัง *</label>
                                     <input
+                                        required
                                         type="text"
                                         value={warehouseFormData.code}
                                         onChange={(e) => setWarehouseFormData({...warehouseFormData, code: e.target.value})}

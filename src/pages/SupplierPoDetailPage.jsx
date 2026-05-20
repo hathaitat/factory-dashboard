@@ -182,7 +182,7 @@ const SupplierPoDetailPage = () => {
                             </div>
                             <div className="text-right">
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem' }}>ส่งไปที่คลังสินค้า</div>
-                                <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '1.1rem' }}>{po.warehouses?.name || 'คลังหลัก'}</div>
+                                <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '1.1rem' }}>{po.warehouses ? `${po.warehouses.code ? `[${po.warehouses.code}] ` : ''}${po.warehouses.name}` : 'คลังหลัก'}</div>
                                 {po.warehouses?.address && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '200px', marginLeft: 'auto', marginTop: '0.3rem' }}>{po.warehouses.address}</div>}
                             </div>
                         </div>

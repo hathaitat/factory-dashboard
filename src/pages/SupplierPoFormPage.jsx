@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Save, X, Plus, Trash2, ArrowLeft, Image as ImageIcon, Building2 } from 'lucide-react';
+import { Save, X, Plus, Trash2, ArrowLeft, Image as ImageIcon, Building2, AlertTriangle } from 'lucide-react';
 import { supplierPoService } from '../services/supplierPoService';
 import { supplierService } from '../services/supplierService';
 import { supplierProductService } from '../services/supplierProductService';
@@ -14,11 +14,12 @@ const SupplierPoFormPage = () => {
     const queryParams = new URLSearchParams(location.search);
     const duplicateId = queryParams.get('duplicate');
     const isReceiveMode = queryParams.get('mode') === 'receive';
-    
+
     // Subcontracting params
     const subcontractInventoryId = queryParams.get('subcontract_inventory_id');
     const subcontractMaterial = queryParams.get('subcontract_material');
     const [subcontractQty, setSubcontractQty] = useState('');
+    const [subcontractCalculationNote, setSubcontractCalculationNote] = useState('');
     const isEdit = Boolean(id);
     const navigate = useNavigate();
     const { showAlert, showError, showConfirm } = useDialog();
@@ -26,6 +27,8 @@ const SupplierPoFormPage = () => {
     const [suppliers, setSuppliers] = useState([]);
     const [supplierProducts, setSupplierProducts] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
+
+    const [inventoryBomRules, setInventoryBomRules] = useState([]);
 
     const [formData, setFormData] = useState({
         po_number: '',
@@ -46,7 +49,7 @@ const SupplierPoFormPage = () => {
     });
 
     const [items, setItems] = useState([
-        { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, received_quantity: 0, previous_received: 0, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }
+        { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, received_quantity: 0, received_this_round: 0, previous_received: 0, unit: 'PCS', unit_price: 0, amount: 0, due_date: '', raw_material_qty: '' }
     ]);
 
     const [isLoading, setIsLoading] = useState(true);
@@ -72,12 +75,14 @@ const SupplierPoFormPage = () => {
 
     const loadInitialData = async () => {
         try {
-            const [suppliersData, warehousesData] = await Promise.all([
+            const [suppliersData, warehousesData, bomRulesData] = await Promise.all([
                 supplierService.getSuppliers(),
-                warehouseService.getWarehouses()
+                warehouseService.getWarehouses(),
+                warehouseService.getAllInventoryBomRules()
             ]);
             setSuppliers(suppliersData || []);
             setWarehouses(warehousesData || []);
+            setInventoryBomRules(bomRulesData || []);
 
             // Set default warehouse and current user for new POs
             if (!isEdit && !duplicateId) {
@@ -121,11 +126,13 @@ const SupplierPoFormPage = () => {
                     if (poData.supplier_po_items && poData.supplier_po_items.length > 0) {
                         setItems(poData.supplier_po_items.map(item => {
                             const isDraft = poData.status === 'Draft';
+                            const prevRcv = isDraft ? 0 : (item.received_quantity || 0);
                             return {
                                 ...item,
                                 id: isEdit ? item.id : Date.now() + Math.random(), // New ID if duplicating
-                                received_quantity: isDraft ? 0 : (item.received_quantity ?? 0),
-                                previous_received: isDraft ? 0 : (item.received_quantity || 0),
+                                received_this_round: 0,
+                                previous_received: prevRcv,
+                                received_quantity: prevRcv,
                                 due_date: item.due_date ? item.due_date.split('T')[0] : ''
                             };
                         }));
@@ -214,17 +221,83 @@ const SupplierPoFormPage = () => {
             item.amount = (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
         }
 
-        // Validate received_quantity against quantity
-        if (field === 'received_quantity' || field === 'quantity') {
-            const maxQty = parseFloat(item.quantity) || 0;
-            let currentRcv = parseFloat(item.received_quantity) || 0;
-            if (currentRcv > maxQty) {
-                item.received_quantity = maxQty;
-                // Only show alert if user is actively changing the received_quantity
-                if (field === 'received_quantity') {
-                    showAlert(`ยอดรับรวมทั้งหมดต้องไม่เกินจำนวนที่สั่ง (${maxQty})`);
+        // Auto calculate raw_material_qty using BOM rules
+        if (['quantity', 'description'].includes(field) && item.supplier_product_id) {
+            // Find a matching BOM rule. Priority: Matches the subcontractInventoryId currently selected in the top panel
+            let matchingRule = null;
+            if (subcontractInventoryId) {
+                matchingRule = inventoryBomRules.find(r => r.supplier_product_id === item.supplier_product_id && r.inventory_id === subcontractInventoryId);
+            }
+            
+            // If no exact match with subcontract material, find ANY rule for this product
+            if (!matchingRule) {
+                matchingRule = inventoryBomRules.find(r => r.supplier_product_id === item.supplier_product_id);
+            }
+
+            // Apply rule
+            if (matchingRule) {
+                const ratio = Number(matchingRule.raw_material_qty) / Number(matchingRule.finished_product_qty);
+                item.raw_material_qty = ((parseFloat(item.quantity) || 0) * ratio).toFixed(4);
+            } else if (item.supplier_product_id && (field === 'description' || field === 'quantity')) {
+                // If the product has a legacy raw_material_ratio fallback
+                const selectedProduct = supplierProducts.find(p => p.id === item.supplier_product_id);
+                if (selectedProduct && selectedProduct.raw_material_ratio > 0) {
+                    item.raw_material_qty = ((parseFloat(item.quantity) || 0) * selectedProduct.raw_material_ratio).toFixed(4);
+                } else {
+                    item.raw_material_qty = '';
                 }
             }
+
+            // Auto calculate and update the top panel subcontractQty state if applicable
+            if (subcontractInventoryId) {
+                let totalRawQty = 0;
+                let calculationDetails = [];
+                newItems.forEach((it, idx) => {
+                    let currentRawQty = 0;
+                    if (idx === index) {
+                        if (matchingRule && matchingRule.inventory_id === subcontractInventoryId) {
+                            const ratio = Number(matchingRule.raw_material_qty) / Number(matchingRule.finished_product_qty);
+                            currentRawQty = (parseFloat(it.quantity) || 0) * ratio;
+                            calculationDetails.push(`${it.description || 'สินค้า'} (${it.quantity} x ${ratio.toFixed(4)})`);
+                        } else {
+                            const selectedProduct = supplierProducts.find(p => p.id === it.supplier_product_id);
+                            if (selectedProduct && selectedProduct.raw_material_ratio > 0) {
+                                currentRawQty = (parseFloat(it.quantity) || 0) * selectedProduct.raw_material_ratio;
+                                calculationDetails.push(`${it.description || 'สินค้า'} (${it.quantity} x ${selectedProduct.raw_material_ratio})`);
+                            }
+                        }
+                    } else {
+                        currentRawQty = parseFloat(it.raw_material_qty) || 0;
+                        if (currentRawQty > 0) {
+                            calculationDetails.push(`${it.description || 'รายการอื่น'} (${currentRawQty})`);
+                        }
+                    }
+                    totalRawQty += currentRawQty;
+                });
+                if (totalRawQty > 0) {
+                    setSubcontractQty(totalRawQty.toFixed(4));
+                    setSubcontractCalculationNote(`(คำนวณจากสูตร: ${calculationDetails.join(' + ')} = ${totalRawQty.toFixed(4)})`);
+                } else {
+                    setSubcontractCalculationNote('');
+                }
+            }
+        }
+
+        // Validate received_this_round against quantity
+        if (field === 'received_this_round' || field === 'quantity') {
+            const maxQty = parseFloat(item.quantity) || 0;
+            const prevRcv = parseFloat(item.previous_received) || 0;
+            const maxAllowed = Math.max(0, maxQty - prevRcv);
+            let currentRcvThisRound = parseFloat(item.received_this_round) || 0;
+            if (currentRcvThisRound > maxAllowed) {
+                item.received_this_round = maxAllowed;
+                if (field === 'received_this_round') {
+                    showAlert(`ยอดรับเพิ่มรอบนี้ต้องไม่เกินจำนวนที่เหลือค้างส่ง (${maxAllowed})`);
+                }
+            } else if (currentRcvThisRound < 0) {
+                item.received_this_round = 0;
+            }
+            item.received_quantity = prevRcv + (parseFloat(item.received_this_round) || 0);
         }
 
         setItems(newItems);
@@ -296,7 +369,7 @@ const SupplierPoFormPage = () => {
                 ...formData,
                 status: finalStatus,
                 items: validItems.map(item => {
-                    const { id, previous_received, ...rest } = item;
+                    const { id, previous_received, received_this_round, ...rest } = item;
                     return {
                         ...rest,
                         supplier_product_id: rest.supplier_product_id || null, // null if custom item
@@ -310,15 +383,15 @@ const SupplierPoFormPage = () => {
                 await showAlert('บันทึกข้อมูลสำเร็จ');
             } else {
                 const savedPo = await supplierPoService.createSupplierPo(payload);
-                
+
                 // Automatically deduct stock for subcontracting ONLY ON CREATE
                 if (subcontractInventoryId && Number(subcontractQty) > 0) {
                     try {
                         const currentUser = userService.getCurrentUser();
                         await warehouseService.adjustStock(
-                            subcontractInventoryId, 
-                            'OUT', 
-                            subcontractQty, 
+                            subcontractInventoryId,
+                            'OUT',
+                            subcontractQty,
                             `เบิกไปแปรรูปชิ้นส่วนตามใบสั่งจ้างผลิต (PO: ${savedPo.po_number || savedPo.id})`,
                             currentUser?.fullName || 'system'
                         );
@@ -360,20 +433,31 @@ const SupplierPoFormPage = () => {
                         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>
                             เมื่อบันทึกใบสั่งซื้อนี้เป็นครั้งแรก ระบบจะทำการ <b>"เบิกตัดสต็อก"</b> วัตถุดิบรายการนี้ออกจากคลังให้โดยอัตโนมัติ
                         </p>
-                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        
+                        {subcontractQty > 0 && subcontractCalculationNote && (
+                            <div className="mb-6 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-600 flex items-start gap-2">
+                                <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+                                <div className="text-[0.85rem] leading-relaxed">
+                                    <span>ยอดคำนวณอัตโนมัติ <b>{subcontractCalculationNote}</b></span><br/>
+                                    <span>โปรดตรวจสอบและปรับแก้ตัวเลขในช่องด้านล่างให้ตรงกับจำนวนจริงที่จะเบิกใช้</span>
+                                </div>
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
                             <div style={{ flex: 2 }}>
                                 <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>รายการวัตถุดิบ (อ้างอิงจากคลังที่เลือก)</label>
                                 <input type="text" value={subcontractMaterial} disabled className="glass-input" style={{ width: '100%', padding: '0.8rem', opacity: 0.7 }} />
                             </div>
                             <div style={{ flex: 1 }}>
                                 <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>จำนวนที่ต้องการเบิกใช้</label>
-                                <input 
-                                    type="number" 
+                                <input
+                                    type="number"
                                     min="0.01"
                                     step="0.01"
-                                    value={subcontractQty} 
-                                    onChange={e => setSubcontractQty(e.target.value)} 
-                                    className="glass-input" 
+                                    value={subcontractQty}
+                                    onChange={e => setSubcontractQty(e.target.value)}
+                                    className="glass-input"
                                     style={{ width: '100%', padding: '0.8rem', borderColor: '#8b5cf6' }}
                                     placeholder="ระบุจำนวน"
                                     required={!!subcontractInventoryId}
@@ -382,7 +466,7 @@ const SupplierPoFormPage = () => {
                         </div>
                     </div>
                 )}
-                
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                     <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>
                         {isReceiveMode ? 'รับสินค้าเข้าคลัง' : (isEdit ? 'แก้ไขใบสั่งซื้อผู้ขาย' : 'สร้างใบสั่งซื้อผู้ขาย')}
@@ -464,7 +548,7 @@ const SupplierPoFormPage = () => {
                                 <option value="">-- เลือกคลังสินค้า --</option>
                                 {warehouses.map(w => (
                                     <option key={w.id} value={w.id}>
-                                        {w.name} {w.is_default ? '(คลังหลัก)' : ''}
+                                        {w.code ? `[${w.code}] ` : ''}{w.name} {w.is_default ? '(คลังหลัก)' : ''}
                                     </option>
                                 ))}
                             </select>
@@ -523,7 +607,7 @@ const SupplierPoFormPage = () => {
                                     <th className="px-6 py-4 text-textMuted font-medium w-[40%]">รายละเอียดสินค้า (เลือกจากผู้ขายหรือพิมพ์เอง)</th>
                                     <th className="px-6 py-4 text-textMuted font-medium w-[15%] text-right">จำนวนสั่ง</th>
                                     {(formData.status === 'Completed' || formData.status === 'Partial' || isReceiveMode) && (
-                                        <th className="px-6 py-4 text-[#10b981] font-semibold w-[15%] text-right">ยอดรับรวมทั้งหมด</th>
+                                        <th className="px-6 py-4 text-[#10b981] font-semibold w-[15%] text-right">รับเพิ่มรอบนี้</th>
                                     )}
                                     <th className="px-6 py-4 text-textMuted font-medium w-[10%]">หน่วย</th>
                                     <th className="px-6 py-4 text-textMuted font-medium w-[15%] text-right">ราคา/หน่วย</th>
@@ -575,7 +659,7 @@ const SupplierPoFormPage = () => {
                                                     <option key={p.id} value={p.name}>฿{p.price}</option>
                                                 ))}
                                             </datalist>
-                                            
+
                                             <div className="mt-3">
                                                 <label className="block text-[0.75rem] text-textMuted mb-1">รายละเอียดเพิ่มเติม (Note):</label>
                                                 <textarea
@@ -636,14 +720,14 @@ const SupplierPoFormPage = () => {
                                             />
                                         </td>
                                         {(formData.status === 'Completed' || formData.status === 'Partial' || isReceiveMode) && (
-                                        <td className="px-6 py-3.5">
+                                            <td className="px-6 py-3.5">
                                                 <input
                                                     type="number"
-                                                    min={item.previous_received || 0}
-                                                    max={item.quantity}
+                                                    min="0"
+                                                    max={Math.max(0, (item.quantity || 0) - (item.previous_received || 0))}
                                                     step="0.01"
-                                                    value={item.received_quantity ?? 0}
-                                                    onChange={(e) => handleItemChange(index, 'received_quantity', e.target.value)}
+                                                    value={item.received_this_round ?? 0}
+                                                    onChange={(e) => handleItemChange(index, 'received_this_round', e.target.value)}
                                                     className="glass-input"
                                                     style={{ width: '100%', padding: '0.5rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '4px', color: '#10b981', border: '1px solid #10b981', textAlign: 'right', fontWeight: 'bold' }}
                                                     required
@@ -653,9 +737,9 @@ const SupplierPoFormPage = () => {
                                                         รับแล้วรอบก่อน: {item.previous_received}
                                                     </div>
                                                 )}
-                                                {item.received_quantity > (item.previous_received || 0) && (
+                                                {item.received_this_round > 0 && (
                                                     <div className="text-[0.75rem] text-[#3b82f6] mt-0.5 font-medium">
-                                                        + รับเพิ่มครั้งนี้: {(item.received_quantity - (item.previous_received || 0)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                                        ยอดรับรวมใหม่: {((item.previous_received || 0) + Number(item.received_this_round)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                                                     </div>
                                                 )}
                                             </td>

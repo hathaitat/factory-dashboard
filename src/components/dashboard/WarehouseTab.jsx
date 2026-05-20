@@ -197,7 +197,7 @@ const WarehouseTab = () => {
                             >
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>{wh.name}</div>
+                                        <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>{wh.code ? `[${wh.code}] ` : ''}{wh.name}</div>
                                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{wh.is_default ? 'คลังสินค้าหลัก' : wh.supplier?.name || 'คลังย่อย'}</div>
                                     </div>
                                     <ExternalLink size={16} className="text-textMuted" />

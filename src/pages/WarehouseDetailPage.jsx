@@ -122,7 +122,7 @@ const WarehouseDetailPage = () => {
     return (
         <div style={{ padding: '0 1rem 2rem 1rem' }}>
             <PageHeader
-                title={`คลังสินค้า: ${warehouse.name}`}
+                title={`คลังสินค้า: ${warehouse.code ? `[${warehouse.code}] ` : ''}${warehouse.name}`}
                 subtitle={`รหัสคลัง: ${warehouse.code || '-'}`}
                 onBack={() => navigate('/dashboard/warehouses')}
             />

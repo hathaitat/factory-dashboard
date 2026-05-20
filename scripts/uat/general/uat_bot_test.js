@@ -171,7 +171,7 @@ async function runBotTest() {
         console.log('🔄 ครั้งที่ 2: รายการแรกรับเพิ่ม 10 (รวม 90), รายการสองรับ 80...');
         await page.goto(poEditUrl);
         await page.waitForTimeout(2000);
-        await page.fill('table tbody tr:nth-child(1) td:nth-child(4) input', '90');
+        await page.fill('table tbody tr:nth-child(1) td:nth-child(4) input', '10');
         await page.fill('table tbody tr:nth-child(2) td:nth-child(4) input', '80');
         await page.screenshot({ path: path.join(SCREENSHOT_DIR, '10_po_receipt_run2.png') });
         await page.click('button:has-text("บันทึก")');
@@ -185,8 +185,12 @@ async function runBotTest() {
         console.log('🔄 ครั้งที่ 3: รายการแรกรับเพิ่ม 15 (รวม 100), รายการสองรับเพิ่ม 20 (รวม 100)...');
         await page.goto(poEditUrl);
         await page.waitForTimeout(2000);
-        await page.fill('table tbody tr:nth-child(1) td:nth-child(4) input', '100');
-        await page.fill('table tbody tr:nth-child(2) td:nth-child(4) input', '100');
+        // รายการแรกเหลือ 10 (100 - 80 - 10), ใส่ 15 จะโดน clamp เหลือ 10
+        // รายการสองเหลือ 20 (100 - 80), ใส่ 20
+        await page.fill('table tbody tr:nth-child(1) td:nth-child(4) input', '15');
+        await page.waitForTimeout(500); // รอให้แจ้งเตือนการแคลมป์แสดง
+        await page.click('button:has-text("ตกลง")'); // กดปิดแจ้งเตือน
+        await page.fill('table tbody tr:nth-child(2) td:nth-child(4) input', '20');
         await page.screenshot({ path: path.join(SCREENSHOT_DIR, '11_po_receipt_run3.png') });
         await page.click('button:has-text("บันทึก")');
         await page.waitForTimeout(1500); // รอระบบประมวลผลและแสดง Alert สำเร็จ

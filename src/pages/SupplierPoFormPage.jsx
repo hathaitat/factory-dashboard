@@ -7,6 +7,7 @@ import { supplierProductService } from '../services/supplierProductService';
 import { warehouseService } from '../services/warehouseService';
 import { useDialog } from '../contexts/DialogContext';
 import { userService } from '../services/userService';
+import { calculateSubcontractTotal } from '../utils/bomCalculator';
 
 const SupplierPoFormPage = () => {
     const { id } = useParams();
@@ -249,38 +250,9 @@ const SupplierPoFormPage = () => {
             }
 
             // Auto calculate and update the top panel subcontractQty state if applicable
-            if (subcontractInventoryId) {
-                let totalRawQty = 0;
-                let calculationDetails = [];
-                newItems.forEach((it, idx) => {
-                    let currentRawQty = 0;
-                    if (idx === index) {
-                        if (matchingRule && matchingRule.inventory_id === subcontractInventoryId) {
-                            const ratio = Number(matchingRule.raw_material_qty) / Number(matchingRule.finished_product_qty);
-                            currentRawQty = (parseFloat(it.quantity) || 0) * ratio;
-                            calculationDetails.push(`${it.description || 'สินค้า'} (${it.quantity} x ${ratio.toFixed(4)})`);
-                        } else {
-                            const selectedProduct = supplierProducts.find(p => p.id === it.supplier_product_id);
-                            if (selectedProduct && selectedProduct.raw_material_ratio > 0) {
-                                currentRawQty = (parseFloat(it.quantity) || 0) * selectedProduct.raw_material_ratio;
-                                calculationDetails.push(`${it.description || 'สินค้า'} (${it.quantity} x ${selectedProduct.raw_material_ratio})`);
-                            }
-                        }
-                    } else {
-                        currentRawQty = parseFloat(it.raw_material_qty) || 0;
-                        if (currentRawQty > 0) {
-                            calculationDetails.push(`${it.description || 'รายการอื่น'} (${currentRawQty})`);
-                        }
-                    }
-                    totalRawQty += currentRawQty;
-                });
-                if (totalRawQty > 0) {
-                    setSubcontractQty(totalRawQty.toFixed(4));
-                    setSubcontractCalculationNote(`(คำนวณจากสูตร: ${calculationDetails.join(' + ')} = ${totalRawQty.toFixed(4)})`);
-                } else {
-                    setSubcontractCalculationNote('');
-                }
-            }
+            const { qty, note } = calculateSubcontractTotal(newItems, inventoryBomRules, subcontractInventoryId, supplierProducts);
+            setSubcontractQty(qty);
+            setSubcontractCalculationNote(note);
         }
 
         // Validate received_this_round against quantity
@@ -603,6 +575,7 @@ const SupplierPoFormPage = () => {
                         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                             <thead>
                                 <tr className="border-b border-border text-left">
+                                    <th className="p-4 w-[50px]"></th>
                                     <th className="px-6 py-4 text-textMuted font-medium w-[50px] text-center">ลำดับ</th>
                                     <th className="px-6 py-4 text-textMuted font-medium w-[40%]">รายละเอียดสินค้า (เลือกจากผู้ขายหรือพิมพ์เอง)</th>
                                     <th className="px-6 py-4 text-textMuted font-medium w-[15%] text-right">จำนวนสั่ง</th>
@@ -612,12 +585,21 @@ const SupplierPoFormPage = () => {
                                     <th className="px-6 py-4 text-textMuted font-medium w-[10%]">หน่วย</th>
                                     <th className="px-6 py-4 text-textMuted font-medium w-[15%] text-right">ราคา/หน่วย</th>
                                     <th className="px-6 py-4 text-textMuted font-medium w-[15%] text-right">จำนวนเงิน</th>
-                                    <th className="p-4 w-[50px]"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {items.map((item, index) => (
                                     <tr key={item.id} className="border-b border-border">
+                                        <td className="p-4 text-center">
+                                            <button
+                                                type="button"
+                                                onClick={() => removeItem(index)}
+                                                className="p-1.5 text-textMuted hover:text-error hover:bg-error/10 rounded-md transition-colors"
+                                                title="ลบรายการ"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </td>
                                         <td className="px-6 py-3.5 text-center text-textMuted">{index + 1}</td>
                                         <td className="px-6 py-3.5">
                                             <div className="relative flex items-center">
@@ -770,15 +752,6 @@ const SupplierPoFormPage = () => {
                                                 {item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}
                                             </div>
                                             ฿{(parseFloat(item.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </td>
-                                        <td className="p-4">
-                                            <button
-                                                type="button"
-                                                onClick={() => removeItem(index)}
-                                                className="bg-none border-none text-error cursor-pointer p-1.5"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
                                         </td>
                                     </tr>
                                 ))}

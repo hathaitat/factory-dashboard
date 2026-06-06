@@ -167,3 +167,38 @@
         font-size: 2rem;
     }
 }
+
+.login-error-message {
+    padding: 0.8rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    color: #ef4444;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 0;
+}
+
+.honeypot-field {
+    position: absolute;
+    left: -9999px;
+}
+
+.btn-disabled-state {
+    opacity: 0.7;
+    cursor: not-allowed !important;
+}

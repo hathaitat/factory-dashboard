@@ -33,7 +33,9 @@
 }
 
 .sidebar-logo {
-    color: var(--primary);
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
     filter: drop-shadow(0 0 8px var(--primary-glow));
 }
 
@@ -41,6 +43,24 @@
     font-weight: 700;
     letter-spacing: 1px;
     font-size: 1.1rem;
+}
+
+.desktop-toggle-btn {
+    background: var(--bg-hover);
+    border: none;
+    color: var(--text-main);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    margin-left: auto;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.desktop-toggle-btn:hover {
+    background: rgba(55, 71, 124, 0.15);
 }
 
 .sidebar-nav {
@@ -86,6 +106,21 @@
     background: rgba(55, 71, 124, 0.1);
     color: var(--primary);
     border-color: rgba(55, 71, 124, 0.2);
+}
+
+.sidebar.collapsed .nav-item {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.sidebar.collapsed .nav-item span,
+.sidebar.collapsed .group-chevron {
+    display: none;
+}
+
+.sidebar.collapsed .group-content {
+    display: none;
 }
 
 /* Grouping Styles */
@@ -272,6 +307,30 @@
     }
 }
 
+/* Desktop sidebar collapsible */
+@media (min-width: 1025px) {
+    .desktop-toggle-btn {
+        display: flex;
+    }
+    .sidebar {
+        transition: width 0.3s ease;
+    }
+    .sidebar.collapsed {
+        width: 80px;
+    }
+    .sidebar.collapsed .sidebar-header {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+    }
+    .sidebar.collapsed .sidebar-title {
+        display: none;
+    }
+    .sidebar.collapsed .desktop-toggle-btn {
+        margin: 0 auto;
+    }
+}
+
 /* Mobile Breakpoint */
 @media (max-width: 1024px) {
     .sidebar {
@@ -356,6 +415,7 @@
         display: block;
     }
 }
+
 /* Notification Dropdown Styles */
 .notification-wrapper {
     position: relative;
@@ -427,7 +487,7 @@
 
 .notification-footer {
     padding: 12px;
-    background: rgba(0,0,0,0.02);
+    background: rgba(0, 0, 0, 0.02);
     display: flex;
     justify-content: center;
 }
@@ -458,6 +518,13 @@
 }
 
 @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

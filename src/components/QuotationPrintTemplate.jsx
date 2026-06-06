@@ -117,17 +117,22 @@ const QuotationPrintTemplate = () => {
             {/* Spacer for fixed header */}
             <div className="no-print" style={{ height: '60px' }}></div>
 
-            <div style={{ textAlign: 'center', lineHeight: '1.4' }}>
-                {company.nameEn && <div style={{ fontSize: '16pt', fontFamily: 'serif' }}>{company.nameEn}</div>}
-                <div style={{ fontSize: '16pt', fontWeight: 'bold' }}>{company.name}</div>
-                <div style={{ fontSize: '13pt' }}>
-                    {[
-                        company.address,
-                        company.phone && `โทรศัพท์ ${company.phone}`,
-                        company.fax && `โทรสาร ${company.fax}`
-                    ].filter(Boolean).join(' ')}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px', marginBottom: '10px' }}>
+                {company.logoUrl && (
+                    <img src={company.logoUrl} alt="Company Logo" style={{ height: '90px', maxWidth: '250px', objectFit: 'contain' }} />
+                )}
+                <div style={{ textAlign: 'center', lineHeight: '1.4' }}>
+                    {company.nameEn && <div style={{ fontSize: '16pt', fontFamily: 'serif' }}>{company.nameEn}</div>}
+                    <div style={{ fontSize: '16pt', fontWeight: 'bold' }}>{company.name}</div>
+                    <div style={{ fontSize: '13pt' }}>
+                        {[
+                            company.address,
+                            company.phone && `โทรศัพท์ ${company.phone}`,
+                            company.fax && `โทรสาร ${company.fax}`
+                        ].filter(Boolean).join(' ')}
+                    </div>
+                    {company.email && <div style={{ fontSize: '13pt' }}>E-mail : {company.email}</div>}
                 </div>
-                {company.email && <div style={{ fontSize: '13pt' }}>E-mail : {company.email}</div>}
             </div>
 
             <div style={{ marginTop: '5px', marginBottom: '10px' }}>
@@ -149,7 +154,7 @@ const QuotationPrintTemplate = () => {
                         </div>
                         <div className="flex">
                             <div style={{ width: '50px' }}>บริษัท</div>
-                            <div>{cust.name}</div>
+                            <div>{cust.name} {cust.branch && `(สาขา ${cust.branch})`}</div>
                         </div>
                         <div style={{ display: 'flex', marginTop: '5px' }}>
                             <div style={{ width: '50px' }}></div>

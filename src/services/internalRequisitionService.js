@@ -215,7 +215,8 @@ export const internalRequisitionService = {
                 .update({
                     status: 'Completed', // เปลี่ยนเป็นเสร็จสมบูรณ์ทันที
                     approved_by: approvedBy,
-                    updated_at: new Date().toISOString()
+                    updated_at: new Date().toISOString(),
+                    updated_by: approvedBy || null
                 })
                 .eq('id', id)
                 .select()
@@ -229,13 +230,14 @@ export const internalRequisitionService = {
         }
     },
 
-    updateStatus: async (id, status) => {
+    updateStatus: async (id, status, updatedBy) => {
         try {
             const { data, error } = await supabase
                 .from('internal_requisitions')
                 .update({
                     status,
-                    updated_at: new Date().toISOString()
+                    updated_at: new Date().toISOString(),
+                    updated_by: updatedBy || null
                 })
                 .eq('id', id)
                 .select()

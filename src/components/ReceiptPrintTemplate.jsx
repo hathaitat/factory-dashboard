@@ -60,35 +60,35 @@ const ReceiptPrintTemplate = () => {
 
     return (
         <div className="print-container">
-            <div className="no-print" style={{ 
-                padding: '0.8rem 1.5rem', 
-                display: 'flex', 
+            <div className="no-print" style={{
+                padding: '0.8rem 1.5rem',
+                display: 'flex',
                 alignItems: 'center',
                 gap: '1rem',
-                background: '#111', 
-                color: 'white', 
-                position: 'sticky', 
-                top: 0, 
+                background: '#111',
+                color: 'white',
+                position: 'sticky',
+                top: 0,
                 zIndex: 100,
                 borderBottom: '1px solid #333'
             }}>
-                <button 
-                    onClick={() => navigate(`/dashboard/billing-notes/${id}`)} 
-                    style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                        background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white', 
+                <button
+                    onClick={() => navigate(`/dashboard/billing-notes/${id}`)}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white',
                         padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
                         fontSize: '0.9rem'
                     }}
                 >
                     <ArrowLeft size={18} /> ย้อนกลับ
                 </button>
-                
-                <button 
-                    onClick={handlePrint} 
-                    style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                        background: '#3b82f6', border: 'none', color: 'white', 
+
+                <button
+                    onClick={handlePrint}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        background: '#3b82f6', border: 'none', color: 'white',
                         padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
                         fontWeight: '600', fontSize: '0.95rem',
                         boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
@@ -104,9 +104,17 @@ const ReceiptPrintTemplate = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', marginTop: '1rem' }}>
                     {/* Left: Company Info */}
                     <div style={{ width: '65%' }}>
-                        <div style={{ fontSize: '1.26rem', fontWeight: 'bold', lineHeight: '1.8' }}>{company.name}</div>
-                        <div style={{ fontSize: '0.9rem', lineHeight: '1.8' }}>{company.address}</div>
-                        <div style={{ fontSize: '0.9rem', lineHeight: '1.8' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '8px' }}>
+                            {company.logoUrl && (
+                                <img src={company.logoUrl} alt="Company Logo" style={{ height: '90px', maxWidth: '250px', objectFit: 'contain' }} />
+                            )}
+                            <div>
+                                <div style={{ fontSize: '1.26rem', fontWeight: 'bold' }}>{company.name}</div>
+                                {company.nameEn && <div style={{ fontSize: '1rem', fontWeight: 'bold', marginTop: '4px' }}>{company.nameEn}</div>}
+                            </div>
+                        </div>
+                        <div style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>{company.address}</div>
+                        <div style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>
                             {[
                                 company.phone && `Tel. ${company.phone}`,
                                 company.fax && `Fax. ${company.fax}`,
@@ -146,7 +154,7 @@ const ReceiptPrintTemplate = () => {
                         justifyContent: 'center'
                     }}>
                         <div style={{ lineHeight: '1.8' }}>
-                            <strong style={{ width: '50px', display: 'inline-block' }}>ลูกค้า</strong> {bn.customer?.name} {bn.customer?.branch && `(${bn.customer.branch})`}
+                            <strong style={{ width: '50px', display: 'inline-block' }}>ลูกค้า</strong> {bn.customer?.name} {bn.customer?.branch && `(สาขา ${bn.customer.branch})`}
                         </div>
                         <div style={{ marginLeft: '50px', fontSize: '0.9rem', lineHeight: '1.8' }}>
                             {bn.customer?.address}
@@ -298,7 +306,6 @@ const ReceiptPrintTemplate = () => {
                     .invoice-paper {
                         max-width: 800px;
                         margin: 20px auto;
-                        padding: 24mm 10mm;
                         background: white;
                         font-family: "Sarabun", sans-serif;
                        font-size: 0.85rem;

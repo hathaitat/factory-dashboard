@@ -19,6 +19,7 @@ const CustomerProductHistoryPrint = React.lazy(() => import('./pages/CustomerPro
 const CompanyInfoPage = React.lazy(() => import('./pages/CompanyInfoPage'));
 const UserListPage = React.lazy(() => import('./pages/UserListPage'));
 const UserFormPage = React.lazy(() => import('./pages/UserFormPage'));
+const UserDetailPage = React.lazy(() => import('./pages/UserDetailPage'));
 const CertificateListPage = React.lazy(() => import('./pages/CertificateListPage'));
 const CertificateFormPage = React.lazy(() => import('./pages/CertificateFormPage'));
 const InvoiceListPage = React.lazy(() => import('./pages/InvoiceListPage'));
@@ -32,6 +33,7 @@ const BillingNotePrintTemplate = React.lazy(() => import('./components/BillingNo
 const ReceiptListPage = React.lazy(() => import('./pages/ReceiptListPage'));
 const ReceiptDetailPage = React.lazy(() => import('./pages/ReceiptDetailPage'));
 const ReceiptPrintTemplate = React.lazy(() => import('./components/ReceiptPrintTemplate'));
+const CertificateReceiptPage = React.lazy(() => import('./pages/CertificateReceiptPage'));
 const EmployeeListPage = React.lazy(() => import('./pages/EmployeeListPage'));
 const EmployeeFormPage = React.lazy(() => import('./pages/EmployeeFormPage'));
 const EmployeeDashboardPage = React.lazy(() => import('./pages/EmployeeDashboardPage'));
@@ -210,9 +212,15 @@ function App() {
                       <Route path="receipts/:id" element={<ReceiptDetailPage />} />
                     </Route>
 
+                    {/* Certificate Receipts Module */}
+                    <Route element={<PermissionRoute module="certificate_receipts" action="view" />}>
+                      <Route path="certificate-receipts" element={<CertificateReceiptPage />} />
+                    </Route>
+
                     {/* Users/Permissions Module */}
                     <Route element={<PermissionRoute module="users" action="view" />}>
                       <Route path="users" element={<UserListPage />} />
+                      <Route path="users/:id" element={<UserDetailPage />} />
                     </Route>
                     <Route element={<PermissionRoute module="users" action="create" />}>
                       <Route path="users/new" element={<UserFormPage />} />

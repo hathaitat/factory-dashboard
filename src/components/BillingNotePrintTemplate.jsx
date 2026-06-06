@@ -36,35 +36,35 @@ const BillingNotePrintTemplate = () => {
 
     return (
         <div className="print-container">
-            <div className="no-print" style={{ 
-                padding: '0.8rem 1.5rem', 
-                display: 'flex', 
+            <div className="no-print" style={{
+                padding: '0.8rem 1.5rem',
+                display: 'flex',
                 alignItems: 'center',
                 gap: '1rem',
-                background: '#111', 
-                color: 'white', 
-                position: 'sticky', 
-                top: 0, 
+                background: '#111',
+                color: 'white',
+                position: 'sticky',
+                top: 0,
                 zIndex: 100,
                 borderBottom: '1px solid #333'
             }}>
-                <button 
-                    onClick={() => navigate(`/dashboard/billing-notes/${id}`)} 
-                    style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                        background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white', 
+                <button
+                    onClick={() => navigate(`/dashboard/billing-notes/${id}`)}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white',
                         padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
                         fontSize: '0.9rem'
                     }}
                 >
                     <ArrowLeft size={18} /> ย้อนกลับ
                 </button>
-                
-                <button 
-                    onClick={handlePrint} 
-                    style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                        background: '#3b82f6', border: 'none', color: 'white', 
+
+                <button
+                    onClick={handlePrint}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        background: '#3b82f6', border: 'none', color: 'white',
                         padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
                         fontWeight: '600', fontSize: '0.95rem',
                         boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
@@ -77,9 +77,17 @@ const BillingNotePrintTemplate = () => {
             <div className="invoice-paper">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', marginTop: '1rem' }}>
                     <div style={{ width: '60%' }}>
-                        <div style={{ fontSize: '1.26rem', fontWeight: 'bold', paddingTop: "1rem" }}>{company.name}</div>
-                        <div style={{ fontSize: '0.9rem', lineHeight: '1.8' }}>{company.address}</div>
-                        <div style={{ fontSize: '0.9rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '8px' }}>
+                            {company.logoUrl && (
+                                <img src={company.logoUrl} alt="Company Logo" style={{ height: '90px', maxWidth: '250px', objectFit: 'contain' }} />
+                            )}
+                            <div>
+                                <div style={{ fontSize: '1.26rem', fontWeight: 'bold' }}>{company.name}</div>
+                                {company.nameEn && <div style={{ fontSize: '1rem', fontWeight: 'bold', marginTop: '4px' }}>{company.nameEn}</div>}
+                            </div>
+                        </div>
+                        <div style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>{company.address}</div>
+                        <div style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>
                             {[
                                 company.phone && `Tel. ${company.phone}`,
                                 company.fax && `Fax. ${company.fax}`,
@@ -106,8 +114,8 @@ const BillingNotePrintTemplate = () => {
                 <div className="details-section">
                     <div className="customer-info-box">
                         <div className="info-row">
-                            <span className="label">นามลูกค้า (Customer)</span>
-                            <span className="value-bold">{bn.customer?.name}</span>
+                            <span className="label">ลูกค้า : </span>
+                            <span className="value-bold">{bn.customer?.name} {bn.customer?.branch && `(สาขา ${bn.customer.branch})`}</span>
                         </div>
                         <div className="info-row">
                             <span className="value" style={{ fontSize: '0.9rem' }}>{bn.customer?.address}</span>

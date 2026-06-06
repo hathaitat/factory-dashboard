@@ -8,23 +8,24 @@ const SupplierPoPrintTemplate = ({ po, company }) => {
     const supplier = po.suppliers || {};
     const items = po.supplier_po_items || [];
 
+    const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString('th-TH') : '-';
+    const formatCurrency = (amount, decimals = 2) => Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    const formatQty = (qty) => Number(qty || 0).toLocaleString();
+
+    const emptyRowsCount = Math.max(0, 4 - items.length);
+
     return (
         <div className="po-print-paper">
             {/* 1. Header Section (Outside the box) */}
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-                <img
-                    src="/images/logo-nobg.png"
-                    alt="MAW Logo"
-                    style={{ width: '120px', height: 'auto', objectFit: 'contain', flexShrink: 0 }}
-                    onError={(e) => e.target.style.display = 'none'}
-                />
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 'bold', fontFamily: 'serif' }}>MULTIPLY AUTO WORKS CO.,LTD.</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 'bold', marginTop: '5px' }}>บริษัท มัลติพลายส์ ออโต้ เวิร์ค จำกัด</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px' }}>
+                {company.logoUrl && (
+                    <img src={company.logoUrl} alt="Company Logo" style={{ height: '80px', maxWidth: '250px', objectFit: 'contain' }} />
+                )}
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 'bold' }}>{company.name}</div>
                 </div>
-                <div style={{ width: '120px' }}></div>
             </div>
-            <div style={{ textAlign: 'center', fontSize: '0.85rem', marginBottom: '10px' }}>
+            <div style={{ textAlign: 'center', fontSize: '0.85rem', marginBottom: '20px' }}>
                 {company.address} โทรศัพท์ {company.phone} โทรสาร {company.fax || '-'}
             </div>
 
@@ -32,8 +33,9 @@ const SupplierPoPrintTemplate = ({ po, company }) => {
             <div style={{ border: '1px solid #000' }}>
 
                 {/* Title */}
-                <div style={{ textAlign: 'center', fontSize: '1.3rem', fontWeight: 'bold', padding: '8px', borderBottom: '1px solid #000' }}>
-                    ใบสั่งซื้อ PURCHASE ORDER
+                <div style={{ textAlign: 'center', padding: '12px', borderBottom: '1px solid #000', backgroundColor: '#f8f9fa' }}>
+                    <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#111827', letterSpacing: '0.5px', lineHeight: '1.2' }}>ใบสั่งซื้อ</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#6b7280', letterSpacing: '2px', marginTop: '2px' }}>PURCHASE ORDER</div>
                 </div>
 
                 {/* PO Info */}
@@ -44,11 +46,11 @@ const SupplierPoPrintTemplate = ({ po, company }) => {
                             <tbody>
                                 <tr>
                                     <td style={{ width: '50px', verticalAlign: 'top' }}>ATTN :</td>
-                                    <td>{po.contact_person || '-'}</td>
+                                    <td>{supplier.contact_name || '-'}</td>
                                 </tr>
                                 <tr>
                                     <td></td>
-                                    <td style={{ paddingTop: '5px' }}><strong>{supplier.name}</strong></td>
+                                    <td style={{ paddingTop: '5px' }}><strong>{supplier.name} {supplier.branch && `(สาขา ${supplier.branch})`}</strong></td>
                                 </tr>
                                 <tr>
                                     <td></td>
@@ -71,7 +73,7 @@ const SupplierPoPrintTemplate = ({ po, company }) => {
                             <tbody>
                                 <tr>
                                     <td style={{ width: '110px', verticalAlign: 'top' }}>วันที่ ( DATE )</td>
-                                    <td>{new Date(po.date).toLocaleDateString('th-TH')}</td>
+                                    <td>{formatDate(po.date)}</td>
                                 </tr>
                                 <tr>
                                     <td style={{ paddingTop: '5px' }}>เลขที่ ( PO/NO. )</td>
@@ -83,7 +85,7 @@ const SupplierPoPrintTemplate = ({ po, company }) => {
                                 </tr>
                                 <tr>
                                     <td style={{ paddingTop: '5px' }}>วันที่ส่งสินค้า</td>
-                                    <td style={{ paddingTop: '5px' }}>{po.delivery_date ? new Date(po.delivery_date).toLocaleDateString('th-TH') : '-'}</td>
+                                    <td style={{ paddingTop: '5px' }}>{formatDate(po.delivery_date)}</td>
                                 </tr>
                                 <tr>
                                     <td style={{ paddingTop: '5px' }}>อ้างอิง</td>
@@ -110,27 +112,27 @@ const SupplierPoPrintTemplate = ({ po, company }) => {
                         {items.map((item, index) => (
                             <tr key={index} style={{ height: '30px' }}>
                                 <td style={{ borderRight: '1px solid #000', verticalAlign: 'top', paddingTop: '5px' }}>{index + 1}</td>
-                                <td style={{ borderRight: '1px solid #000', textAlign: 'left', paddingLeft: '10px', verticalAlign: 'top', paddingTop: '5px' }}>
+                                <td style={{ borderRight: '1px solid #000', textAlign: 'left', paddingLeft: '10px', verticalAlign: 'top', paddingTop: '5px', wordBreak: 'break-word' }}>
                                     {item.description}
-                                    {item.note && <div style={{ fontSize: '0.8rem', color: '#444', marginTop: '2px' }}>{item.note}</div>}
+                                    {item.note && <div style={{ fontSize: '0.8rem', color: '#444', marginTop: '2px', whiteSpace: 'pre-wrap' }}>{item.note}</div>}
                                     {item.image_url && (
                                         <div style={{ marginTop: '8px', marginBottom: '5px' }}>
-                                            <img 
-                                                src={item.image_url} 
-                                                alt="item" 
-                                                style={{ maxWidth: '100%', maxHeight: '100px', objectFit: 'contain', borderRadius: '2px', border: '1px solid #ddd' }} 
+                                            <img
+                                                src={item.image_url}
+                                                alt="item"
+                                                style={{ maxWidth: '100%', maxHeight: '100px', objectFit: 'contain', borderRadius: '2px', border: '1px solid #ddd' }}
                                             />
                                         </div>
                                     )}
                                 </td>
-                                <td style={{ borderRight: '1px solid #000', verticalAlign: 'top', paddingTop: '5px' }}>{po.delivery_date ? new Date(po.delivery_date).toLocaleDateString('th-TH') : '-'}</td>
-                                <td style={{ borderRight: '1px solid #000', textAlign: 'right', paddingRight: '5px', verticalAlign: 'top', paddingTop: '5px' }}>{item.quantity.toLocaleString()}</td>
+                                <td style={{ borderRight: '1px solid #000', verticalAlign: 'top', paddingTop: '5px' }}>{formatDate(item.due_date || po.delivery_date)}</td>
+                                <td style={{ borderRight: '1px solid #000', textAlign: 'right', paddingRight: '5px', verticalAlign: 'top', paddingTop: '5px' }}>{formatQty(item.quantity)}</td>
                                 <td style={{ borderRight: '1px solid #000', textAlign: 'left', paddingLeft: '5px', verticalAlign: 'top', paddingTop: '5px' }}>{item.unit}</td>
-                                <td style={{ borderRight: '1px solid #000', textAlign: 'right', paddingRight: '10px', verticalAlign: 'top', paddingTop: '5px' }}>{item.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                <td style={{ textAlign: 'right', paddingRight: '10px', verticalAlign: 'top', paddingTop: '5px' }}>{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td style={{ borderRight: '1px solid #000', textAlign: 'right', paddingRight: '10px', verticalAlign: 'top', paddingTop: '5px' }}>{formatCurrency(item.unit_price)}</td>
+                                <td style={{ textAlign: 'right', paddingRight: '10px', verticalAlign: 'top', paddingTop: '5px' }}>{formatCurrency(item.amount)}</td>
                             </tr>
                         ))}
-                        {[...Array(Math.max(0, 3 - items.length))].map((_, i) => (
+                        {[...Array(emptyRowsCount)].map((_, i) => (
                             <tr key={`empty-${i}`} style={{ height: '30px' }}>
                                 <td style={{ borderRight: '1px solid #000' }}>&nbsp;</td>
                                 <td style={{ borderRight: '1px solid #000' }}>&nbsp;</td>
@@ -144,21 +146,30 @@ const SupplierPoPrintTemplate = ({ po, company }) => {
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td colSpan="5" style={{ borderRight: '1px solid #000', borderTop: '1px solid #000', textAlign: 'center', backgroundColor: '#f8f9fa', padding: '5px' }}>
-                                {thaiBaht(po.grand_total || 0)}
+                            <td colSpan="5" style={{ borderRight: '1px solid #000', borderTop: '1px solid #000', textAlign: 'center', backgroundColor: '#f8f9fa', padding: '8px' }}>
+                                <span style={{ fontWeight: '500' }}>{thaiBaht(po.grand_total || 0)}</span>
                             </td>
-                            <td style={{ borderRight: '1px solid #000', borderTop: '1px solid #000', textAlign: 'left', paddingLeft: '5px' }}>รวมเงิน<br /> ( SUB TOTAL )</td>
-                            <td style={{ borderTop: '1px solid #000', textAlign: 'right', paddingRight: '10px' }}>{po.sub_total?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td style={{ borderRight: '1px solid #000', borderTop: '1px solid #000', textAlign: 'left', padding: '6px 10px', lineHeight: '1.2' }}>
+                                <div style={{ fontWeight: '600', color: '#1f2937' }}>รวมเงิน</div>
+                                <div style={{ fontSize: '0.7rem', color: '#6b7280', letterSpacing: '0.5px', marginTop: '2px' }}>SUB TOTAL</div>
+                            </td>
+                            <td style={{ borderTop: '1px solid #000', textAlign: 'right', paddingRight: '10px', fontWeight: '500' }}>{formatCurrency(po.sub_total)}</td>
                         </tr>
                         <tr>
                             <td colSpan="5" style={{ borderRight: '1px solid #000', borderTop: '1px solid #000' }}></td>
-                            <td style={{ borderRight: '1px solid #000', borderTop: '1px solid #000', textAlign: 'left', paddingLeft: '5px' }}>ภาษีมูลค่าเพิ่ม<br /> ( VAT {po.vat_rate}% )</td>
-                            <td style={{ borderTop: '1px solid #000', textAlign: 'right', paddingRight: '10px' }}>{po.vat_amount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td style={{ borderRight: '1px solid #000', borderTop: '1px solid #000', textAlign: 'left', padding: '6px 10px', lineHeight: '1.2' }}>
+                                <div style={{ fontWeight: '600', color: '#1f2937' }}>ภาษีมูลค่าเพิ่ม {po.vat_rate}%</div>
+                                <div style={{ fontSize: '0.7rem', color: '#6b7280', letterSpacing: '0.5px', marginTop: '2px' }}>VAT</div>
+                            </td>
+                            <td style={{ borderTop: '1px solid #000', textAlign: 'right', paddingRight: '10px', fontWeight: '500' }}>{formatCurrency(po.vat_amount)}</td>
                         </tr>
                         <tr>
                             <td colSpan="5" style={{ borderRight: '1px solid #000', borderTop: '1px solid #000', borderBottom: '1px solid #000' }}></td>
-                            <td style={{ borderRight: '1px solid #000', borderTop: '1px solid #000', borderBottom: '1px solid #000', textAlign: 'left', paddingLeft: '5px' }}>ยอดเงินสุทธิ <br /> ( TOTAL )</td>
-                            <td style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', textAlign: 'right', paddingRight: '10px' }}>{po.grand_total?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td style={{ borderRight: '1px solid #000', borderTop: '1px solid #000', borderBottom: '1px solid #000', textAlign: 'left', padding: '8px 10px', lineHeight: '1.2', backgroundColor: '#f8f9fa' }}>
+                                <div style={{ fontWeight: '700', color: '#111827' }}>ยอดเงินสุทธิ</div>
+                                <div style={{ fontSize: '0.7rem', color: '#6b7280', letterSpacing: '0.5px', marginTop: '2px' }}>GRAND TOTAL</div>
+                            </td>
+                            <td style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', textAlign: 'right', paddingRight: '10px', fontWeight: '700', fontSize: '0.95rem', backgroundColor: '#f8f9fa' }}>{formatCurrency(po.grand_total)}</td>
                         </tr>
                     </tfoot>
                 </table>

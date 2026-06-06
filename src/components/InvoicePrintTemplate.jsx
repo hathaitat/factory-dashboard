@@ -152,16 +152,26 @@ const InvoicePrintTemplate = () => {
                         {/* Page Header - Full on every page */}
                         <div className="header-section">
                             <div className="company-info-print">
-                                <div className="company-name-th">{company.name}</div>
-                                <div className="company-address-th">{company.address}</div>
-                                <div className="company-contact">
-                                    {[
-                                        company.phone && `TEL: ${company.phone}`,
-                                        company.fax && `FAX: ${company.fax}`,
-                                        company.email && `E-mail: ${company.email}`
-                                    ].filter(Boolean).join(' | ')}
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '8px' }}>
+                                        {company.logoUrl && (
+                                            <img src={company.logoUrl} alt="Company Logo" style={{ height: '90px', maxWidth: '250px', objectFit: 'contain' }} />
+                                        )}
+                                        <div>
+                                            <div className="company-name-th">{company.name}</div>
+                                            {company.nameEn && <div className="company-name-en" style={{ marginTop: '4px' }}>{company.nameEn}</div>}
+                                        </div>
+                                    </div>
+                                    <div className="company-address-th" style={{ lineHeight: '1.6' }}>{company.address}</div>
+                                    <div className="company-contact" style={{ lineHeight: '1.6' }}>
+                                        {[
+                                            company.phone && `TEL: ${company.phone}`,
+                                            company.fax && `FAX: ${company.fax}`,
+                                            company.email && `E-mail: ${company.email}`,
+                                            company.taxId && `เลขประจำตัวผู้เสียภาษี: ${company.taxId}`
+                                        ].filter(Boolean).join(' | ')}
+                                    </div>
                                 </div>
-                                <div className="company-taxid">เลขประจำตัวผู้เสียภาษี: {company.taxId}</div>
                             </div>
                             <div className="title-section">
                                 <div className="doc-title">ใบกำกับสินค้า / ใบกำกับภาษี</div>
@@ -177,7 +187,7 @@ const InvoicePrintTemplate = () => {
                                     <span className="value">{invoice.customer?.code}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="value-bold">{invoice.customer?.name}</span>
+                                    <span className="value-bold">{invoice.customer?.name} {invoice.customer?.branch && `(สาขา ${invoice.customer.branch})`}</span>
                                 </div>
                                 <div className="info-row">
                                     <span className="label">เลขประจำตัวผู้เสียภาษี</span>

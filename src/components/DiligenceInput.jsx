@@ -28,17 +28,10 @@ const DiligenceInput = ({ value, isOverridden, onCommit, style = {} }) => {
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             onClick={(e) => e.stopPropagation()}
-            style={{
-                width: '80px',
-                padding: '4px',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                textAlign: 'center',
-                color: isOverridden ? '#059669' : '#4b5563',
-                fontWeight: isOverridden ? 'bold' : 'normal',
-                background: isOverridden ? '#ecfdf5' : 'white',
-                ...style
-            }}
+            className={`w-[80px] p-1 rounded border border-[#d1d5db] text-center ${
+                isOverridden ? 'text-[#059669] font-bold bg-[#ecfdf5]' : 'text-[#4b5563] font-normal bg-white'
+            }`}
+            style={style}
         />
     );
 };

@@ -1,12 +1,16 @@
+import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
-import { Plus, Search, Eye, Edit, Trash2, Check, X, Shield } from 'lucide-react';
+import { Plus, Search, Eye, Edit, Trash2, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { userService } from '../services/userService';
 import { usePermissions } from '../hooks/usePermissions';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
+import Pagination from '../components/Pagination';
+import { usePagination } from '../hooks/usePagination';
 
 const UserListPage = () => {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const { hasPermission, user: currentUser } = usePermissions();
     const { showConfirm, showAlert, showError } = useDialog();
@@ -34,11 +38,11 @@ const UserListPage = () => {
     const handleDelete = async (id, name) => {
         const confirmed = await showConfirm(`คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้งาน "${name}"?`);
         if (confirmed) {
-            const success = await userService.deleteUser(id);
-            if (success) {
+            try {
+                await userService.deleteUser(id);
                 loadUsers();
-            } else {
-                await showError('เกิดข้อผิดพลาดในการลบผู้ใช้งาน');
+            } catch (error) {
+                await showError(error.message || 'เกิดข้อผิดพลาดในการลบผู้ใช้งาน');
             }
         }
     };
@@ -49,27 +53,10 @@ const UserListPage = () => {
         (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    const PermissionBadge = ({ label, hasPermission, color }) => (
-        <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-            padding: '0.2rem 0.6rem',
-            borderRadius: '12px',
-            fontSize: '0.75rem',
-            background: hasPermission ? `${color}20` : 'var(--card-hover)',
-            color: hasPermission ? color : '#666',
-            border: `1px solid ${hasPermission ? `${color}40` : 'var(--border-color)'}`,
-            marginRight: '0.3rem',
-            opacity: hasPermission ? 1 : 0.5
-        }}>
-            {hasPermission ? <Check size={12} /> : <X size={12} />}
-            {label}
-        </span>
-    );
+    const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems, totalPages, startItem, endItem } = usePagination(filteredUsers, 50);
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem' }}>
+        <div className="px-4 pb-8">
             <PageHeader
                 title="จัดการสิทธิ์ผู้ใช้งาน"
                 subtitle="เพิ่ม ลบ แก้ไข และกำหนดสิทธิ์การเข้าถึง"
@@ -78,61 +65,60 @@ const UserListPage = () => {
                 {hasPermission('users', 'create') && (
                     <button
                         onClick={() => navigate('/dashboard/users/new')}
-                        style={{
-                            padding: '0.8rem 1.5rem', borderRadius: '8px', border: 'none',
-                            background: '#8b5cf6', color: 'white', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500'
-                        }}
+                        className="px-6 py-3 rounded-lg border-none text-white cursor-pointer font-medium flex items-center gap-2" style={{ background: '#8b5cf6' }}
                     >
                         <Plus size={20} /> เพิ่มผู้ใช้งาน
                     </button>
                 )}
             </PageHeader>
 
-            <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-                <div style={{ position: 'relative' }}>
-                    <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#888' }} />
+            <div className="glass-panel p-6 mb-8">
+                <div className="relative">
+                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                         type="text"
                         placeholder="ค้นหาชื่อ หรือ username..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="glass-input"
-                        style={{
-                            width: '100%',
-                            padding: '0.8rem 1rem 0.8rem 2.8rem',
-                            background: 'var(--bg-main)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '8px',
-                            color: 'var(--text-main)'
-                        }}
+                        className="glass-input w-full bg-main border border-border rounded-lg text-main" style={{ padding: '0.8rem 1rem 0.8rem 2.8rem' }}
                     />
                 </div>
             </div>
 
-            <div className="glass-panel" style={{ padding: '0' }}>
-                <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <div className="glass-panel p-0">
+                <div className="table-responsive-wrapper overflow-x-auto touch-pan-x">
+<table className="w-full border-collapse text-left">
                         <thead>
-                            <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                <th className="actions-column" style={{ color: '#888', fontWeight: '500' }}>จัดการ</th>
-                                <th style={{ padding: '1.2rem', color: '#888', fontWeight: '500' }}>ชื่อ - นามสกุล</th>
-                                <th style={{ padding: '1.2rem', color: '#888', fontWeight: '500' }}>Username</th>
-                                <th style={{ padding: '1.2rem', color: '#888', fontWeight: '500' }}>สิทธิ์การใช้งาน</th>
+                            <tr className="border-b border-border">
+                                <th className="actions-column text-gray-400 font-medium">จัดการ</th>
+                                <th className="p-5 text-gray-400 font-medium">ชื่อ - นามสกุล</th>
+                                <th className="p-5 text-gray-400 font-medium">Username</th>
+                                <th className="p-5 text-gray-400 font-medium">เข้าใช้งานล่าสุด</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>
+                                    <td colSpan="4" className="p-8 text-center text-gray-400">
                                         กำลังโหลดข้อมูล...
                                     </td>
                                 </tr>
-                            ) : filteredUsers.length > 0 ? (
-                                filteredUsers.map((user) => (
-                                    <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            ) : paginatedData.length > 0 ? (
+                                paginatedData.map((user) => {
+                                    const isSuperadmin = user.username === 'superadmin';
+                                    return (
+                                    <tr key={user.id} className="border-b border-border">
                                         <td className="actions-column">
                                             <div className="table-actions">
+                                                {hasPermission('users', 'view') && (
+                                                    <button
+                                                        className="action-view"
+                                                        onClick={() => navigate(`/dashboard/users/${user.id}`)}
+                                                        title="ดูรายละเอียด"
+                                                    >
+                                                        <Eye size={16} />
+                                                    </button>
+                                                )}
                                                 {hasPermission('users', 'edit') && (
                                                     <button
                                                         className="action-edit"
@@ -142,7 +128,7 @@ const UserListPage = () => {
                                                         <Edit size={16} />
                                                     </button>
                                                 )}
-                                                {hasPermission('users', 'delete') && String(user?.id) !== String(currentUser?.id) && (
+                                                {hasPermission('users', 'delete') && String(user?.id) !== String(currentUser?.id) && !isSuperadmin && (
                                                     <button
                                                         className="action-delete"
                                                         onClick={() => handleDelete(user.id, user.fullName)}
@@ -153,63 +139,44 @@ const UserListPage = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.2rem' }}>
-                                            <div style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', color: 'white' }}>
-                                                    {user.fullName.charAt(0).toUpperCase()}
+                                        <td className="p-5">
+                                            <div className="font-medium flex items-center gap-2">
+                                                <div className="text-sm text-white" style={{ width: '32px', height: '32px', borderRadius: '50%', background: isSuperadmin ? '#f59e0b' : '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                    {isSuperadmin ? <Shield size={16} /> : user.fullName.charAt(0).toUpperCase()}
                                                 </div>
-                                                {user.fullName}
+                                                <span
+                                                    onClick={() => navigate(`/dashboard/users/${user.id}`)}
+                                                    className="cursor-pointer text-primary no-underline font-semibold"
+                                                    onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                                                    onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                                                >
+                                                    {user.fullName}
+                                                </span>
+                                                {isSuperadmin && (
+                                                    <span className="text-white rounded-xl font-semibold" style={{ fontSize: '0.7rem', background: '#f59e0b', padding: '0.15rem 0.5rem' }}>
+                                                        SUPERADMIN
+                                                    </span>
+                                                )}
                                             </div>
-                                            <div style={{ fontSize: '0.85rem', color: '#888', marginLeft: '2.5rem' }}>{user.email}</div>
+                                            <div className="text-sm text-gray-400" style={{ marginLeft: '2.5rem' }}>{user.email}</div>
                                         </td>
-                                        <td style={{ padding: '1.2rem', fontFamily: 'monospace', color: '#aaa' }}>
+                                        <td className="p-5 font-mono" style={{ color: '#aaa' }}>
                                             @{user.username || '-'}
                                         </td>
-                                        <td style={{ padding: '1.2rem' }}>
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                                {Object.entries(user.permissions || {}).map(([key, value]) => {
-                                                    const permCount = Object.values(value).filter(Boolean).length;
-                                                    if (permCount === 0) return null;
-                                                    const labels = {
-                                                        overview: 'ภาพรวม',
-                                                        customers: 'ลูกค้า',
-                                                        suppliers: 'ผู้ขาย',
-                                                        supplier_pos: 'PO ผู้ขาย',
-                                                        warehouses: 'คลังสินค้า',
-                                                        certificates: 'Cert.',
-                                                        purchase_orders: 'PO ลูกค้า',
-                                                        quotations: 'เสนอราคา',
-                                                        invoices: 'Invoice',
-                                                        billing: 'วางบิล/รับเงิน',
-                                                        employees: 'พนักงาน',
-                                                        company: 'บริษัท',
-                                                        users: 'ผู้ใช้',
-                                                        settings: 'ตั้งค่า',
-                                                        production: 'ผลิต',
-                                                        internal_items: 'ของใช้',
-                                                        internal_requisitions: 'ประวัติสั่งซื้อ'
-                                                    };
-                                                    return (
-                                                        <span key={key} style={{
-                                                            fontSize: '0.75rem',
-                                                            padding: '0.2rem 0.6rem',
-                                                            borderRadius: '12px',
-                                                            background: 'var(--card-hover)',
-                                                            border: '1px solid var(--border-color)',
-                                                            color: 'var(--text-muted)'
-                                                        }}>
-                                                            {labels[key] || key}: {permCount === 4 ? 'Full' : `${permCount} สิทธิ์`}
-                                                        </span>
-                                                    );
-                                                })}
-                                                {Object.keys(user.permissions || {}).length === 0 && <span style={{ color: '#666', fontSize: '0.8rem' }}>- ไม่มีสิทธิ์ -</span>}
-                                            </div>
+                                        <td className="p-5">
+                                            {user.lastLoginAt ? (
+                                                <span className="text-sm text-main">
+                                                    {new Date(user.lastLoginAt).toLocaleString('th-TH')}
+                                                </span>
+                                            ) : (
+                                                <span className="text-sm" style={{ color: '#aaa', fontStyle: 'italic' }}>ยังไม่เคยเข้าสู่ระบบ</span>
+                                            )}
                                         </td>
                                     </tr>
-                                ))
+                                )})
                             ) : (
                                 <tr>
-                                    <td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>
+                                    <td colSpan="4" className="p-12 text-center text-gray-400">
                                         ไม่พบผู้ใช้งาน
                                     </td>
                                 </tr>
@@ -217,6 +184,16 @@ const UserListPage = () => {
                         </tbody>
                     </table>
 </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    totalPages={totalPages}
+                    startItem={startItem}
+                    endItem={endItem}
+                    onPageChange={setCurrentPage}
+                    onItemsPerPageChange={setItemsPerPage}
+                />
             </div>
         </div>
     );

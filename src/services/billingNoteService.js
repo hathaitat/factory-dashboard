@@ -2,6 +2,21 @@ import { supabase } from './supabaseClient';
 import { settingService } from './settingService';
 import { documentNumberHelper } from '../utils/documentNumbering';
 import { thaiBaht } from '../utils/thaiBaht';
+import { sanitizeSearchTerm } from './sanitize';
+
+// Shared mapper: DB row -> Frontend object
+const _mapBillingNote = (bn) => ({
+    id: bn.id,
+    billingNoteNo: bn.billing_note_no,
+    date: bn.date,
+    customerId: bn.customer_id,
+    customerName: bn.customer?.name || bn.customer_snapshot?.name || 'Unknown',
+    totalAmount: Number(bn.total_amount),
+    status: bn.status,
+    createdAt: bn.created_at,
+    createdBy: bn.created_by,
+    updatedBy: bn.updated_by
+});
 
 export const billingNoteService = {
     // Get all billing notes with customer details
@@ -17,19 +32,139 @@ export const billingNoteService = {
 
             if (error) throw error;
 
+            return data.map(_mapBillingNote);
+        } catch (error) {
+            console.error('Error fetching billing notes:', error);
+            return [];
+        }
+    },
+
+    // Server-Side Pagination
+    getBillingNotesPaginated: async ({ page = 1, limit = 50, searchTerm = '', dateFrom = '', dateTo = '', status = '' }) => {
+        try {
+            let query = supabase.from('billing_notes').select(`
+                *,
+                customer:customers(name)
+            `, { count: 'exact' });
+
+            if (searchTerm) {
+                const safe = sanitizeSearchTerm(searchTerm);
+                if (safe) query = query.or(`billing_note_no.ilike.%${safe}%,customer_snapshot->name.ilike.%${safe}%`);
+            }
+            if (dateFrom) {
+                query = query.gte('date', dateFrom);
+            }
+            if (dateTo) {
+                query = query.lte('date', dateTo);
+            }
+            if (status) {
+                query = query.eq('status', status);
+            }
+
+            const from = (page - 1) * limit;
+            const to = from + limit - 1;
+
+            const { data, count, error } = await query
+                .order('created_at', { ascending: false })
+                .range(from, to);
+
+            if (error) throw error;
+
+            const processedData = data.map(_mapBillingNote);
+
+            return { data: processedData, total: count };
+        } catch (error) {
+            console.error('Error fetching paginated billing notes:', error);
+            return { data: [], total: 0, error };
+        }
+    },
+
+    exportBillingNotes: async ({ searchTerm = '', dateFrom = '', dateTo = '', status = '' }) => {
+        try {
+            let query = supabase.from('billing_notes').select(`
+                *,
+                customer:customers(name)
+            `);
+
+            if (searchTerm) {
+                const safe = sanitizeSearchTerm(searchTerm);
+                if (safe) query = query.or(`billing_note_no.ilike.%${safe}%,customer_snapshot->>name.ilike.%${safe}%`);
+            }
+            if (dateFrom) {
+                query = query.gte('date', dateFrom);
+            }
+            if (dateTo) {
+                query = query.lte('date', dateTo);
+            }
+            if (status) {
+                query = query.eq('status', status);
+            }
+
+            const { data, error } = await query.order('created_at', { ascending: false });
+
+            if (error) throw error;
+
             return data.map(bn => ({
                 id: bn.id,
                 billingNoteNo: bn.billing_note_no,
                 date: bn.date,
-                customerId: bn.customer_id,
                 customerName: bn.customer?.name || bn.customer_snapshot?.name || 'Unknown',
                 totalAmount: Number(bn.total_amount),
-                status: bn.status,
-                createdAt: bn.created_at
+                status: bn.status
             }));
         } catch (error) {
-            console.error('Error fetching billing notes:', error);
-            return [];
+            console.error('Error exporting billing notes:', error);
+            throw error;
+        }
+    },
+
+    getBillingNoteStats: async () => {
+        try {
+            const [draftRes, sentRes, paidRes] = await Promise.all([
+                supabase.from('billing_notes').select('id', { count: 'exact', head: true }).eq('status', 'Draft'),
+                supabase.from('billing_notes').select('id', { count: 'exact', head: true }).eq('status', 'Sent'),
+                supabase.from('billing_notes').select('id', { count: 'exact', head: true }).eq('status', 'Paid')
+            ]);
+
+            // For totalValue, we still need to sum it up. Ideally, this should be an RPC call.
+            // Since we don't know if RPC exists, we use select('total_amount') but we should be aware of payload size.
+            const totalValueRes = await supabase.from('billing_notes').select('total_amount').eq('status', 'Paid');
+
+            const draft = draftRes.count || 0;
+            const sent = sentRes.count || 0;
+            const paid = paidRes.count || 0;
+            const totalValue = (totalValueRes.data || []).reduce((sum, row) => sum + (Number(row.total_amount) || 0), 0);
+
+            return { draft, sent, paid, totalValue, monthCount: draft + sent + paid, pendingCount: draft + sent, paidCount: paid, totalCount: draft + sent + paid };
+        } catch (error) {
+            console.error('Error fetching billing note stats:', error);
+            return { draft: 0, sent: 0, paid: 0, totalValue: 0, monthCount: 0, pendingCount: 0, paidCount: 0, totalCount: 0 };
+        }
+    },
+
+    getReceiptStats: async () => {
+        try {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            const startDate = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-01`;
+            const lastDay = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const endDate = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+
+            const [totalPaidRes, monthReceiptsRes, totalValueRes] = await Promise.all([
+                supabase.from('billing_notes').select('id', { count: 'exact', head: true }).eq('status', 'Paid'),
+                supabase.from('billing_notes').select('total_amount').eq('status', 'Paid').gte('date', startDate).lte('date', endDate),
+                supabase.from('billing_notes').select('total_amount').eq('status', 'Paid')
+            ]);
+
+            const revenueThisMonth = (monthReceiptsRes.data || []).reduce((sum, row) => sum + (Number(row.total_amount) || 0), 0);
+            const totalPaidCount = totalPaidRes.count || 0;
+            const totalRevenue = (totalValueRes.data || []).reduce((sum, row) => sum + (Number(row.total_amount) || 0), 0);
+
+            return { revenueThisMonth, totalPaidCount, totalRevenue };
+        } catch (error) {
+            console.error('Error fetching receipt stats:', error);
+            return { revenueThisMonth: 0, totalPaidCount: 0, totalRevenue: 0 };
         }
     },
 
@@ -82,6 +217,8 @@ export const billingNoteService = {
                 notes: bn.notes,
                 createdAt: bn.created_at,
                 updatedAt: bn.updated_at,
+                createdBy: bn.created_by,
+                updatedBy: bn.updated_by,
                 invoices: items.map(item => ({
                     id: item.invoice.id,
                     invoiceNo: item.invoice.invoice_no,
@@ -111,7 +248,9 @@ export const billingNoteService = {
                 total_amount: bnData.totalAmount,
                 baht_text: thaiBaht(bnData.totalAmount),
                 status: bnData.status || 'Draft',
-                notes: bnData.notes
+                notes: bnData.notes,
+                created_by: bnData.createdBy || null,
+                updated_by: bnData.updatedBy || null
             };
 
             const { data: bn, error: bnError } = await supabase
@@ -172,7 +311,8 @@ export const billingNoteService = {
                 baht_text: thaiBaht(bnData.totalAmount),
                 status: bnData.status,
                 notes: bnData.notes,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                updated_by: bnData.updatedBy || null
             };
 
             const { error: bnError } = await supabase

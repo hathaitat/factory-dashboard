@@ -171,14 +171,14 @@ const CustomerProductHistoryPrint = () => {
                 {/* Report Info */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', marginBottom: '25px', background: '#f9fafb', padding: '15px', borderRadius: '4px', border: '1px solid #e5e7eb' }}>
                     <div>
-                        <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '2px' }}>ลูกค้า:</div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{customer.name}</div>
+                        <div className="text-[0.9rem] text-gray-500 mb-[2px]">ลูกค้า:</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{customer.name} {customer.branch && `(สาขา ${customer.branch})`}</div>
                         <div style={{ fontSize: '0.95rem', color: '#444' }}>รหัสลูกค้า: {customer.code || customer.id}</div>
                     </div>
                     <div className="text-right">
-                        <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '2px' }}>วันที่พิมพ์รายงาน:</div>
-                        <div style={{ fontSize: '1rem', fontWeight: '500' }}>{new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-                        <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '4px' }}>เวลา: {new Date().toLocaleTimeString('th-TH')}</div>
+                        <div className="text-[0.9rem] text-gray-500 mb-[2px]">วันที่พิมพ์รายงาน:</div>
+                        <div className="text-base font-medium">{new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                        <div className="text-[0.9rem] text-gray-500 mt-1">เวลา: {new Date().toLocaleTimeString('th-TH')}</div>
                     </div>
                 </div>
 

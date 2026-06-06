@@ -3,10 +3,13 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Save, ArrowLeft, Plus, Trash2, Calendar, FileText, X } from 'lucide-react';
 import { billingNoteService } from '../services/billingNoteService';
 import { customerService } from '../services/customerService';
+import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
 import { getLocalDateString } from '../utils/dateUtils';
+import { useAuth } from '../contexts/AuthContext';
 
 const BillingNoteFormPage = () => {
+    const { user } = useAuth();
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
@@ -30,7 +33,9 @@ const BillingNoteFormPage = () => {
         customerSnapshot: null,
         totalAmount: 0,
         status: 'Draft',
-        notes: ''
+        notes: '',
+        createdBy: '',
+        updatedBy: ''
     });
 
     // Selected invoices
@@ -138,7 +143,9 @@ const BillingNoteFormPage = () => {
                         customerSnapshot: bn.customerSnapshot,
                         totalAmount: bn.totalAmount,
                         status: bn.status,
-                        notes: bn.notes
+                        notes: bn.notes,
+                        createdBy: bn.createdBy || '',
+                        updatedBy: bn.updatedBy || ''
                     });
                     setSelectedInvoices(bn.invoices || []);
                 }
@@ -200,8 +207,12 @@ const BillingNoteFormPage = () => {
 
             // Find selected customer object to save as snapshot
             const selectedCustomer = customers.find(c => String(c.id) === String(formData.customerId));
+            const currentUser = user;
+            const operatorName = currentUser?.fullName || currentUser?.username || 'Unknown';
             const submissionData = {
                 ...formData,
+                createdBy: isEdit ? (formData.createdBy || operatorName) : operatorName,
+                updatedBy: operatorName,
                 customerId: selectedCustomer ? formData.customerId : null,
                 customerSnapshot: selectedCustomer ? {
                     id: selectedCustomer.id,
@@ -247,41 +258,34 @@ const BillingNoteFormPage = () => {
     };
 
     if (isLoading) return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', flexDirection: 'column', gap: '1rem', color: 'var(--text-muted)' }}>
+        <div className="flex justify-center items-center h-[60vh] flex-col gap-4 text-textMuted">
             <div className="loading-spinner"></div>
             <span>กำลังโหลดข้อมูล...</span>
         </div>
     );
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem' }}>
+        <div className="px-4 pb-8">
             <button
                 onClick={() => navigate('/dashboard/billing-notes')}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '1.5rem', fontSize: '0.9rem' }}
+                className="flex items-center gap-2 bg-transparent border-none text-textMuted cursor-pointer mb-6 text-[0.9rem] hover:opacity-80"
             >
                 <ArrowLeft size={18} /> ย้อนกลับ
             </button>
 
             <form onSubmit={handleSubmit}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                    <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>
+                <div className="flex justify-between items-center mb-8">
+                    <h1 className="m-0 text-[1.8rem] font-semibold text-textMain">
                         {isEdit ? 'แก้ไขใบวางบิล' : 'ออกใบวางบิลใหม่'}
                     </h1>
                     <div className="flex gap-4">
                         <select
                             value={formData.status}
                             onChange={e => setFormData({ ...formData, status: e.target.value })}
-                            className="glass-input"
-                            style={{ 
-                                padding: '0.6rem 1rem', 
-                                borderRadius: '8px', 
-                                border: '1px solid var(--border-color)',
-                                background: formData.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' : 
-                                           formData.status === 'Cancelled' ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-main)',
-                                color: formData.status === 'Paid' ? 'var(--success)' : 
-                                       formData.status === 'Cancelled' ? 'var(--error)' : 'var(--text-main)',
-                                fontWeight: '500'
-                            }}
+                            className={`glass-input py-2.5 px-4 rounded-lg border border-border font-medium ${
+                                formData.status === 'Paid' ? 'bg-[#10b981]/10 text-success' : 
+                                formData.status === 'Cancelled' ? 'bg-[#ef4444]/10 text-error' : 'bg-main text-textMain'
+                            }`}
                         >
                             <option value="Draft">แบบร่าง (Draft)</option>
                             <option value="Paid">ชำระเงินแล้ว (Paid)</option>
@@ -290,18 +294,18 @@ const BillingNoteFormPage = () => {
                         <button
                             type="submit"
                             disabled={isSaving}
-                            style={{ padding: '0.6rem 1.5rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
+                            className="py-2.5 px-6 bg-[#3b82f6] text-white border-none rounded-lg font-medium flex items-center gap-2 cursor-pointer hover:opacity-90"
                         >
                             <Save size={18} /> {isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
                         </button>
                     </div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
-                    <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
-                        <div style={{ position: 'relative' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เลือกลูกค้า</label>
-                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <div className="glass-panel p-8 mb-6">
+                    <div className="grid grid-cols-3 gap-6 grid-mobile-stack">
+                        <div className="relative">
+                            <label className="block mb-2 text-textMuted text-[0.9rem]">เลือกลูกค้า</label>
+                            <div className="relative flex items-center">
                                 <input
                                     type="text"
                                     value={customerSearch}
@@ -317,8 +321,7 @@ const BillingNoteFormPage = () => {
                                     onFocus={() => setShowCustomerDropdown(true)}
                                     onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
                                     placeholder="ค้นหาชื่อ หรือ รหัสลูกค้า..."
-                                    className="glass-input"
-                                    style={{ width: '100%', padding: '0.7rem', paddingRight: '2.5rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                    className="glass-input w-full p-[0.7rem] pr-10 bg-main rounded-lg text-textMain border border-border"
                                 />
                                 {customerSearch && (
                                     <button
@@ -330,39 +333,14 @@ const BillingNoteFormPage = () => {
                                             setAvailableInvoices([]);
                                             setShowCustomerDropdown(false);
                                         }}
-                                        style={{
-                                            position: 'absolute',
-                                            right: '12px',
-                                            background: 'none',
-                                            border: 'none',
-                                            color: 'var(--text-muted)',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            padding: '2px',
-                                            zIndex: 2
-                                        }}
+                                        className="absolute right-3 bg-transparent border-none text-textMuted cursor-pointer flex items-center justify-center p-0.5 z-10"
                                     >
                                         <X size={16} />
                                     </button>
                                 )}
                             </div>
                             {showCustomerDropdown && (
-                                <div style={{ 
-                                    position: 'absolute', 
-                                    top: '100%', 
-                                    left: 0, 
-                                    right: 0, 
-                                    maxHeight: '250px', 
-                                    overflowY: 'auto', 
-                                    background: 'white', 
-                                    zIndex: 50, 
-                                    border: '1px solid var(--border-color)', 
-                                    borderRadius: '8px', 
-                                    marginTop: '0.2rem', 
-                                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)' 
-                                }}>
+                                <div className="absolute top-full left-0 right-0 max-h-[250px] overflow-y-auto bg-white z-50 border border-border rounded-lg mt-1 shadow-lg">
                                     {customers.filter(c =>
                                         c.name?.toLowerCase().includes(customerSearch.toLowerCase()) ||
                                         c.code?.toLowerCase().includes(customerSearch.toLowerCase())
@@ -378,77 +356,73 @@ const BillingNoteFormPage = () => {
                                                 }
                                                 setShowCustomerDropdown(false);
                                             }}
-                                            style={{ padding: '0.7rem', cursor: 'pointer', borderBottom: '1px solid var(--border-color)', color: 'var(--text-main)' }}
-                                            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'}
-                                            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                                            className="p-[0.7rem] cursor-pointer border-b border-border text-textMain hover:bg-[#3b82f6]/10"
                                         >
-                                            {c.name} <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>({c.code})</span>
+                                            {c.name} <span className="text-textMuted text-[0.85rem]">({c.code})</span>
                                         </div>
                                     ))}
                                     {customers.filter(c => c.name?.toLowerCase().includes(customerSearch.toLowerCase()) || c.code?.toLowerCase().includes(customerSearch.toLowerCase())).length === 0 && (
-                                        <div style={{ padding: '0.7rem', color: 'var(--text-muted)', textAlign: 'center' }}>ไม่พบลูกค้าที่ค้นหา</div>
+                                        <div className="p-[0.7rem] text-textMuted text-center">ไม่พบลูกค้าที่ค้นหา</div>
                                     )}
                                 </div>
                             )}
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เลขที่ใบวางบิล (Auto)</label>
+                            <label className="block mb-2 text-textMuted text-[0.9rem]">เลขที่ใบวางบิล (Auto)</label>
                             <input
                                 type="text"
                                 value={formData.billingNoteNo}
                                 onChange={e => setFormData({ ...formData, billingNoteNo: e.target.value })}
                                 required
-                                className="glass-input"
-                                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                className="glass-input w-full p-[0.7rem] bg-main rounded-lg text-textMain border border-border"
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>วันที่</label>
+                            <label className="block mb-2 text-textMuted text-[0.9rem]">วันที่</label>
                             <input
                                 type="date"
                                 value={formData.date}
                                 onChange={e => setFormData({ ...formData, date: e.target.value })}
                                 required
-                                className="glass-input"
-                                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                className="glass-input w-full p-[0.7rem] bg-main rounded-lg text-textMain border border-border"
                             />
                         </div>
                     </div>
                 </div>
 
-                <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                <div className="grid grid-cols-2 gap-6 grid-mobile-stack">
                     {/* Left side: Available invoices for the month */}
-                    <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-                        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', background: 'rgba(59, 130, 246, 0.05)' }}>
-                            <h3 style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6' }}>
+                    <div className="glass-panel p-0 overflow-hidden">
+                        <div className="py-4 px-6 border-b border-border bg-[#3b82f6]/5">
+                            <h3 className="m-0 text-base flex items-center gap-2 text-[#3b82f6]">
                                 <FileText size={18} /> ใบกำกับภาษีประจำเดือนนี้
                             </h3>
                         </div>
-                        <div style={{ maxHeight: '400px', overflowY: 'auto', padding: '1rem' }}>
+                        <div className="max-h-[400px] overflow-y-auto p-4">
                             {!formData.customerId ? (
-                                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>กรุณาเลือกลูกค้าเพื่อดูรายการบิล</div>
+                                <div className="text-center p-8 text-textMuted">กรุณาเลือกลูกค้าเพื่อดูรายการบิล</div>
                             ) : availableInvoices.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>ไม่พบใบกำกับภาษีที่ยังไม่ได้วางบิลในเดือนนี้</div>
+                                <div className="text-center p-8 text-textMuted">ไม่พบใบกำกับภาษีที่ยังไม่ได้วางบิลในเดือนนี้</div>
                             ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                <div className="flex flex-col gap-3">
                                     {availableInvoices.map(inv => (
-                                        <div key={inv.id} className="glass-panel" style={{ padding: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+                                        <div key={inv.id} className="glass-panel p-3 flex justify-between items-center bg-card border border-border">
                                             <div>
-                                                <div style={{ fontWeight: '600', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <div className="font-semibold text-textMain flex items-center gap-2">
                                                     {inv.invoiceNo}
                                                     {inv.poNumber && (
-                                                        <span style={{ fontSize: '0.75rem', padding: '0.1rem 0.4rem', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', borderRadius: '4px', fontWeight: 'normal' }}>
+                                                        <span className="text-[0.75rem] py-0.5 px-1.5 bg-[#3b82f6]/10 text-[#37477C] rounded font-normal">
                                                             PO: {inv.poNumber} {inv.poStatus === 'Completed' ? '(ครบ)' : ''}
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>วันที่: {new Date(inv.date).toLocaleDateString('th-TH')}</div>
-                                                <div style={{ fontWeight: '500', color: 'var(--success)', marginTop: '0.2rem' }}>฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                                <div className="text-[0.85rem] text-textMuted mt-1">วันที่: {new Date(inv.date).toLocaleDateString('th-TH')}</div>
+                                                <div className="font-medium text-success mt-1">฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={() => handleAddInvoice(inv)}
-                                                style={{ padding: '0.4rem 0.8rem', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: '#3b82f6', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
+                                                className="py-1.5 px-3 bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#3b82f6] rounded-md cursor-pointer text-[0.85rem] hover:bg-[#3b82f6]/20"
                                             >
                                                 เพิ่มรายการ
                                             </button>
@@ -460,69 +434,85 @@ const BillingNoteFormPage = () => {
                     </div>
 
                     {/* Right side: Selected invoices */}
-                    <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-                        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', background: 'rgba(16, 185, 129, 0.05)' }}>
-                            <h3 style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success)' }}>
+                    <div className="glass-panel p-0 overflow-hidden">
+                        <div className="py-4 px-6 border-b border-border bg-[#10b981]/5">
+                            <h3 className="m-0 text-base flex items-center gap-2 text-success">
                                 <Calendar size={18} /> รายการที่เลือก ({selectedInvoices.length})
                             </h3>
                         </div>
-                        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                            <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                    <tr style={{ background: 'var(--card-hover)', textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
-                                        <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>เลขที่บิล</th>
-                                        <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>วันที่</th>
-                                        <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>จำนวนเงิน</th>
-                                        <th style={{ padding: '0.8rem', width: '40px' }}></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {selectedInvoices.map(inv => (
-                                        <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                            <td style={{ padding: '0.8rem 1rem', color: 'var(--text-main)', fontSize: '0.9rem' }}>
-                                                {inv.invoiceNo}
-                                                {inv.poNumber && <div style={{ fontSize: '0.75rem', color: 'var(--primary)', marginTop: '0.2rem' }}>PO: {inv.poNumber} {inv.poStatus === 'Completed' ? '(ครบ)' : ''}</div>}
-                                            </td>
-                                            <td style={{ padding: '0.8rem 1rem', color: '#888', fontSize: '0.85rem' }}>{new Date(inv.date).toLocaleDateString('th-TH')}</td>
-                                            <td style={{ padding: '0.8rem 1rem', textAlign: 'right', fontWeight: '500', color: 'var(--success)' }}>฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            <td style={{ padding: '0.8rem' }}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveInvoice(inv.id)}
-                                                    style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer' }}
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </td>
+                        <div className="max-h-[400px] overflow-y-auto">
+                            <div className="table-responsive-wrapper w-full overflow-x-auto [webkit-overflow-scrolling:touch]">
+                                <table className="w-full border-collapse">
+                                    <thead>
+                                        <tr className="bg-card-hover text-left border-b border-border">
+                                            <th className="py-3 px-4 text-[0.85rem] text-textMuted font-medium">เลขที่บิล</th>
+                                            <th className="py-3 px-4 text-[0.85rem] text-textMuted font-medium">วันที่</th>
+                                            <th className="py-3 px-4 text-[0.85rem] text-textMuted font-medium text-right">จำนวนเงิน</th>
+                                            <th className="p-3 w-10"></th>
                                         </tr>
-                                    ))}
-                                    {selectedInvoices.length === 0 && (
-                                        <tr>
-                                            <td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>ยังไม่พบรายการที่เลือก</td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-</div>
+                                    </thead>
+                                    <tbody>
+                                        {selectedInvoices.map(inv => (
+                                            <tr key={inv.id} className="border-b border-border">
+                                                <td className="py-3 px-4 text-textMain text-[0.9rem]">
+                                                    {inv.invoiceNo}
+                                                    {inv.poNumber && <div className="text-[0.75rem] text-primary mt-1">PO: {inv.poNumber} {inv.poStatus === 'Completed' ? '(ครบ)' : ''}</div>}
+                                                </td>
+                                                <td className="py-3 px-4 text-[#888888] text-[0.85rem]">{new Date(inv.date).toLocaleDateString('th-TH')}</td>
+                                                <td className="py-3 px-4 text-right font-medium text-success">฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                <td className="p-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveInvoice(inv.id)}
+                                                        className="bg-transparent border-none text-error cursor-pointer p-0 hover:text-red-500"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {selectedInvoices.length === 0 && (
+                                            <tr>
+                                                <td colSpan="4" className="p-8 text-center text-textMuted">ยังไม่พบรายการที่เลือก</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div style={{ padding: '1.2rem 1.5rem', borderTop: '2px solid var(--border-color)', background: 'var(--bg-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontWeight: '600', color: 'var(--text-muted)' }}>รวมทั้งสิ้น</span>
-                            <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--success)' }}>฿{formData.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <div className="py-[1.2rem] px-[1.5rem] border-t-2 border-border bg-main flex justify-between items-center">
+                            <span className="font-semibold text-textMuted">รวมทั้งสิ้น</span>
+                            <span className="text-[1.5rem] font-bold text-success">฿{formData.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>หมายเหตุ</label>
+                <div className="glass-panel p-6 mt-6">
+                    <label className="block mb-2 text-textMuted text-[0.9rem]">หมายเหตุ</label>
                     <textarea
                         value={formData.notes}
                         onChange={e => setFormData({ ...formData, notes: e.target.value })}
                         rows="3"
-                        className="glass-input"
+                        className="glass-input w-full p-[0.7rem] bg-main rounded-lg text-textMain border border-border resize-none"
                         placeholder="ระบุข้อความแสดงในใบวางบิล..."
-                        style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)', resize: 'none' }}
                     />
+                </div>
+
+                <div className="flex justify-end gap-4 mt-6">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/dashboard/billing-notes')}
+                        className="py-[0.8rem] px-6 rounded-lg border border-border bg-transparent text-textMuted cursor-pointer hover:bg-card-hover"
+                    >
+                        ยกเลิก
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={isSaving}
+                        className="py-[0.8rem] px-6 bg-[#3b82f6] text-white border-none rounded-lg font-medium flex items-center gap-2 cursor-pointer hover:opacity-90"
+                    >
+                        <Save size={18} /> {isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+                    </button>
                 </div>
             </form>
         </div>

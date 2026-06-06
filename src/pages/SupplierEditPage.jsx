@@ -1,11 +1,15 @@
+import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import SupplierForm from '../components/SupplierForm';
 import { supplierService } from '../services/supplierService';
+import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const SupplierEditPage = () => {
+    const { user } = useAuth();
     const { id } = useParams();
     const navigate = useNavigate();
     const { showAlert, showError } = useDialog();
@@ -35,7 +39,12 @@ const SupplierEditPage = () => {
 
     const handleUpdate = async (data) => {
         try {
-            await supplierService.updateSupplier(id, data);
+            const currentUser = user;
+            const payload = {
+                ...data,
+                updatedBy: currentUser?.fullName || currentUser?.username || 'Unknown'
+            };
+            await supplierService.updateSupplier(id, payload);
             await showAlert('บันทึกข้อมูลสำเร็จ');
             navigate('/dashboard/suppliers');
         } catch (error) {
@@ -44,24 +53,14 @@ const SupplierEditPage = () => {
         }
     };
 
-    if (isLoading) return <div className="loading-spinner" style={{ margin: '3rem auto' }}></div>;
+    if (isLoading) return <div className="loading-spinner my-12 mx-auto"></div>;
     if (!supplier) return null;
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem', maxWidth: '800px', margin: '0 auto' }}>
+        <div className="px-4 pb-8" style={{ maxWidth: '800px', margin: '0 auto' }}>
             <button
                 onClick={() => navigate('/dashboard/suppliers')}
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    marginBottom: '1.5rem',
-                    padding: 0
-                }}
+                className="bg-transparent border-none text-textMuted cursor-pointer mb-6 p-0 flex items-center gap-2"
             >
                 <ArrowLeft size={20} /> ย้อนกลับ
             </button>

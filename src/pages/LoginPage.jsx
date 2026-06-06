@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, Hexagon, Eye, EyeOff } from 'lucide-react';
-import { userService } from '../services/userService';
+import { useAuth } from '../contexts/AuthContext';
 import '../styles/LoginPage.css';
 
 const LoginPage = () => {
@@ -9,6 +9,7 @@ const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -48,7 +49,7 @@ const LoginPage = () => {
         setIsLoading(true);
 
         try {
-            const result = await userService.login(email, password);
+            const result = await login(email, password);
             if (result.success) {
                 navigate('/dashboard');
             } else {
@@ -84,16 +85,7 @@ const LoginPage = () => {
                 </div>
 
                 {error && (
-                    <div style={{
-                        padding: '0.8rem',
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                        borderRadius: '8px',
-                        color: '#ef4444',
-                        marginBottom: '1rem',
-                        fontSize: '0.9rem',
-                        textAlign: 'center'
-                    }}>
+                    <div className="login-error-message">
                         {error}
                     </div>
                 )}
@@ -110,7 +102,7 @@ const LoginPage = () => {
                         />
                     </div>
 
-                    <div className="input-group" style={{ position: 'relative' }}>
+                    <div className="input-group relative">
                         <Lock className="input-icon" size={20} />
                         <input
                             type={showPassword ? "text" : "password"}
@@ -118,31 +110,19 @@ const LoginPage = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            style={{ paddingRight: '2.5rem' }}
+                            className="pr-10"
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            style={{
-                                position: 'absolute',
-                                right: '1rem',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                background: 'none',
-                                border: 'none',
-                                color: '#6b7280',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                padding: 0
-                            }}
+                            className="password-toggle-btn"
                         >
                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
                     </div>
 
                     {/* Honeypot for Bots */}
-                    <div style={{ position: 'absolute', left: '-9999px' }} aria-hidden="true">
+                    <div className="honeypot-field" aria-hidden="true">
                         <input
                             type="text"
                             name="website_url_confirm"
@@ -155,12 +135,8 @@ const LoginPage = () => {
 
                     <button
                         type="submit"
-                        className="btn-primary login-btn"
+                        className={`btn-primary login-btn ${(isLoading || (lockoutUntil && lockoutUntil > Date.now())) ? 'btn-disabled-state' : ''}`}
                         disabled={isLoading || (lockoutUntil && lockoutUntil > Date.now())}
-                        style={{
-                            opacity: (isLoading || (lockoutUntil && lockoutUntil > Date.now())) ? 0.7 : 1,
-                            cursor: (isLoading || (lockoutUntil && lockoutUntil > Date.now())) ? 'not-allowed' : 'pointer'
-                        }}
                     >
                         {isLoading ? (
                             <span className="loader">Initializing...</span>

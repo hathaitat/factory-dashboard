@@ -6,13 +6,15 @@ import { internalItemService } from '../services/internalItemService';
 import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
+import { useAuth } from '../contexts/AuthContext';
 
 const InternalRequisitionDetailPage = () => {
+    const { user } = useAuth();
     const { id } = useParams();
     const navigate = useNavigate();
     const { showAlert, showError, showConfirm } = useDialog();
     const { hasPermission } = usePermissions();
-    const currentUser = userService.getCurrentUser();
+    const currentUser = user;
     const [requisition, setRequisition] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -50,7 +52,7 @@ const InternalRequisitionDetailPage = () => {
         if (!ok) return;
 
         try {
-            await internalRequisitionService.updateStatus(id, newStatus);
+            await internalRequisitionService.updateStatus(id, newStatus, currentUser?.fullName || currentUser?.username || 'Unknown');
             showAlert(`เปลี่ยนสถานะเป็น ${statusText} สำเร็จ`);
             loadData();
         } catch (err) {
@@ -190,9 +192,27 @@ const InternalRequisitionDetailPage = () => {
                                     <span className="text-sm font-bold text-[#10b981]">฿{requisition.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                 </div>
                             )}
-                            <div className="mt-2 pt-4 border-t border-border flex flex-col gap-1">
-                                <div className="text-[10px] text-textMuted uppercase font-bold tracking-widest">สร้างเมื่อ</div>
-                                <div className="text-xs text-textMain">{new Date(requisition.created_at).toLocaleString('th-TH')}</div>
+                            <div className="mt-2 pt-4 border-t border-border flex flex-col gap-2">
+                                <div>
+                                    <div className="text-[10px] text-textMuted uppercase font-bold tracking-widest">สร้างเมื่อ</div>
+                                    <div className="text-xs text-textMain">{new Date(requisition.created_at).toLocaleString('th-TH')}</div>
+                                </div>
+                                {requisition.created_by && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
+                                        <User size={14} className="text-textMuted" /> สร้างโดย: <span className="text-main font-semibold">{requisition.created_by}</span>
+                                    </div>
+                                )}
+                                {requisition.updated_at && (
+                                    <div>
+                                        <div className="text-[10px] text-textMuted uppercase font-bold tracking-widest">แก้ไขล่าสุดเมื่อ</div>
+                                        <div className="text-xs text-textMain">{new Date(requisition.updated_at).toLocaleString('th-TH')}</div>
+                                    </div>
+                                )}
+                                {requisition.updated_by && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
+                                        <User size={14} className="text-textMuted" /> แก้ไขล่าสุดโดย: <span className="text-main font-semibold">{requisition.updated_by}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

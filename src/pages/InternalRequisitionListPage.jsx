@@ -5,6 +5,8 @@ import { internalRequisitionService } from '../services/internalRequisitionServi
 import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
 import PageHeader from '../components/PageHeader';
+import Pagination from '../components/Pagination';
+import { usePagination } from '../hooks/usePagination';
 
 const InternalRequisitionListPage = ({ embedded = false }) => {
     const navigate = useNavigate();
@@ -44,6 +46,8 @@ const InternalRequisitionListPage = ({ embedded = false }) => {
         return true;
     });
 
+    const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems, totalPages, startItem, endItem } = usePagination(filtered, 50);
+
     const deleteRequisition = async (req) => {
         if (req.status !== 'Draft') {
             showError('สามารถลบได้เฉพาะใบเบิกสถานะ Draft เท่านั้น');
@@ -62,15 +66,15 @@ const InternalRequisitionListPage = ({ embedded = false }) => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'Completed': return { bg: '#10b9811a', text: '#10b981' };
-            case 'Approved': return { bg: '#3b82f61a', text: '#3b82f6' };
-            case 'Draft': return { bg: '#6b72801a', text: '#6b7280' };
-            case 'Cancelled': return { bg: '#ef44441a', text: '#ef4444' };
-            default: return { bg: '#6b72801a', text: '#6b7280' };
+            case 'Completed': return 'bg-emerald-500/10 text-emerald-500';
+            case 'Approved': return 'bg-blue-500/10 text-blue-500';
+            case 'Draft': return 'bg-gray-500/10 text-gray-500';
+            case 'Cancelled': return 'bg-red-500/10 text-red-500';
+            default: return 'bg-gray-500/10 text-gray-500';
         }
     };
 
-    if (isLoading) return <div className="loading-spinner" style={{ margin: '3rem auto' }}></div>;
+    if (isLoading) return <div className="loading-spinner my-12 mx-auto"></div>;
 
     return (
         <div>
@@ -85,7 +89,7 @@ const InternalRequisitionListPage = ({ embedded = false }) => {
             {/* Filters & Actions */}
             <div className="glass-panel p-5 mb-5">
                 <div className="flex items-center gap-3 flex-wrap">
-                    <div className="relative flex-1" style={{ minWidth: '250px' }}>
+                    <div className="relative flex-1 min-w-[250px]">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted" />
                         <input 
                             type="text" 
@@ -112,9 +116,9 @@ const InternalRequisitionListPage = ({ embedded = false }) => {
             </div>
 
             {/* List Table */}
-            <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="glass-panel p-0 overflow-hidden">
                 <div className="table-responsive-wrapper">
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <table className="w-full border-collapse">
                         <thead>
                             <tr className="border-b border-border">
                                 <th className="px-6 py-4 text-left text-textMuted font-medium">เลขที่ / วันที่</th>
@@ -131,7 +135,7 @@ const InternalRequisitionListPage = ({ embedded = false }) => {
                                     <Clock size={40} className="mx-auto mb-2 opacity-30" />
                                     <div>ไม่พบประวัติรายการ</div>
                                 </td></tr>
-                            ) : filtered.map(req => {
+                            ) : paginatedData.map(req => {
                                 const colors = getStatusColor(req.status);
                                 return (
                                     <tr key={req.id} className="border-b border-border hover:bg-white/5 transition-colors">
@@ -158,7 +162,7 @@ const InternalRequisitionListPage = ({ embedded = false }) => {
                                             ฿{req.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: colors.bg, color: colors.text }}>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${colors}`}>
                                                 {req.status}
                                             </span>
                                         </td>
@@ -176,6 +180,16 @@ const InternalRequisitionListPage = ({ embedded = false }) => {
                         </tbody>
                     </table>
                 </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    totalPages={totalPages}
+                    startItem={startItem}
+                    endItem={endItem}
+                    onPageChange={setCurrentPage}
+                    onItemsPerPageChange={setItemsPerPage}
+                />
             </div>
         </div>
     );

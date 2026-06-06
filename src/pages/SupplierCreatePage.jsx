@@ -1,16 +1,26 @@
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import SupplierForm from '../components/SupplierForm';
 import { supplierService } from '../services/supplierService';
+import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const SupplierCreatePage = () => {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const { showAlert, showError } = useDialog();
 
     const handleCreate = async (data) => {
         try {
-            await supplierService.createSupplier(data);
+            const currentUser = user;
+            const payload = {
+                ...data,
+                createdBy: currentUser?.fullName || currentUser?.username || 'Unknown',
+                updatedBy: currentUser?.fullName || currentUser?.username || 'Unknown'
+            };
+            await supplierService.createSupplier(payload);
             await showAlert('เพิ่ม Supplier ใหม่สำเร็จ');
             navigate('/dashboard/suppliers');
         } catch (error) {
@@ -20,20 +30,10 @@ const SupplierCreatePage = () => {
     };
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem', maxWidth: '800px', margin: '0 auto' }}>
+        <div className="px-4 pb-8" style={{ maxWidth: '800px', margin: '0 auto' }}>
             <button
                 onClick={() => navigate('/dashboard/suppliers')}
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    marginBottom: '1.5rem',
-                    padding: 0
-                }}
+                className="bg-transparent border-none text-textMuted cursor-pointer mb-6 p-0 flex items-center gap-2"
             >
                 <ArrowLeft size={20} /> ย้อนกลับ
             </button>

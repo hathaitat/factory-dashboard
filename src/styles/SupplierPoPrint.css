@@ -6,7 +6,7 @@
     width: 210mm;
     height: 297mm;
     margin: 0 auto;
-    padding: 15mm;
+    padding: 8mm;
     color: #000;
     position: relative;
     box-sizing: border-box;
@@ -17,10 +17,11 @@
         size: A4;
         margin: 0;
     }
+
     .po-print-paper {
         margin: 0 !important;
         box-shadow: none !important;
-        padding: 15mm !important;
+        padding: 8mm !important;
         page-break-after: always;
         overflow: hidden;
         width: 210mm !important;

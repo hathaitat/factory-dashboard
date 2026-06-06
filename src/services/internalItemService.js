@@ -225,7 +225,7 @@ export const internalItemService = {
                 .eq('status', 'active');
 
             if (err2) throw err2;
-            return (allItems || []).filter(item => item.current_stock <= item.min_stock && item.min_stock > 0);
+            return (allItems || []).filter(item => item.current_stock < 0 || (item.min_stock > 0 && item.current_stock <= item.min_stock));
         } catch (error) {
             console.error('Error fetching low stock items:', error);
             return [];
@@ -282,7 +282,11 @@ export const internalItemService = {
             // Update stock
             const { error: updateError } = await supabase
                 .from('internal_items')
-                .update({ current_stock: newStock, updated_at: new Date().toISOString() })
+                .update({ 
+                    current_stock: newStock, 
+                    updated_at: new Date().toISOString(),
+                    updated_by: performedBy || null
+                })
                 .eq('id', itemId);
             if (updateError) throw updateError;
 

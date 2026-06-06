@@ -133,7 +133,8 @@ a {
 
 .btn-excel {
   background: rgba(16, 185, 129, 0.05);
-  color: #10b981; /* var(--success) */
+  color: #10b981;
+  /* var(--success) */
   border: 1px solid rgba(16, 185, 129, 0.2);
   padding: 0.75rem 1.5rem;
   border-radius: var(--radius-sm);
@@ -218,18 +219,19 @@ a {
   width: 133px;
   min-width: 133px;
   max-width: 133px;
-  padding: 0.5rem 0.8rem !important;
+  padding: 0.5rem 0.4rem !important;
   text-align: center !important;
   vertical-align: middle;
 }
 
-/* Table action buttons - 3 icons per row */
+/* Table action buttons */
 .table-actions {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  justify-items: center;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 0.5rem;
+  max-width: 120px;
+  margin: 0 auto;
 }
 
 .table-actions button,
@@ -322,9 +324,15 @@ a {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
+
 .animate-spin {
   animation: spin 1s linear infinite;
 }

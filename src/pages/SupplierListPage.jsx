@@ -1,3 +1,4 @@
+import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import XLSX from 'xlsx-js-style';
 import { Plus, Search, Filter, Eye, Edit, Trash2, FileSpreadsheet, Truck } from 'lucide-react';
@@ -7,34 +8,41 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
+import Pagination from '../components/Pagination';
+import { useServerPagination } from '../hooks/useServerPagination';
 
 const SupplierListPage = () => {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
     const { showConfirm, showAlert, showError } = useDialog();
 
-    const [suppliers, setSuppliers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('');
+    const [isExporting, setIsExporting] = useState(false);
 
+    const {
+        data: paginatedData,
+        totalItems,
+        totalPages,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        isLoading,
+        updateFilters,
+        startItem,
+        endItem,
+        refresh
+    } = useServerPagination(supplierService.getSuppliersPaginated, { searchTerm: '', status: '' }, 50);
+
+    // Debounce filters
     useEffect(() => {
-        loadSuppliers();
-    }, []);
-
-    const loadSuppliers = async () => {
-        setIsLoading(true);
-        try {
-            const data = await supplierService.getSuppliers();
-            setSuppliers(data || []);
-        } catch (error) {
-            console.error('Failed to load suppliers:', error);
-            showError(error.message || 'ไม่สามารถโหลดข้อมูล Supplier ได้');
-            setSuppliers([]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        const timer = setTimeout(() => {
+            updateFilters({ searchTerm, status: statusFilter });
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm, statusFilter, updateFilters]);
 
     const handleDelete = async (id) => {
         const confirmed = await showConfirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูล Supplier นี้?');
@@ -42,7 +50,7 @@ const SupplierListPage = () => {
             try {
                 await supplierService.deleteSupplier(id);
                 showAlert('ลบข้อมูลเรียบร้อยแล้ว');
-                loadSuppliers();
+                refresh();
             } catch (error) {
                 showError('ไม่สามารถลบข้อมูลได้: ' + error.message);
             }
@@ -50,16 +58,14 @@ const SupplierListPage = () => {
     };
 
     const exportToExcel = async () => {
+        setIsExporting(true);
         try {
-            const filteredData = suppliers.filter(s => {
-                const matchSearch = (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    (s.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    (s.contactPerson || '').toLowerCase().includes(searchTerm.toLowerCase());
-                const matchStatus = !statusFilter || s.status === statusFilter;
-                return matchSearch && matchStatus;
+            const exportData = await supplierService.exportSuppliers({
+                searchTerm,
+                status: statusFilter
             });
 
-            const exportData = filteredData.map(s => ({
+            const dataToExport = exportData.map(s => ({
                 'รหัส Supplier': s.code || '',
                 'ชื่อ Supplier': s.name || '',
                 'เลขประจำตัวผู้เสียภาษี': s.taxId || '',
@@ -73,28 +79,26 @@ const SupplierListPage = () => {
             }));
 
             const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.json_to_sheet(exportData);
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
             XLSX.utils.book_append_sheet(wb, ws, 'Suppliers');
             XLSX.writeFile(wb, 'Suppliers_Export.xlsx');
+            await showAlert(`ส่งออก Excel เรียบร้อย (${dataToExport.length} รายการ)`);
         } catch (error) {
             console.error('Error exporting data:', error);
             await showError(error.message || 'เกิดข้อผิดพลาดในการ Export ข้อมูล');
+        } finally {
+            setIsExporting(false);
         }
     };
 
     const hasActiveFilters = !!statusFilter;
-    const clearFilters = () => { setStatusFilter(''); };
-
-    const filteredSuppliers = suppliers.filter(s => {
-        const matchSearch = (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (s.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (s.contactPerson || '').toLowerCase().includes(searchTerm.toLowerCase());
-        const matchStatus = !statusFilter || s.status === statusFilter;
-        return matchSearch && matchStatus;
-    });
+    const clearFilters = () => { 
+        setStatusFilter(''); 
+        updateFilters({ status: '' });
+    };
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem' }}>
+        <div className="px-4 pb-8">
             <PageHeader
                 title="ข้อมูล Supplier"
                 subtitle="จัดการฐานข้อมูลผู้ขายและคู่ค้าของคุณ"
@@ -109,18 +113,7 @@ const SupplierListPage = () => {
                 {hasPermission('suppliers', 'create') && (
                     <button
                         onClick={() => navigate('/dashboard/suppliers/new')}
-                        style={{
-                            padding: '0.8rem 1.5rem',
-                            borderRadius: '8px',
-                            border: 'none',
-                            background: '#3b82f6',
-                            color: 'white',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            fontWeight: '500'
-                        }}
+                        className="px-6 py-3 rounded-lg border-none text-white cursor-pointer font-medium flex items-center gap-2" style={{ background: '#3b82f6' }}
                     >
                         <Plus size={20} />
                         เพิ่ม Supplier
@@ -128,24 +121,16 @@ const SupplierListPage = () => {
                 )}
             </PageHeader>
 
-            <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+            <div className="glass-panel p-6 mb-8">
                 <div className="flex items-center gap-4">
-                    <div style={{ position: 'relative', flex: 1 }}>
-                        <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <div className="relative" style={{ flex: 1 }}>
+                        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-textMuted" />
                         <input
                             type="text"
                             placeholder="ค้นหา Supplier..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="glass-input"
-                            style={{
-                                width: '100%',
-                                padding: '0.8rem 1rem 0.8rem 2.8rem',
-                                background: 'var(--card-hover)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '8px',
-                                color: 'var(--text-main)'
-                            }}
+                            className="glass-input w-full bg-cardHover border border-border rounded-lg text-main" style={{ padding: '0.8rem 1rem 0.8rem 2.8rem' }}
                         />
                     </div>
                 </div>
@@ -163,31 +148,31 @@ const SupplierListPage = () => {
                 hasActiveFilters={hasActiveFilters}
             />
 
-            <div className="glass-panel" style={{ padding: '0' }}>
-                <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <div className="glass-panel p-0">
+                <div className="table-responsive-wrapper overflow-x-auto touch-pan-x">
+                    <table className="w-full border-collapse text-left">
                         <thead>
-                            <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
-                                <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>รหัส</th>
-                                <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อ Supplier</th>
-                                <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>ประเภท</th>
-                                <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>ผู้ติดต่อ</th>
-                                <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>เครดิต (วัน)</th>
-                                <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>สถานะ</th>
+                            <tr className="border-b border-border">
+                                <th className="actions-column text-textMuted font-medium">จัดการ</th>
+                                <th className="p-5 text-textMuted font-medium">รหัส</th>
+                                <th className="p-5 text-textMuted font-medium">ชื่อ Supplier</th>
+                                <th className="p-5 text-textMuted font-medium">ประเภท</th>
+                                <th className="p-5 text-textMuted font-medium">ผู้ติดต่อ</th>
+                                <th className="p-5 text-textMuted font-medium">เครดิต (วัน)</th>
+                                <th className="p-5 text-textMuted font-medium">สถานะ</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="7" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                        <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+                                    <td colSpan="7" className="p-12 text-center text-textMuted">
+                                        <div className="loading-spinner mx-auto mb-4"></div>
                                         กำลังโหลดข้อมูล...
                                     </td>
                                 </tr>
-                            ) : filteredSuppliers.length > 0 ? (
-                                filteredSuppliers.map((s) => (
-                                    <tr key={s.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
+                            ) : paginatedData.length > 0 ? (
+                                paginatedData.map((s) => (
+                                    <tr key={s.id} className="border-b border-border table-row-hover">
                                         <td className="actions-column">
                                             <div className="table-actions">
                                                 <button
@@ -217,44 +202,40 @@ const SupplierListPage = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.2rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                        <td className="p-5 text-textMuted font-mono">
                                             {s.code || '-'}
                                         </td>
-                                        <td style={{ padding: '1.2rem 1.5rem' }}>
-                                            <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>
+                                        <td className="px-6 py-5">
+                                            <div 
+                                                onClick={() => navigate(`/dashboard/suppliers/${s.id}`)}
+                                                className="font-semibold text-blue-500 cursor-pointer underline"
+                                                title="คลิกเพื่อดูรายละเอียด"
+                                            >
                                                 {s.name}
                                             </div>
-                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                                            <div className="text-sm text-textMuted" style={{ marginTop: '0.2rem' }}>
                                                 {s.email || '-'}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.2rem' }}>
+                                        <td className="p-5">
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
                                                 {(s.categoryNames || []).length > 0 ? s.categoryNames.map((name, i) => (
-                                                    <span key={i} style={{
-                                                        display: 'inline-block',
-                                                        padding: '0.15rem 0.5rem',
-                                                        borderRadius: '6px',
-                                                        background: 'rgba(55, 71, 124, 0.05)',
-                                                        fontSize: '0.78rem',
-                                                        color: 'var(--primary)',
-                                                        border: '1px solid rgba(55, 71, 124, 0.1)'
-                                                    }}>
+                                                    <span key={i} className="text-primary" style={{ display: 'inline-block', padding: '0.15rem 0.5rem', borderRadius: '6px', background: 'rgba(55, 71, 124, 0.05)', fontSize: '0.78rem', border: '1px solid rgba(55, 71, 124, 0.1)' }}>
                                                         {name}
                                                     </span>
                                                 )) : (
-                                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>-</span>
+                                                    <span className="text-textMuted text-xs">-</span>
                                                 )}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.2rem' }}>
+                                        <td className="p-5">
                                             <div>{s.contactPerson || '-'}</div>
-                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{s.phone}</div>
+                                            <div className="text-sm text-textMuted">{s.phone}</div>
                                         </td>
-                                        <td style={{ padding: '1.2rem' }}>
+                                        <td className="p-5">
                                             {s.creditTerm === 0 ? 'เงินสด' : (s.creditTerm ? `${s.creditTerm} วัน` : '-')}
                                         </td>
-                                        <td style={{ padding: '1.2rem' }}>
+                                        <td className="p-5">
                                             <span style={{
                                                 padding: '0.3rem 0.8rem',
                                                 borderRadius: '20px',
@@ -270,7 +251,7 @@ const SupplierListPage = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="7" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    <td colSpan="7" className="p-12 text-center text-textMuted">
                                         ไม่พบข้อมูล Supplier ลองค้นหาใหม่หรือเพิ่ม Supplier
                                     </td>
                                 </tr>
@@ -278,6 +259,16 @@ const SupplierListPage = () => {
                         </tbody>
                     </table>
                 </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    totalPages={totalPages}
+                    startItem={startItem}
+                    endItem={endItem}
+                    onPageChange={setCurrentPage}
+                    onItemsPerPageChange={setItemsPerPage}
+                />
             </div>
         </div>
     );

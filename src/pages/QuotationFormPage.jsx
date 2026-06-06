@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Save, Plus, Trash2, ArrowLeft, Search, CheckCircle, FileText, Printer, X, ChevronDown, ChevronUp, FolderPlus, Calculator } from 'lucide-react';
+import { Save, Plus, Trash2, ArrowLeft, Search, CheckCircle, FileText, Printer, X, ChevronDown, ChevronUp, FolderPlus, Calculator, User } from 'lucide-react';
 import { quotationService } from '../services/quotationService';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
+import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
 import { getLocalDateString } from '../utils/dateUtils';
+import { useAuth } from '../contexts/AuthContext';
 
 // Safe formula evaluator using recursive descent parser (no eval/new Function)
 const evaluateFormula = (expr) => {
@@ -65,6 +67,7 @@ const evaluateFormula = (expr) => {
 };
 
 const QuotationFormPage = () => {
+    const { user } = useAuth();
     const { id } = useParams();
     const navigate = useNavigate();
     const { showAlert, showConfirm, showToast } = useDialog();
@@ -393,8 +396,12 @@ const QuotationFormPage = () => {
         setIsLoading(true);
         try {
             const selectedCustomer = customers.find(c => String(c.id) === String(formData.customerId));
+            const currentUser = user;
+            const operatorName = currentUser?.fullName || currentUser?.username || 'Unknown';
             const submissionData = {
                 ...formData,
+                createdBy: isEdit ? (formData.createdBy || operatorName) : operatorName,
+                updatedBy: operatorName,
                 isGeneratedNumber: !isEdit,
                 customerId: selectedCustomer ? formData.customerId : null,
                 customerSnapshot: selectedCustomer ? {
@@ -459,73 +466,44 @@ const QuotationFormPage = () => {
         }
     };
 
-    if (isLoading && !customers.length) return <div style={{ padding: '2rem', color: 'var(--text-muted)' }}>กำลังโหลด...</div>;
+    if (isLoading && !customers.length) return <div className="p-8 text-textMuted">กำลังโหลด...</div>;
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem' }}>
+        <div className="px-4 pb-8">
             <button
                 onClick={() => navigate('/dashboard/quotations')}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: '#888', cursor: 'pointer', marginBottom: '1.5rem' }}
+                className="bg-transparent border-none text-gray-400 cursor-pointer mb-6 flex items-center gap-2"
             >
                 <ArrowLeft size={20} /> ย้อนกลับ
             </button>
 
-            <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', padding: '0 0.5rem' }}>
+            <div className="mb-8 border-b border-border" style={{ display: 'flex', gap: '1.5rem', padding: '0 0.5rem' }}>
                 <button
                     type="button"
                     onClick={() => setActiveTab('quotation')}
-                    style={{
-                        padding: '0.75rem 0.5rem',
-                        background: 'none',
-                        border: 'none',
-                        borderBottom: activeTab === 'quotation' ? '3px solid #3b82f6' : '3px solid transparent',
-                        color: activeTab === 'quotation' ? '#3b82f6' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                        fontWeight: '700',
-                        fontSize: '1rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.6rem',
-                        transition: 'all 0.2s',
-                        opacity: activeTab === 'quotation' ? 1 : 0.7
-                    }}
+                    className="bg-transparent border-none cursor-pointer font-bold text-base" style={{ padding: '0.75rem 0.5rem', borderBottom: activeTab === 'quotation' ? '3px solid #3b82f6' : '3px solid transparent', color: activeTab === 'quotation' ? '#3b82f6' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.6rem', transition: 'all 0.2s', opacity: activeTab === 'quotation' ? 1 : 0.7 }}
                 >
                     <FileText size={18} /> ใบเสนอราคา (Quotation)
                 </button>
                 <button
                     type="button"
                     onClick={() => setActiveTab('costing')}
-                    style={{
-                        padding: '0.75rem 0.5rem',
-                        background: 'none',
-                        border: 'none',
-                        borderBottom: activeTab === 'costing' ? '3px solid #f59e0b' : '3px solid transparent',
-                        color: activeTab === 'costing' ? '#f59e0b' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                        fontWeight: '700',
-                        fontSize: '1rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.6rem',
-                        transition: 'all 0.2s',
-                        opacity: activeTab === 'costing' ? 1 : 0.7
-                    }}
+                    className="bg-transparent border-none cursor-pointer font-bold text-base" style={{ padding: '0.75rem 0.5rem', borderBottom: activeTab === 'costing' ? '3px solid #f59e0b' : '3px solid transparent', color: activeTab === 'costing' ? '#f59e0b' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.6rem', transition: 'all 0.2s', opacity: activeTab === 'costing' ? 1 : 0.7 }}
                 >
                     <Calculator size={18} /> การคำนวณต้นทุน (Costing)
                 </button>
             </div>
 
             <form onSubmit={handleSubmit}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                    <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>
+                <div className="mb-8 flex justify-between items-center">
+                    <h1 className="m-0 font-semibold" style={{ fontSize: '1.8rem' }}>
                         {isEdit ? 'แก้ไขใบเสนอราคา' : 'ออกใบเสนอราคาใหม่'}
                     </h1>
                     <div className="flex gap-4">
                         <select
                             value={formData.status}
                             onChange={e => setFormData({ ...formData, status: e.target.value })}
-                            className="glass-input"
-                            style={{ padding: '0.6rem 1rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                            className="glass-input px-4 py-2.5 bg-main rounded-lg text-main border border-border"
                         >
                             <option value="Draft">Draft</option>
                             <option value="Sent">Sent</option>
@@ -536,7 +514,7 @@ const QuotationFormPage = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            style={{ padding: '0.6rem 1.5rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
+                            className="text-white border-none rounded-lg font-medium cursor-pointer flex items-center gap-2" style={{ padding: '0.6rem 1.5rem', background: '#3b82f6' }}
                         >
                             <Save size={18} /> {isLoading ? 'กำลังบันทึก...' : 'บันทึก'}
                         </button>
@@ -545,13 +523,13 @@ const QuotationFormPage = () => {
 
                 {activeTab === 'quotation' ? (
                     <>
-                        <div className="glass-panel" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
+                        <div className="glass-panel p-8 mb-6">
                             {/* ... existing fields ... */}
                             <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)', gap: '1.5rem' }}>
                                 {/* Copying all the fields inside the middle grid for reference, but ensuring we don't break the structure */}
-                                <div style={{ position: 'relative' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>เลือกลูกค้า</label>
-                                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                <div className="relative">
+                                    <label className="mb-2 text-gray-400 text-sm" style={{ display: 'block' }}>เลือกลูกค้า</label>
+                                    <div className="relative" style={{ display: 'flex', alignItems: 'center' }}>
                                         <input
                                             type="text"
                                             value={customerSearch}
@@ -563,8 +541,7 @@ const QuotationFormPage = () => {
                                             onFocus={() => setShowCustomerDropdown(true)}
                                             onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
                                             placeholder="ค้นหาชื่อ หรือ รหัสลูกค้า..."
-                                            className="glass-input"
-                                            style={{ width: '100%', padding: '0.7rem', paddingRight: '2.5rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                            className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border" style={{ paddingRight: '2.5rem' }}
                                         />
                                         {customerSearch && (
                                             <button
@@ -574,14 +551,14 @@ const QuotationFormPage = () => {
                                                     handleCustomerChange('');
                                                     setShowCustomerDropdown(false);
                                                 }}
-                                                style={{ position: 'absolute', right: '12px', background: 'none', border: 'none', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', zIndex: 2 }}
+                                                className="bg-transparent border-none text-gray-400 cursor-pointer absolute" style={{ right: '12px', display: 'flex', alignItems: 'center', zIndex: 2 }}
                                             >
                                                 <X size={16} />
                                             </button>
                                         )}
                                     </div>
                                     {showCustomerDropdown && (
-                                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, maxHeight: '250px', overflowY: 'auto', background: 'var(--card-hover)', zIndex: 50, border: '1px solid var(--border-color)', borderRadius: '8px', marginTop: '0.2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                                        <div className="bg-cardHover border border-border rounded-lg absolute" style={{ top: '100%', left: 0, right: 0, maxHeight: '250px', overflowY: 'auto', zIndex: 50, marginTop: '0.2rem', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)' }}>
                                             {customers.filter(c =>
                                                 c.name?.toLowerCase().includes(customerSearch.toLowerCase()) ||
                                                 c.code?.toLowerCase().includes(customerSearch.toLowerCase())
@@ -592,150 +569,140 @@ const QuotationFormPage = () => {
                                                         handleCustomerChange(c.id);
                                                         setShowCustomerDropdown(false);
                                                     }}
-                                                    style={{ padding: '0.7rem', cursor: 'pointer', borderBottom: '1px solid var(--border-color)', color: 'var(--text-main)' }}
+                                                    className="p-2.5 cursor-pointer border-b border-border text-main"
                                                     onMouseOver={(e) => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'}
                                                     onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                                                 >
-                                                    {c.name} <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>({c.code})</span>
+                                                    {c.name} <span className="text-textMuted text-sm">({c.code})</span>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>ATTN. (ถึง)</label>
+                                    <label className="mb-2 text-gray-400 text-sm" style={{ display: 'block' }}>ATTN. (ถึง)</label>
                                     <input
                                         type="text"
                                         value={formData.attnName}
                                         onChange={e => setFormData({ ...formData, attnName: e.target.value })}
-                                        className="glass-input"
                                         placeholder="ชื่อผู้ติดต่อ (ถ้ามี)"
-                                        style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                        className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border"
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>เลขที่อ้างอิง (Quotation No.)</label>
+                                    <label className="mb-2 text-gray-400 text-sm" style={{ display: 'block' }}>เลขที่อ้างอิง (Quotation No.)</label>
                                     <input
                                         type="text"
                                         value={formData.quotationNo}
                                         onChange={e => setFormData({ ...formData, quotationNo: e.target.value })}
                                         required
-                                        className="glass-input"
-                                        style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                        className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border"
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>วันที่เสนอราคา</label>
+                                    <label className="mb-2 text-gray-400 text-sm" style={{ display: 'block' }}>วันที่เสนอราคา</label>
                                     <input
                                         type="date"
                                         value={formData.date}
                                         onChange={e => setFormData({ ...formData, date: e.target.value })}
                                         required
-                                        className="glass-input"
-                                        style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                        className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border"
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>ยืนราคา (วัน)</label>
+                                    <label className="mb-2 text-gray-400 text-sm" style={{ display: 'block' }}>ยืนราคา (วัน)</label>
                                     <input
                                         type="number"
                                         value={formData.validityDays}
                                         onChange={e => setFormData({ ...formData, validityDays: parseInt(e.target.value) || 0 })}
-                                        className="glass-panel"
-                                        style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                        className="glass-panel w-full p-2.5 bg-main rounded-lg text-main border border-border"
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>เงื่อนไขชำระเงิน</label>
+                                    <label className="mb-2 text-gray-400 text-sm" style={{ display: 'block' }}>เงื่อนไขชำระเงิน</label>
                                     <input
                                         type="text"
                                         value={formData.paymentCondition}
                                         onChange={e => setFormData({ ...formData, paymentCondition: e.target.value })}
-                                        className="glass-panel"
-                                        style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                        className="glass-panel w-full p-2.5 bg-main rounded-lg text-main border border-border"
                                     />
                                 </div>
                                 <div>
-                                     <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>กำหนดส่งของ</label>
+                                    <label className="mb-2 text-gray-400 text-sm" style={{ display: 'block' }}>กำหนดส่งของ</label>
                                     <input
                                         type="text"
                                         value={formData.deliveryTime}
                                         onChange={e => setFormData({ ...formData, deliveryTime: e.target.value })}
-                                        className="glass-panel"
-                                        style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                        className="glass-panel w-full p-2.5 bg-main rounded-lg text-main border border-border"
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="glass-panel" style={{ padding: '0', marginBottom: '1.5rem', overflow: 'hidden' }}>
-                            <div style={{ padding: '1.2rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#3b82f6' }}>รายการสินค้า</h3>
+                        <div className="glass-panel mb-6 overflow-hidden p-0">
+                            <div className="px-6 py-5 border-b border-border flex justify-between items-center">
+                                <h3 className="m-0 text-lg text-blue-500">รายการสินค้า</h3>
                                 <button
                                     type="button"
                                     onClick={handleAddItem}
-                                    style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: '#3b82f6', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem' }}
+                                    className="text-blue-500 cursor-pointer text-sm bg-blue-500/10 px-3 py-1.5" style={{ border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                                 >
                                     <Plus size={16} /> เพิ่มรายการ
                                 </button>
                             </div>
                             <div className="table-responsive-wrapper overflow-x-auto">
-                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <table className="w-full border-collapse">
                                     <thead>
-                                        <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                                            <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '40%' }}>รายละเอียดสินค้า</th>
-                                            <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '15%' }}>จำนวน</th>
-                                            <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '15%' }}>หน่วย</th>
-                                            <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '15%' }}>ราคา/หน่วย</th>
-                                            <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', width: '15%', textAlign: 'right' }}>จำนวนเงิน</th>
-                                            <th style={{ padding: '1rem', width: '50px' }}></th>
+                                        <tr className="border-b border-border text-left">
+                                            <th className="px-6 py-4 text-gray-400 font-medium" style={{ width: '40%' }}>รายละเอียดสินค้า</th>
+                                            <th className="px-6 py-4 text-gray-400 font-medium" style={{ width: '15%' }}>จำนวน</th>
+                                            <th className="px-6 py-4 text-gray-400 font-medium" style={{ width: '15%' }}>หน่วย</th>
+                                            <th className="px-6 py-4 text-gray-400 font-medium" style={{ width: '15%' }}>ราคา/หน่วย</th>
+                                            <th className="px-6 py-4 text-gray-400 font-medium text-right" style={{ width: '15%' }}>จำนวนเงิน</th>
+                                            <th className="p-4" style={{ width: '50px' }}></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {items.map((item, index) => (
-                                            <tr key={index} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                                <td style={{ padding: '0.8rem 1.5rem' }}>
+                                            <tr key={index} className="border-b border-border">
+                                                <td className="px-6 py-3">
                                                     <input
                                                         type="text"
                                                         value={item.productName}
                                                         onChange={e => handleItemChange(index, 'productName', e.target.value)}
-                                                        className="glass-panel"
                                                         placeholder="สินค้า..."
-                                                        style={{ width: '100%', padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                                        className="glass-panel w-full p-2 bg-cardHover rounded text-main border border-border"
                                                     />
                                                 </td>
-                                                <td style={{ padding: '0.8rem 1.5rem' }}>
+                                                <td className="px-6 py-3">
                                                     <input
                                                         type="number"
                                                         value={item.quantity}
                                                         onChange={e => handleItemChange(index, 'quantity', e.target.value)}
-                                                        className="glass-input"
-                                                        style={{ width: '100%', padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                                        className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
                                                     />
                                                 </td>
-                                                <td style={{ padding: '0.8rem 1.5rem' }}>
+                                                <td className="px-6 py-3">
                                                     <input
                                                         type="text"
                                                         value={item.unit}
                                                         onChange={e => handleItemChange(index, 'unit', e.target.value)}
-                                                        className="glass-input"
-                                                        style={{ width: '100%', padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                                        className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
                                                     />
                                                 </td>
-                                                <td style={{ padding: '0.8rem 1.5rem' }}>
+                                                <td className="px-6 py-3">
                                                     <input
                                                         type="number"
                                                         value={item.pricePerUnit}
                                                         onChange={e => handleItemChange(index, 'pricePerUnit', e.target.value)}
-                                                        className="glass-input"
-                                                        style={{ width: '100%', padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                                        className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
                                                     />
                                                 </td>
-                                                <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right' }}>
+                                                <td className="px-6 py-3 text-right">
                                                     ฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                 </td>
-                                                <td style={{ padding: '0.8rem' }}>
-                                                    <button type="button" onClick={() => handleRemoveItem(index)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer' }}>
+                                                <td className="p-3">
+                                                    <button type="button" onClick={() => handleRemoveItem(index)} className="bg-transparent border-none cursor-pointer" style={{ color: '#f87171' }}>
                                                         <Trash2 size={16} />
                                                     </button>
                                                 </td>
@@ -748,50 +715,48 @@ const QuotationFormPage = () => {
 
                         <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '2rem' }}>
                             <div className="glass-panel p-6">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888', fontSize: '0.9rem' }}>หมายเหตุ</label>
+                                <label className="mb-2 text-gray-400 text-sm" style={{ display: 'block' }}>หมายเหตุ</label>
                                 <textarea
                                     value={formData.notes}
                                     onChange={e => setFormData({ ...formData, notes: e.target.value })}
                                     rows="4"
-                                    className="glass-input"
-                                    style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)', resize: 'none' }}
+                                    className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border" style={{ resize: 'none' }}
                                 />
-                                <div style={{ marginTop: '1rem', padding: '0.8rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                    <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>ตัวอักษร:</span> {formData.bahtText}
+                                <div className="mt-4 p-3 bg-main rounded-lg text-textMuted text-sm">
+                                    <span className="text-main font-medium">ตัวอักษร:</span> {formData.bahtText}
                                 </div>
                             </div>
 
                             <div className="glass-panel p-6">
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div className="flex flex-col gap-4">
                                     <div className="flex justify-between items-center">
-                                        <span style={{ color: '#888' }}>รวมเป็นเงิน (Subtotal)</span>
-                                        <span style={{ fontSize: '1.1rem' }}>฿{formData.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                        <span className="text-gray-400">รวมเป็นเงิน (Subtotal)</span>
+                                        <span className="text-lg">฿{formData.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span style={{ color: '#888' }}>หักส่วนลด</span>
+                                        <span className="text-gray-400">หักส่วนลด</span>
                                         <input
                                             type="number"
                                             value={formData.discount}
                                             onChange={e => setFormData({ ...formData, discount: e.target.value })}
-                                            className="glass-input"
-                                            style={{ width: '120px', padding: '0.4rem', textAlign: 'right', background: 'var(--bg-main)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                            className="glass-input p-1.5 text-right bg-main rounded text-main border border-border" style={{ width: '120px' }}
                                         />
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <span style={{ color: '#888' }}>VAT ({formData.vatRate}%)</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-gray-400">VAT ({formData.vatRate}%)</span>
                                         </div>
                                         <span>฿{formData.vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                     </div>
                                 </div>
 
-                                <div style={{ padding: '1.5rem 0', borderTop: '2px solid #e2e8f0', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(to right, transparent, rgba(16, 185, 129, 0.05))', paddingRight: '1rem', borderRadius: '0 0 12px 12px' }}>
-                                    <div style={{ textAlign: 'right', flex: 1 }}>
-                                        <div style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-main)' }}>จำนวนเงินรวมทั้งสิ้น</div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '400' }}>(Grand Total)</div>
+                                <div className="mt-4 flex justify-between items-center" style={{ padding: '1.5rem 0', borderTop: '2px solid #e2e8f0', background: 'linear-gradient(to right, transparent, rgba(16, 185, 129, 0.05))', paddingRight: '1rem', borderRadius: '0 0 12px 12px' }}>
+                                    <div className="text-right" style={{ flex: 1 }}>
+                                        <div className="text-base font-semibold text-main">จำนวนเงินรวมทั้งสิ้น</div>
+                                        <div className="text-xs text-textMuted" style={{ fontWeight: '400' }}>(Grand Total)</div>
                                     </div>
-                                    <div style={{ textAlign: 'right', marginLeft: '2rem' }}>
-                                        <span style={{ fontSize: '2.2rem', fontWeight: '800', color: '#10b981', letterSpacing: '-0.5px' }}>
+                                    <div className="text-right" style={{ marginLeft: '2rem' }}>
+                                        <span className="text-emerald-500" style={{ fontSize: '2.2rem', fontWeight: '800', letterSpacing: '-0.5px' }}>
                                             ฿{formData.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                         </span>
                                     </div>
@@ -802,14 +767,14 @@ const QuotationFormPage = () => {
                 ) : (
                     <div>
                         {/* Section Header */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ margin: 0, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="mb-6 flex justify-between items-center">
+                            <h3 className="m-0 text-amber-500 flex items-center gap-2">
                                 <FileText size={20} /> คำนวณต้นทุน
                             </h3>
                             <button
                                 type="button"
                                 onClick={addCostSection}
-                                style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', color: '#f59e0b', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: '500' }}
+                                className="text-amber-500 px-4 py-2 cursor-pointer font-medium" style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                             >
                                 <FolderPlus size={18} /> เพิ่มหมวดต้นทุน
                             </button>
@@ -823,8 +788,8 @@ const QuotationFormPage = () => {
                                 <div key={section.id} className="glass-panel" style={{ marginBottom: '1rem', overflow: 'hidden', border: `1px solid ${sColor}22` }}>
                                     {/* Section Header */}
                                     <div style={{ padding: '0.8rem 1.2rem', background: `${sColor}08`, borderBottom: section.collapsed ? 'none' : `1px solid ${sColor}22`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
-                                            <button type="button" onClick={() => toggleSectionCollapse(sIdx)} style={{ background: 'none', border: 'none', color: sColor, cursor: 'pointer', padding: '2px', display: 'flex' }}>
+                                        <div className="flex items-center gap-2" style={{ flex: 1 }}>
+                                            <button type="button" onClick={() => toggleSectionCollapse(sIdx)} className="bg-transparent border-none cursor-pointer" style={{ color: sColor, padding: '2px', display: 'flex' }}>
                                                 {section.collapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
                                             </button>
                                             <div style={{ width: '4px', height: '20px', background: sColor, borderRadius: '2px' }}></div>
@@ -832,12 +797,12 @@ const QuotationFormPage = () => {
                                                 type="text"
                                                 value={section.name}
                                                 onChange={e => updateSectionName(sIdx, e.target.value)}
-                                                style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '1rem', fontWeight: '600', outline: 'none', flex: 1, padding: '0.2rem' }}
+                                                className="bg-transparent border-none text-main text-base font-semibold outline-none" style={{ flex: 1, padding: '0.2rem' }}
                                                 placeholder="ชื่อหมวดต้นทุน..."
                                             />
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                                            <span style={{ color: sColor, fontWeight: '600', fontSize: '1rem' }}>
+                                        <div className="flex items-center gap-3">
+                                            <span className="font-semibold text-base" style={{ color: sColor }}>
                                                 ฿{(section.subtotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                             </span>
                                             <button
@@ -846,7 +811,7 @@ const QuotationFormPage = () => {
                                                     const ok = await showConfirm(`ลบหมวด "${section.name}" ทั้งหมดหรือไม่?`);
                                                     if (ok) removeCostSection(sIdx);
                                                 }}
-                                                style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                                                className="bg-transparent border-none cursor-pointer" style={{ color: '#f87171', padding: '4px', display: 'flex' }}
                                             >
                                                 <Trash2 size={16} />
                                             </button>
@@ -855,58 +820,57 @@ const QuotationFormPage = () => {
 
                                     {/* Section Items */}
                                     {!section.collapsed && (
-                                        <div style={{ padding: '0' }}>
+                                        <div className="p-0">
                                             <div className="overflow-x-auto">
-                                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                <table className="w-full border-collapse">
                                                     <thead>
-                                                        <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                                            <th style={{ padding: '0.6rem 0.8rem', color: '#888', fontWeight: '500', textAlign: 'left', fontSize: '0.85rem' }}>รายละเอียด</th>
-                                                            <th colSpan={2} style={{ padding: '0.6rem 0.8rem', color: '#888', fontWeight: '500', textAlign: 'left', fontSize: '0.85rem' }}>จำนวน × ต้นทุน / สูตรคำนวณ</th>
-                                                            <th style={{ padding: '0.6rem 0.8rem', color: '#888', fontWeight: '500', textAlign: 'right', fontSize: '0.85rem', width: '120px' }}>รวม</th>
+                                                        <tr className="border-b border-border">
+                                                            <th className="text-gray-400 font-medium text-left text-sm" style={{ padding: '0.6rem 0.8rem' }}>รายละเอียด</th>
+                                                            <th colSpan={2} className="text-gray-400 font-medium text-left text-sm" style={{ padding: '0.6rem 0.8rem' }}>จำนวน × ต้นทุน / สูตรคำนวณ</th>
+                                                            <th className="text-gray-400 font-medium text-right text-sm" style={{ padding: '0.6rem 0.8rem', width: '120px' }}>รวม</th>
                                                             <th style={{ width: '60px' }}></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
                                                         {section.items.map((item, iIdx) => (
-                                                            <tr key={iIdx} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                                                <td style={{ padding: '0.4rem 0.8rem', width: '35%' }}>
-                                                                    <input type="text" value={item.name} onChange={e => handleCostItemChange(sIdx, iIdx, 'name', e.target.value)} placeholder="เช่น เสาเข็ม, ค่าแรงช่าง..." className="glass-input" style={{ width: '100%', padding: '0.4rem', background: 'var(--bg-main)', borderRadius: '4px', border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.9rem' }} />
+                                                            <tr key={iIdx} className="border-b border-border">
+                                                                <td className="px-3 py-1.5" style={{ width: '35%' }}>
+                                                                    <input type="text" value={item.name} onChange={e => handleCostItemChange(sIdx, iIdx, 'name', e.target.value)} placeholder="เช่น เสาเข็ม, ค่าแรงช่าง..." className="glass-input w-full p-1.5 bg-main rounded border border-border text-main text-sm" />
                                                                 </td>
                                                                 <td colSpan={2} style={{ padding: '0.4rem 0.4rem' }}>
                                                                     {item.useFormula ? (
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                                                            <span style={{ color: '#f59e0b', fontSize: '0.8rem', fontWeight: '600', whiteSpace: 'nowrap' }}>ƒ</span>
+                                                                        <div className="flex items-center gap-1">
+                                                                            <span className="text-amber-500 text-xs font-semibold whitespace-nowrap">ƒ</span>
                                                                             <input
                                                                                 type="text"
                                                                                 value={item.formula}
                                                                                 onChange={e => handleCostItemChange(sIdx, iIdx, 'formula', e.target.value)}
                                                                                 placeholder="เช่น 174/8*29 หรือ 500000/100000"
-                                                                                className="glass-input"
-                                                                                style={{ width: '100%', padding: '0.4rem', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '4px', border: '1px solid rgba(245, 158, 11, 0.3)', color: 'var(--text-main)', fontSize: '0.9rem', fontFamily: 'monospace' }}
+                                                                                className="glass-input w-full p-1.5 rounded text-main text-sm font-mono" style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.3)' }}
                                                                             />
                                                                         </div>
                                                                     ) : (
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                                                            <input type="number" value={item.qty} onChange={e => handleCostItemChange(sIdx, iIdx, 'qty', e.target.value)} className="glass-input" placeholder="จำนวน" style={{ width: '70px', padding: '0.4rem', background: 'var(--bg-main)', borderRadius: '4px', border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.9rem' }} />
-                                                                            <input type="text" value={item.unit} onChange={e => handleCostItemChange(sIdx, iIdx, 'unit', e.target.value)} placeholder="หน่วย" className="glass-input" style={{ width: '60px', padding: '0.4rem', background: 'var(--bg-main)', borderRadius: '4px', border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.9rem' }} />
-                                                                            <span style={{ color: '#888', fontSize: '0.9rem' }}>×</span>
-                                                                            <input type="number" value={item.costPerUnit} onChange={e => handleCostItemChange(sIdx, iIdx, 'costPerUnit', e.target.value)} className="glass-input" placeholder="ต้นทุน" style={{ width: '100px', padding: '0.4rem', background: 'var(--bg-main)', borderRadius: '4px', border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.9rem' }} />
+                                                                        <div className="flex items-center gap-1">
+                                                                            <input type="number" value={item.qty} onChange={e => handleCostItemChange(sIdx, iIdx, 'qty', e.target.value)} placeholder="จำนวน" className="glass-input p-1.5 bg-main rounded border border-border text-main text-sm" style={{ width: '70px' }} />
+                                                                            <input type="text" value={item.unit} onChange={e => handleCostItemChange(sIdx, iIdx, 'unit', e.target.value)} placeholder="หน่วย" className="glass-input p-1.5 bg-main rounded border border-border text-main text-sm" style={{ width: '60px' }} />
+                                                                            <span className="text-gray-400 text-sm">×</span>
+                                                                            <input type="number" value={item.costPerUnit} onChange={e => handleCostItemChange(sIdx, iIdx, 'costPerUnit', e.target.value)} placeholder="ต้นทุน" className="glass-input p-1.5 bg-main rounded border border-border text-main text-sm" style={{ width: '100px' }} />
                                                                         </div>
                                                                     )}
                                                                 </td>
-                                                                <td style={{ padding: '0.4rem 0.8rem', textAlign: 'right', fontWeight: '500', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>
+                                                                <td className="text-right font-medium text-sm px-3 py-1.5 whitespace-nowrap">
                                                                     ฿{(item.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                                 </td>
-                                                                <td style={{ padding: '0.4rem', display: 'flex', gap: '2px', alignItems: 'center' }}>
+                                                                <td className="p-1.5" style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => handleCostItemChange(sIdx, iIdx, 'useFormula', !item.useFormula)}
                                                                         title={item.useFormula ? 'สลับเป็น จำนวน×ต้นทุน' : 'สลับเป็นสูตรคำนวณ'}
-                                                                        style={{ background: item.useFormula ? 'rgba(245, 158, 11, 0.15)' : 'none', border: item.useFormula ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid transparent', color: item.useFormula ? '#f59e0b' : '#888', cursor: 'pointer', padding: '3px', display: 'flex', borderRadius: '4px' }}
+                                                                        className="cursor-pointer rounded" style={{ background: item.useFormula ? 'rgba(245, 158, 11, 0.15)' : 'none', border: item.useFormula ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid transparent', color: item.useFormula ? '#f59e0b' : '#888', padding: '3px', display: 'flex' }}
                                                                     >
                                                                         <Calculator size={14} />
                                                                     </button>
-                                                                    <button type="button" onClick={() => removeCostItem(sIdx, iIdx)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '3px', display: 'flex' }}>
+                                                                    <button type="button" onClick={() => removeCostItem(sIdx, iIdx)} className="bg-transparent border-none cursor-pointer" style={{ color: '#f87171', padding: '3px', display: 'flex' }}>
                                                                         <Trash2 size={14} />
                                                                     </button>
                                                                 </td>
@@ -916,7 +880,7 @@ const QuotationFormPage = () => {
                                                 </table>
                                             </div>
                                             <div style={{ padding: '0.5rem 0.8rem', display: 'flex', justifyContent: 'flex-start' }}>
-                                                <button type="button" onClick={() => addCostItem(sIdx)} style={{ background: 'none', border: '1px dashed var(--border-color)', color: '#888', padding: '0.3rem 0.8rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                <button type="button" onClick={() => addCostItem(sIdx)} className="bg-transparent text-gray-400 rounded cursor-pointer text-sm flex items-center gap-1" style={{ border: '1px dashed var(--border-color)', padding: '0.3rem 0.8rem' }}>
                                                     <Plus size={14} /> เพิ่มรายการ
                                                 </button>
                                             </div>
@@ -927,15 +891,15 @@ const QuotationFormPage = () => {
                         })}
 
                         {/* Summary */}
-                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
+                        <div className="grid-mobile-stack mt-6" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                             <div className="glass-panel p-6">
                                 {/* Section subtotals breakdown */}
                                 {(formData.costCalculation?.sections || []).map((section, sIdx) => {
                                     const sectionColors = ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#06b6d4'];
                                     const sColor = sectionColors[sIdx % sectionColors.length];
                                     return (
-                                        <div key={section.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                                            <span style={{ color: '#888', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <div key={section.id} className="mb-2 text-sm" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span className="text-gray-400" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: sColor }}></div>
                                                 {section.name}
                                             </span>
@@ -947,11 +911,11 @@ const QuotationFormPage = () => {
                                 <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.8rem', marginTop: '0.8rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.8rem' }}>
                                         <span className="font-semibold">รวมต้นทุนทั้งหมด:</span>
-                                        <span style={{ fontSize: '1.2rem', fontWeight: '700' }}>฿{(formData.costCalculation?.totalCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                        <span className="text-xl font-bold">฿{(formData.costCalculation?.totalCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                     </div>
 
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
-                                        <span style={{ color: '#888' }}>กำไรที่ต้องการ (%):</span>
+                                    <div className="flex justify-between items-center" style={{ marginBottom: '0.8rem' }}>
+                                        <span className="text-gray-400">กำไรที่ต้องการ (%):</span>
                                         <input
                                             type="number"
                                             value={formData.costCalculation?.margin || 0}
@@ -964,13 +928,12 @@ const QuotationFormPage = () => {
                                                     costCalculation: { ...prev.costCalculation, margin, totalCost, suggestedPrice }
                                                 }));
                                             }}
-                                            className="glass-input"
-                                            style={{ width: '80px', padding: '0.4rem', textAlign: 'right', background: 'var(--bg-main)', borderRadius: '4px', border: '1px solid var(--border-color)', color: 'var(--text-main)' }}
+                                            className="glass-input p-1.5 text-right bg-main rounded border border-border text-main" style={{ width: '80px' }}
                                         />
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: '0.8rem' }}>
-                                        <span style={{ fontWeight: '600', color: '#3b82f6' }}>ราคาแนะนำขาย:</span>
-                                        <span style={{ fontSize: '1.5rem', fontWeight: '700', color: '#3b82f6' }}>
+                                        <span className="font-semibold text-blue-500">ราคาแนะนำขาย:</span>
+                                        <span className="text-2xl font-bold text-blue-500">
                                             ฿{(formData.costCalculation?.suggestedPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                         </span>
                                     </div>
@@ -978,21 +941,20 @@ const QuotationFormPage = () => {
 
                                 {/* Notes */}
                                 <div className="mt-4">
-                                    <label style={{ display: 'block', color: '#888', fontSize: '0.85rem', marginBottom: '0.3rem' }}>หมายเหตุต้นทุน:</label>
+                                    <label className="text-gray-400 text-sm" style={{ display: 'block', marginBottom: '0.3rem' }}>หมายเหตุต้นทุน:</label>
                                     <textarea
                                         value={formData.costCalculation?.notes || ''}
                                         onChange={e => setFormData(prev => ({ ...prev, costCalculation: { ...prev.costCalculation, notes: e.target.value } }))}
                                         rows="2"
-                                        className="glass-input"
                                         placeholder="เช่น อย่าให้ต่ำกว่า 50%, ราคาเหล็กอาจปรับขึ้น..."
-                                        style={{ width: '100%', padding: '0.5rem', background: 'var(--bg-main)', borderRadius: '6px', color: 'var(--text-main)', border: '1px solid var(--border-color)', resize: 'none', fontSize: '0.9rem' }}
+                                        className="glass-input w-full p-2 bg-main text-main border border-border text-sm" style={{ borderRadius: '6px', resize: 'none' }}
                                     />
                                 </div>
                             </div>
 
                             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                                <div style={{ padding: '1.5rem', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '12px', border: '1px dashed #3b82f6', width: '100%' }}>
-                                    <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#888' }}>
+                                <div className="p-6 w-full rounded-xl" style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px dashed #3b82f6' }}>
+                                    <p className="mb-4 text-sm text-gray-400">
                                         * ระบบจะนำราคาแนะนำขายไปใส่ในรายการสินค้าแรกของใบเสนอราคา
                                     </p>
                                     <button
@@ -1008,13 +970,45 @@ const QuotationFormPage = () => {
                                             setActiveTab('quotation');
                                             showAlert('นำราคาแนะนำไปใช้ในใบเสนอราคาเรียบร้อยแล้ว');
                                         }}
-                                        style={{ width: '100%', padding: '0.8rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                                        className="w-full p-3 text-white border-none rounded-lg cursor-pointer font-semibold" style={{ background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                                     >
                                         <CheckCircle size={18} /> นำราคาไปใช้ในใบเสนอราคา
                                     </button>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                <div className="mt-6 flex justify-end gap-4">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/dashboard/quotations')}
+                        className="px-6 py-3 rounded-lg border border-border bg-transparent text-textMuted cursor-pointer"
+                    >
+                        ยกเลิก
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="px-6 py-3 text-white border-none rounded-lg font-medium cursor-pointer flex items-center gap-2" style={{ background: '#3b82f6' }}
+                    >
+                        <Save size={18} /> {isLoading ? 'กำลังบันทึก...' : 'บันทึก'}
+                    </button>
+                </div>
+
+                {isEdit && (
+                    <div className="glass-panel p-5 text-textMuted text-sm flex flex-col gap-2 mt-6">
+                        {formData.createdBy && (
+                            <div className="flex items-center gap-2">
+                                <User size={14} /> สร้างโดย: <span className="text-main font-semibold">{formData.createdBy}</span>
+                            </div>
+                        )}
+                        {formData.updatedBy && (
+                            <div className="flex items-center gap-2">
+                                <User size={14} /> แก้ไขล่าสุดโดย: <span className="text-main font-semibold">{formData.updatedBy}</span>
+                            </div>
+                        )}
                     </div>
                 )}
             </form>

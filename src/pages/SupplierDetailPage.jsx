@@ -1,3 +1,4 @@
+import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -13,6 +14,7 @@ import PageHeader from '../components/PageHeader';
 import SupplierProductHistory from '../components/SupplierProductHistory';
 
 const SupplierDetailPage = () => {
+    const { user } = useAuth();
     const { id } = useParams();
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
@@ -127,60 +129,34 @@ const SupplierDetailPage = () => {
         }
     };
 
-    if (isLoading) return <div className="loading-spinner" style={{ margin: '3rem auto' }}></div>;
+    if (isLoading) return <div className="loading-spinner my-12 mx-auto"></div>;
     if (!supplier) return null;
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem', maxWidth: '1000px', margin: '0 auto' }}>
+        <div className="px-4 pb-8" style={{ maxWidth: '1000px', margin: '0 auto' }}>
             <button
                 onClick={() => navigate('/dashboard/suppliers')}
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    marginBottom: '1rem',
-                    padding: 0
-                }}
+                className="bg-transparent border-none text-textMuted cursor-pointer mb-4 p-0 flex items-center gap-2"
             >
                 <ArrowLeft size={20} /> ย้อนกลับ
             </button>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '2rem' }}>
+            <div className="mb-8" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: '600' }}>{supplier.name}</h1>
-                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', color: 'var(--text-muted)' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontFamily: 'monospace' }}>
+                    <h1 className="m-0 font-semibold" style={{ fontSize: '2rem' }}>{supplier.name}</h1>
+                    <div className="text-textMuted flex gap-4" style={{ marginTop: '0.5rem' }}>
+                        <span className="font-mono" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             #{supplier.code}
                         </span>
                         <span>•</span>
-                        <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            padding: '0.1rem 0.5rem',
-                            borderRadius: '12px',
-                            background: supplier.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                            color: supplier.status === 'Active' ? 'var(--success)' : 'var(--error)',
-                            fontSize: '0.85rem',
-                        }}>
+                        <span className="rounded-xl text-sm" style={{ display: 'inline-flex', alignItems: 'center', padding: '0.1rem 0.5rem', background: supplier.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: supplier.status === 'Active' ? 'var(--success)' : 'var(--error)' }}>
                             {supplier.status === 'Active' ? 'ปกติ' : 'ระงับการใช้งาน'}
                         </span>
                         {(supplier.categoryNames || []).length > 0 && (
                             <>
                                 <span>•</span>
                                 {supplier.categoryNames.map((name, i) => (
-                                    <span key={i} style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        padding: '0.1rem 0.5rem',
-                                        borderRadius: '12px',
-                                        background: 'rgba(55, 71, 124, 0.1)',
-                                        color: 'var(--primary)',
-                                        fontSize: '0.85rem',
-                                    }}>
+                                    <span key={i} className="rounded-xl text-primary text-sm" style={{ display: 'inline-flex', alignItems: 'center', padding: '0.1rem 0.5rem', background: 'rgba(55, 71, 124, 0.1)' }}>
                                         {name}
                                     </span>
                                 ))}
@@ -188,12 +164,11 @@ const SupplierDetailPage = () => {
                         )}
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div className="flex gap-3">
                     {hasPermission('suppliers', 'edit') && (
                         <button
                             onClick={() => navigate(`/dashboard/suppliers/${id}/edit`)}
-                            className="btn-primary"
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '10px' }}
+                            className="btn-primary px-5 py-2.5 rounded-xl flex items-center gap-2"
                         >
                             <Edit size={18} /> แก้ไขข้อมูล
                         </button>
@@ -202,44 +177,16 @@ const SupplierDetailPage = () => {
             </div>
 
             {/* Tab Navigation */}
-            <div style={{ display: 'flex', gap: '0', marginBottom: '1.5rem', borderBottom: '2px solid var(--border-color)' }}>
+            <div className="mb-6" style={{ display: 'flex', gap: '0', borderBottom: '2px solid var(--border-color)' }}>
                 <button
                     onClick={() => setActiveTab('info')}
-                    style={{
-                        padding: '0.8rem 1.5rem',
-                        background: 'none',
-                        border: 'none',
-                        borderBottom: activeTab === 'info' ? '2px solid var(--primary)' : '2px solid transparent',
-                        marginBottom: '-2px',
-                        color: activeTab === 'info' ? 'var(--primary)' : 'var(--text-muted)',
-                        fontWeight: activeTab === 'info' ? '600' : '400',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.6rem',
-                        fontSize: '1rem',
-                        transition: 'all 0.2s'
-                    }}
+                    className="px-6 py-3 bg-transparent border-none cursor-pointer text-base" style={{ borderBottom: activeTab === 'info' ? '2px solid var(--primary)' : '2px solid transparent', marginBottom: '-2px', color: activeTab === 'info' ? 'var(--primary)' : 'var(--text-muted)', fontWeight: activeTab === 'info' ? '600' : '400', display: 'flex', alignItems: 'center', gap: '0.6rem', transition: 'all 0.2s' }}
                 >
                     <Building size={18} /> ข้อมูลทั่วไป
                 </button>
                 <button
                     onClick={() => setActiveTab('products')}
-                    style={{
-                        padding: '0.8rem 1.5rem',
-                        background: 'none',
-                        border: 'none',
-                        borderBottom: activeTab === 'products' ? '2px solid var(--secondary, #3b82f6)' : '2px solid transparent',
-                        marginBottom: '-2px',
-                        color: activeTab === 'products' ? 'var(--secondary, #3b82f6)' : 'var(--text-muted)',
-                        fontWeight: activeTab === 'products' ? '600' : '400',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.6rem',
-                        fontSize: '1rem',
-                        transition: 'all 0.2s'
-                    }}
+                    className="px-6 py-3 bg-transparent border-none cursor-pointer text-base" style={{ borderBottom: activeTab === 'products' ? '2px solid var(--secondary, #3b82f6)' : '2px solid transparent', marginBottom: '-2px', color: activeTab === 'products' ? 'var(--secondary, #3b82f6)' : 'var(--text-muted)', fontWeight: activeTab === 'products' ? '600' : '400', display: 'flex', alignItems: 'center', gap: '0.6rem', transition: 'all 0.2s' }}
                 >
                     <Package size={18} /> รายการสินค้า
                 </button>
@@ -250,26 +197,26 @@ const SupplierDetailPage = () => {
                 <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                         <div className="glass-panel p-8">
-                            <h3 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--primary)' }}>
+                            <h3 className="text-primary" style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                 <Building size={22} /> รายละเอียดบริษัท
                             </h3>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>เลขผู้เสียภาษี</label>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: '500' }}>{supplier.taxId || '-'}</div>
+                                    <label className="text-sm text-textMuted mb-2" style={{ display: 'block' }}>เลขผู้เสียภาษี</label>
+                                    <div className="text-lg font-medium">{supplier.taxId || '-'}</div>
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>สาขา</label>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: '500' }}>{supplier.branch || 'สำนักงานใหญ่'}</div>
+                                    <label className="text-sm text-textMuted mb-2" style={{ display: 'block' }}>สาขา</label>
+                                    <div className="text-lg font-medium">{supplier.branch || 'สำนักงานใหญ่'}</div>
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>เครดิตเทอม</label>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: '500', color: 'var(--success)' }}>
+                                    <label className="text-sm text-textMuted mb-2" style={{ display: 'block' }}>เครดิตเทอม</label>
+                                    <div className="text-lg font-medium text-emerald-500">
                                         {supplier.creditTerm === 0 ? 'เงินสด' : `${supplier.creditTerm} วัน`}
                                     </div>
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>สถานะ</label>
+                                    <label className="text-sm text-textMuted mb-2" style={{ display: 'block' }}>สถานะ</label>
                                     <span style={{
                                         padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem',
                                         background: supplier.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
@@ -280,18 +227,10 @@ const SupplierDetailPage = () => {
                                     </span>
                                 </div>
                                 <div style={{ gridColumn: '1 / -1' }}>
-                                    <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>ประเภทผู้ขาย</label>
+                                    <label className="text-sm text-textMuted mb-2" style={{ display: 'block' }}>ประเภทผู้ขาย</label>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                                         {(supplier.categoryNames || []).length > 0 ? supplier.categoryNames.map((name, i) => (
-                                            <span key={i} style={{
-                                                padding: '0.3rem 0.8rem',
-                                                borderRadius: '20px',
-                                                background: 'rgba(55, 71, 124, 0.08)',
-                                                color: 'var(--primary)',
-                                                border: '1px solid rgba(55, 71, 124, 0.15)',
-                                                fontSize: '0.9rem',
-                                                fontWeight: '500'
-                                            }}>
+                                            <span key={i} className="rounded-full text-primary text-sm font-medium" style={{ padding: '0.3rem 0.8rem', background: 'rgba(55, 71, 124, 0.08)', border: '1px solid rgba(55, 71, 124, 0.15)' }}>
                                                 {name}
                                             </span>
                                         )) : (
@@ -306,7 +245,7 @@ const SupplierDetailPage = () => {
                             <h3 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--secondary)' }}>
                                 <MapPin size={22} /> ที่อยู่จัดส่ง / ติดต่อ
                             </h3>
-                            <div style={{ fontSize: '1.1rem', lineHeight: '1.8', color: 'var(--text-main)' }}>
+                            <div className="text-lg text-main" style={{ lineHeight: '1.8' }}>
                                 {supplier.address || 'ไม่ระบุที่อยู่'}
                             </div>
                         </div>
@@ -319,24 +258,24 @@ const SupplierDetailPage = () => {
                             </h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>ผู้ติดต่อ</label>
+                                    <label className="text-sm text-textMuted" style={{ display: 'block', marginBottom: '0.3rem' }}>ผู้ติดต่อ</label>
                                     <div className="font-semibold">{supplier.contactPerson || '-'}</div>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                                    <div className="text-primary" style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <Phone size={18} />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>เบอร์โทรศัพท์</label>
+                                        <label className="text-textMuted" style={{ display: 'block', fontSize: '0.75rem' }}>เบอร์โทรศัพท์</label>
                                         <div className="font-medium">{supplier.phone || '-'}</div>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--success)' }}>
+                                    <div className="text-emerald-500" style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <Mail size={18} />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>อีเมล</label>
+                                        <label className="text-textMuted" style={{ display: 'block', fontSize: '0.75rem' }}>อีเมล</label>
                                         <div className="font-medium">{supplier.email || '-'}</div>
                                     </div>
                                 </div>
@@ -344,11 +283,31 @@ const SupplierDetailPage = () => {
                         </div>
 
                         <div className="glass-panel p-8">
-                            <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-muted)', fontSize: '1.1rem' }}>
+                            <h3 className="mb-4 text-textMuted text-lg" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                 <FileText size={20} /> หมายเหตุ
                             </h3>
-                            <div style={{ fontSize: '0.95rem', color: 'var(--text-muted)', fontStyle: supplier.notes ? 'normal' : 'italic' }}>
+                            <div className="text-[0.95rem] text-textMuted" style={{ fontStyle: supplier.notes ? 'normal' : 'italic' }}>
                                 {supplier.notes || 'ไม่มีหมายเหตุเพิ่มเติม'}
+                            </div>
+                        </div>
+
+                        <div className="glass-panel p-8">
+                            <h3 className="mb-4 text-textMuted text-lg" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <Calendar size={20} /> ประวัติ
+                            </h3>
+                            <div className="text-sm text-textMuted" style={{ display: 'grid', gap: '0.5rem' }}>
+                                <div>สร้างเมื่อ: {supplier.createdAt ? new Date(supplier.createdAt).toLocaleDateString('th-TH') : '-'}</div>
+                                {supplier.createdBy && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <User size={14} /> สร้างโดย: <span className="text-main font-semibold">{supplier.createdBy}</span>
+                                    </div>
+                                )}
+                                <div>อัปเดตล่าสุด: {supplier.updatedAt ? new Date(supplier.updatedAt).toLocaleDateString('th-TH') : '-'}</div>
+                                {supplier.updatedBy && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <User size={14} /> แก้ไขล่าสุดโดย: <span className="text-main font-semibold">{supplier.updatedBy}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -364,16 +323,15 @@ const SupplierDetailPage = () => {
                         onBack={() => setSelectedProductForHistory(null)}
                     />
                 ) : (
-                    <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--secondary)' }}>
+                    <div className="glass-panel p-0 overflow-hidden">
+                        <div className="border-b border-border flex justify-between items-center" style={{ padding: '1.5rem 2rem' }}>
+                            <h3 className="m-0" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--secondary)' }}>
                                 <Package size={22} /> รายการสินค้าที่สั่งซื้อจากผู้ขายรายนี้
                             </h3>
                             {/* {hasPermission('suppliers', 'edit') && !isAddingProduct && ( */}
                             <button
                                 onClick={() => setIsAddingProduct(true)}
-                                className="primary-btn"
-                                style={{ padding: '0.6rem 1.2rem', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none', cursor: 'pointer' }}
+                                className="primary-btn px-5 py-2.5 rounded-xl border-none cursor-pointer flex items-center gap-2"
                             >
                                 <Plus size={18} /> เพิ่มสินค้า
                             </button>
@@ -381,48 +339,45 @@ const SupplierDetailPage = () => {
                         </div>
 
                         {isAddingProduct && (
-                            <div style={{ padding: '2rem', background: 'rgba(255, 255, 255, 0.02)', borderBottom: '1px solid var(--border-color)' }}>
+                            <div className="p-8 border-b border-border" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
                                 <form onSubmit={handleSaveProduct} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '1.5rem', alignItems: 'end' }}>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>ชื่อสินค้า</label>
+                                        <label className="text-sm text-textMuted mb-2" style={{ display: 'block' }}>ชื่อสินค้า</label>
                                         <input
                                             type="text"
                                             value={newProduct.name}
                                             onChange={e => setNewProduct({ ...newProduct, name: e.target.value })}
-                                            className="glass-input"
                                             placeholder="ระบุชื่อสินค้าหรือบริการ..."
                                             required
-                                            style={{ width: '100%', padding: '0.8rem' }}
+                                            className="glass-input w-full p-3"
                                         />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>หน่วย</label>
+                                        <label className="text-sm text-textMuted mb-2" style={{ display: 'block' }}>หน่วย</label>
                                         <input
                                             type="text"
                                             value={newProduct.unit}
                                             onChange={e => setNewProduct({ ...newProduct, unit: e.target.value })}
-                                            className="glass-input"
                                             placeholder="เช่น ชิ้น, กก."
-                                            style={{ width: '100%', padding: '0.8rem' }}
+                                            className="glass-input w-full p-3"
                                         />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>ราคาล่าสุด (บาท)</label>
+                                        <label className="text-sm text-textMuted mb-2" style={{ display: 'block' }}>ราคาล่าสุด (บาท)</label>
                                         <input
                                             type="number"
                                             step="0.01"
                                             value={newProduct.price}
                                             onChange={e => setNewProduct({ ...newProduct, price: e.target.value })}
-                                            className="glass-input"
                                             placeholder="0.00"
-                                            style={{ width: '100%', padding: '0.8rem' }}
+                                            className="glass-input w-full p-3"
                                         />
                                     </div>
                                     <div className="flex gap-2">
-                                        <button type="submit" className="primary-btn" style={{ padding: '0.8rem 1.5rem', borderRadius: '8px', background: 'var(--secondary)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '600' }}>
+                                        <button type="submit" className="primary-btn px-6 py-3 rounded-lg text-white border-none cursor-pointer font-semibold" style={{ background: 'var(--secondary)' }}>
                                             {isSavingProduct ? '...' : (editingProduct ? 'บันทึก' : 'เพิ่ม')}
                                         </button>
-                                        <button type="button" onClick={handleCancelEdit} style={{ padding: '0.8rem', borderRadius: '8px', background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                        <button type="button" onClick={handleCancelEdit} className="p-3 rounded-lg bg-transparent border border-border text-textMuted cursor-pointer">
                                             <X size={20} />
                                         </button>
                                     </div>
@@ -431,40 +386,48 @@ const SupplierDetailPage = () => {
                         )}
 
                         <div className="table-responsive-wrapper">
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <table className="w-full border-collapse">
                                 <thead>
-                                    <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255, 255, 255, 0.02)' }}>
-                                        <th style={{ padding: '1.2rem 2rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อสินค้า / รายการ</th>
-                                        <th style={{ padding: '1.2rem 2rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: '500' }}>หน่วยเรียก</th>
-                                        <th style={{ padding: '1.2rem 2rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: '500' }}>ราคาล่าสุด</th>
-                                        <th style={{ padding: '1.2rem 2rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
+                                    <tr className="border-b border-border" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
+                                        <th className="text-left text-textMuted font-medium" style={{ padding: '1.2rem 2rem' }}>ชื่อสินค้า / รายการ</th>
+                                        <th className="text-left text-textMuted font-medium" style={{ padding: '1.2rem 2rem' }}>หน่วยเรียก</th>
+                                        <th className="text-right text-textMuted font-medium" style={{ padding: '1.2rem 2rem' }}>ราคาล่าสุด</th>
+                                        <th className="actions-column text-textMuted font-medium">จัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {products.length > 0 ? (
                                         products.map(p => (
-                                            <tr key={p.id} className="table-row-hover" style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                                <td style={{ padding: '1.2rem 2rem', fontWeight: '500' }}>{p.name}</td>
+                                            <tr key={p.id} className="table-row-hover border-b border-border">
+                                                <td className="font-medium" style={{ padding: '1.2rem 2rem' }}>{p.name}</td>
                                                 <td style={{ padding: '1.2rem 2rem' }}>{p.unit || '-'}</td>
-                                                <td style={{ padding: '1.2rem 2rem', textAlign: 'right', fontWeight: '600', color: 'var(--secondary)' }}>
+                                                <td className="text-right font-semibold" style={{ padding: '1.2rem 2rem', color: 'var(--secondary)' }}>
                                                     {p.price > 0 ? `฿${p.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
                                                 </td>
-                                                <td style={{ padding: '1.2rem 2rem', textAlign: 'right' }}>
-                                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                <td className="actions-column">
+                                                    <div className="table-actions">
                                                         <button
                                                             onClick={() => setSelectedProductForHistory(p)}
-                                                            style={{ background: 'rgba(55, 71, 124, 0.1)', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px' }}
+                                                            className="action-link"
                                                             title="ดูประวัติราคา"
                                                         >
-                                                            <TrendingUp size={18} />
+                                                            <TrendingUp size={16} />
                                                         </button>
                                                         {hasPermission('suppliers', 'edit') && (
                                                             <>
-                                                                <button onClick={() => handleEditProduct(p)} style={{ background: 'rgba(16, 185, 129, 0.1)', border: 'none', color: 'var(--success)', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px' }} title="แก้ไข">
-                                                                    <Edit size={18} />
+                                                                <button
+                                                                    onClick={() => handleEditProduct(p)}
+                                                                    className="action-edit"
+                                                                    title="แก้ไข"
+                                                                >
+                                                                    <Edit size={16} />
                                                                 </button>
-                                                                <button onClick={() => handleDeleteProduct(p.id, p.name)} style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px' }} title="ลบ">
-                                                                    <Trash2 size={18} />
+                                                                <button
+                                                                    onClick={() => handleDeleteProduct(p.id, p.name)}
+                                                                    className="action-delete"
+                                                                    title="ลบ"
+                                                                >
+                                                                    <Trash2 size={16} />
                                                                 </button>
                                                             </>
                                                         )}
@@ -474,8 +437,8 @@ const SupplierDetailPage = () => {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="4" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                                <Package size={48} style={{ marginBottom: '1rem', opacity: 0.2 }} />
+                                            <td colSpan="4" className="text-center text-textMuted" style={{ padding: '4rem' }}>
+                                                <Package size={48} className="mb-4" style={{ opacity: 0.2 }} />
                                                 <div>ยังไม่มีรายการสินค้าสำหรับผู้ขายรายนี้</div>
                                             </td>
                                         </tr>
@@ -489,8 +452,8 @@ const SupplierDetailPage = () => {
 
             {/* Tab Content: History */}
             {activeTab === 'history' && (
-                <div className="glass-panel" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    <History size={64} style={{ marginBottom: '1.5rem', opacity: 0.2 }} />
+                <div className="glass-panel text-center text-textMuted" style={{ padding: '4rem' }}>
+                    <History size={64} className="mb-6" style={{ opacity: 0.2 }} />
                     <h3 style={{ margin: '0 0 0.5rem 0' }}>ประวัติการสั่งซื้อ</h3>
                     <p className="m-0">ระบบประวัติการซื้อจะแสดงผลเมื่อมีการเชื่อมต่อกับโมดูลจัดซื้อ (Purchasing) ในขั้นตอนถัดไปครับ</p>
                 </div>

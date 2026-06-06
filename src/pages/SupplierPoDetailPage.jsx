@@ -1,3 +1,4 @@
+import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Printer, Edit, ArrowLeft, CheckCircle, Clock, XCircle, Trash2, Building2, Phone, User } from 'lucide-react';
@@ -6,6 +7,7 @@ import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
 
 const SupplierPoDetailPage = () => {
+    const { user } = useAuth();
     const { id } = useParams();
     const navigate = useNavigate();
     const { showConfirm, showAlert, showError } = useDialog();
@@ -80,29 +82,29 @@ const SupplierPoDetailPage = () => {
         }
     };
 
-    if (isLoading) return <div className="loading-spinner" style={{ margin: '3rem auto' }}></div>;
+    if (isLoading) return <div className="loading-spinner my-12 mx-auto"></div>;
     if (!po) return null;
 
     const getStatusBadge = (status) => {
         switch (status) {
-            case 'Draft': return <span style={{ background: 'rgba(107, 114, 128, 0.1)', color: 'var(--text-muted)', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem' }}>ฉบับร่าง</span>;
-            case 'Partial': return <span style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem' }}>รับสินค้าบางส่วน</span>;
-            case 'Completed': return <span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem' }}>ได้รับสินค้าครบแล้ว</span>;
-            case 'Cancelled': return <span style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem' }}>ยกเลิก</span>;
+            case 'Draft': return <span className="text-textMuted rounded-full text-sm" style={{ background: 'rgba(107, 114, 128, 0.1)', padding: '0.3rem 0.8rem' }}>ฉบับร่าง</span>;
+            case 'Partial': return <span className="text-amber-500 rounded-full text-sm" style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '0.3rem 0.8rem' }}>รับสินค้าบางส่วน</span>;
+            case 'Completed': return <span className="text-emerald-500 rounded-full text-sm" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.3rem 0.8rem' }}>ได้รับสินค้าครบแล้ว</span>;
+            case 'Cancelled': return <span className="text-red-500 rounded-full text-sm" style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '0.3rem 0.8rem' }}>ยกเลิก</span>;
             default: return <span className="status-badge">{status}</span>;
         }
     };
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <button onClick={() => navigate('/dashboard/supplier-pos')} style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' }}>
+        <div className="px-4 pb-8">
+            <div className="mb-8 flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                    <button onClick={() => navigate('/dashboard/supplier-pos')} className="bg-transparent border border-border text-main p-2 rounded-lg cursor-pointer">
                         <ArrowLeft size={20} />
                     </button>
                     <div>
-                        <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>รายละเอียดใบสั่งซื้อผู้ขาย</h1>
-                        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>เลขที่: {po.po_number}</div>
+                        <h1 className="m-0 font-semibold" style={{ fontSize: '1.8rem' }}>รายละเอียดใบสั่งซื้อผู้ขาย</h1>
+                        <div className="text-sm text-textMuted">เลขที่: {po.po_number}</div>
                     </div>
                     <div style={{ marginLeft: '1rem' }}>
                         {getStatusBadge(po.status === 'Completed' && po.supplier_po_items && !po.supplier_po_items.every(i => (i.received_quantity || 0) >= i.quantity) ? 'Partial' : po.status)}
@@ -111,35 +113,14 @@ const SupplierPoDetailPage = () => {
                 <div style={{ display: 'flex', gap: '0.8rem' }}>
                     <button
                         onClick={handlePrint}
-                        style={{
-                            padding: '0.6rem 1rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            background: 'rgba(139, 92, 246, 0.05)',
-                            border: '1px solid rgba(139, 92, 246, 0.1)',
-                            color: '#8b5cf6',
-                            cursor: 'pointer',
-                            borderRadius: '8px'
-                        }}
+                        className="px-4 py-2.5 text-violet-500 cursor-pointer rounded-lg flex items-center gap-2" style={{ background: 'rgba(139, 92, 246, 0.05)', border: '1px solid rgba(139, 92, 246, 0.1)' }}
                     >
                         <Printer size={18} /> พิมพ์ใบสั่งซื้อ
                     </button>
                     {hasPermission('supplier_pos', 'edit') && (po.status === 'Draft' || po.status === 'Partial' || (po.status === 'Completed' && po.supplier_po_items && !po.supplier_po_items.every(i => (i.received_quantity || 0) >= i.quantity))) && (
                         <button
                             onClick={() => navigate(`/dashboard/supplier-pos/${id}/edit`)}
-                            style={{
-                                padding: '0.6rem 1.2rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                background: 'var(--primary)',
-                                border: 'none',
-                                color: 'var(--text-inverse)',
-                                cursor: 'pointer',
-                                borderRadius: '8px',
-                                fontWeight: '600'
-                            }}
+                            className="px-5 py-2.5 border-none cursor-pointer rounded-lg font-semibold flex items-center gap-2" style={{ background: 'var(--primary)', color: 'var(--text-inverse)' }}
                         >
                             <Edit size={18} /> แก้ไข / รับสินค้า
                         </button>
@@ -147,17 +128,7 @@ const SupplierPoDetailPage = () => {
                     {hasPermission('supplier_pos', 'delete') && (po.status === 'Draft') && (
                         <button
                             onClick={handleDelete}
-                            style={{
-                                padding: '0.6rem 1.2rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                background: 'rgba(239, 68, 68, 0.05)',
-                                border: '1px solid rgba(239, 68, 68, 0.1)',
-                                color: '#ef4444',
-                                cursor: 'pointer',
-                                borderRadius: '8px'
-                            }}
+                            className="px-5 py-2.5 text-red-500 cursor-pointer rounded-lg flex items-center gap-2" style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)' }}
                         >
                             <Trash2 size={18} /> ลบ
                         </button>
@@ -170,51 +141,42 @@ const SupplierPoDetailPage = () => {
                     <div className="glass-panel p-8">
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2.5rem' }}>
                             <div>
-                                <h3 style={{ margin: '0 0 1rem 0', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <h3 className="mb-4 text-primary flex items-center gap-2">
                                     <Building2 size={20} /> ข้อมูลผู้ขาย
                                 </h3>
-                                <div style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '0.5rem' }}>{po.suppliers?.name}</div>
-                                {po.suppliers?.address && <div style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '450px', lineHeight: '1.5' }}>{po.suppliers.address}</div>}
-                                <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem' }}>
-                                    {po.suppliers?.contact_person && <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}><User size={14} /> {po.suppliers.contact_person}</div>}
-                                    {po.suppliers?.phone && <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}><Phone size={14} /> {po.suppliers.phone}</div>}
+                                <div className="text-xl font-semibold mb-2">{po.suppliers?.name}</div>
+                                {po.suppliers?.address && <div className="text-textMuted text-[0.95rem]" style={{ maxWidth: '450px', lineHeight: '1.5' }}>{po.suppliers.address}</div>}
+                                <div className="mt-4" style={{ display: 'flex', gap: '1.5rem' }}>
+                                    {po.suppliers?.contact_person && <div className="text-sm text-textMuted" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><User size={14} /> {po.suppliers.contact_person}</div>}
+                                    {po.suppliers?.phone && <div className="text-sm text-textMuted" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Phone size={14} /> {po.suppliers.phone}</div>}
                                 </div>
                             </div>
                             <div className="text-right">
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem' }}>ส่งไปที่คลังสินค้า</div>
-                                <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '1.1rem' }}>{po.warehouses ? `${po.warehouses.code ? `[${po.warehouses.code}] ` : ''}${po.warehouses.name}` : 'คลังหลัก'}</div>
-                                {po.warehouses?.address && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '200px', marginLeft: 'auto', marginTop: '0.3rem' }}>{po.warehouses.address}</div>}
+                                <div className="text-sm text-textMuted" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem' }}>ส่งไปที่คลังสินค้า</div>
+                                <div className="font-semibold text-main text-lg">{po.warehouses ? `${po.warehouses.code ? `[${po.warehouses.code}] ` : ''}${po.warehouses.name}` : 'คลังหลัก'}</div>
+                                {po.warehouses?.address && <div className="text-sm text-textMuted" style={{ maxWidth: '200px', marginLeft: 'auto', marginTop: '0.3rem' }}>{po.warehouses.address}</div>}
                             </div>
                         </div>
 
                         <div className="overflow-x-auto">
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <table className="w-full border-collapse">
                                 <thead>
-                                    <tr style={{ borderBottom: '2px solid var(--border-color)', textAlign: 'left' }}>
-                                        <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', width: '60px', textAlign: 'center' }}>#</th>
-                                        <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600' }}>รายการสินค้า / รายละเอียด</th>
-                                        <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', textAlign: 'right' }}>จำนวน</th>
-                                        <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', textAlign: 'right' }}>ราคา/หน่วย</th>
-                                        <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', textAlign: 'right' }}>จำนวนเงิน</th>
+                                    <tr className="text-left" style={{ borderBottom: '2px solid var(--border-color)' }}>
+                                        <th className="p-4 text-textMuted font-semibold text-center" style={{ width: '60px' }}>#</th>
+                                        <th className="p-4 text-textMuted font-semibold">รายการสินค้า / รายละเอียด</th>
+                                        <th className="p-4 text-textMuted font-semibold text-right">จำนวน</th>
+                                        <th className="p-4 text-textMuted font-semibold text-right">ราคา/หน่วย</th>
+                                        <th className="p-4 text-textMuted font-semibold text-right">จำนวนเงิน</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {(po.supplier_po_items || []).map((item, idx) => (
-                                        <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                            <td style={{ padding: '1.2rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>{idx + 1}</td>
+                                        <tr key={item.id} className="border-b border-border">
+                                            <td className="text-center text-textMuted" style={{ padding: '1.2rem 1rem' }}>{idx + 1}</td>
                                             <td style={{ padding: '1.2rem 1rem' }}>
-                                                <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '1rem', marginBottom: '0.4rem' }}>{item.description}</div>
+                                                <div className="font-semibold text-main text-base" style={{ marginBottom: '0.4rem' }}>{item.description}</div>
                                                 {item.note && (
-                                                    <div style={{
-                                                        fontSize: '0.85rem',
-                                                        color: 'var(--text-muted)',
-                                                        marginTop: '0.4rem',
-                                                        whiteSpace: 'pre-wrap',
-                                                        padding: '0.4rem 0.6rem',
-                                                        background: 'rgba(0,0,0,0.02)',
-                                                        borderRadius: '4px',
-                                                        borderLeft: '2px solid var(--border-color)'
-                                                    }}>
+                                                    <div className="text-sm text-textMuted rounded" style={{ marginTop: '0.4rem', whiteSpace: 'pre-wrap', padding: '0.4rem 0.6rem', background: 'rgba(0, 0, 0, 0.02)', borderLeft: '2px solid var(--border-color)' }}>
                                                         {item.note}
                                                     </div>
                                                 )}
@@ -224,27 +186,27 @@ const SupplierPoDetailPage = () => {
                                                             <img
                                                                 src={item.image_url}
                                                                 alt="product spec"
-                                                                style={{ maxWidth: '250px', maxHeight: '200px', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border-color)', display: 'block' }}
+                                                                className="rounded border border-border" style={{ maxWidth: '250px', maxHeight: '200px', objectFit: 'contain', display: 'block' }}
                                                             />
                                                         </a>
                                                     </div>
                                                 )}
-                                                {item.due_date && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>กำหนดส่ง: {new Date(item.due_date).toLocaleDateString('th-TH')}</div>}
+                                                {item.due_date && <div className="text-xs text-textMuted" style={{ marginTop: '0.4rem' }}>กำหนดส่ง: {new Date(item.due_date).toLocaleDateString('th-TH')}</div>}
                                             </td>
-                                            <td style={{ padding: '1.2rem 1rem', textAlign: 'right', color: 'var(--text-main)' }}>
+                                            <td className="text-right text-main" style={{ padding: '1.2rem 1rem' }}>
                                                 {item.quantity.toLocaleString()} {item.unit}
                                                 {(po.status === 'Completed' || po.status === 'Partial') && (
-                                                    <div style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: '600', marginTop: '4px' }}>
+                                                    <div className="text-emerald-500 text-sm font-semibold" style={{ marginTop: '4px' }}>
                                                         (รับแล้ว: {item.received_quantity !== undefined ? item.received_quantity : item.quantity})
                                                     </div>
                                                 )}
                                             </td>
-                                            <td style={{ padding: '1.2rem 1rem', textAlign: 'right', color: 'var(--text-muted)' }}>฿{item.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                            <td style={{ padding: '1.2rem 1rem', textAlign: 'right', fontWeight: '600', color: 'var(--text-main)' }}>฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                            <td className="text-right text-textMuted" style={{ padding: '1.2rem 1rem' }}>฿{item.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                            <td className="text-right font-semibold text-main" style={{ padding: '1.2rem 1rem' }}>฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                         </tr>
                                     ))}
                                     {[...Array(Math.max(0, 3 - (po.supplier_po_items?.length || 0)))].map((_, i) => (
-                                        <tr key={`empty-${i}`} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                        <tr key={`empty-${i}`} className="border-b border-border">
                                             <td colSpan="5" style={{ padding: '1.2rem 1rem' }}>&nbsp;</td>
                                         </tr>
                                     ))}
@@ -253,9 +215,9 @@ const SupplierPoDetailPage = () => {
                         </div>
 
                         {po.remark && (
-                            <div style={{ marginTop: '2.5rem', padding: '1.5rem', background: 'var(--bg-main)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>หมายเหตุ (Remark)</div>
-                                <div style={{ color: 'var(--text-main)', lineHeight: '1.6' }}>{po.remark}</div>
+                            <div className="p-6 bg-main rounded-xl border border-border" style={{ marginTop: '2.5rem' }}>
+                                <div className="text-sm text-textMuted mb-2" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>หมายเหตุ (Remark)</div>
+                                <div className="text-main" style={{ lineHeight: '1.6' }}>{po.remark}</div>
                             </div>
                         )}
                     </div>
@@ -263,31 +225,31 @@ const SupplierPoDetailPage = () => {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     {hasPermission('supplier_pos', 'edit') && po.status !== 'Cancelled' && (
-                        <div className="glass-panel" style={{ padding: '1.5rem', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-                            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--primary)', fontWeight: '600' }}>การจัดการเอกสาร:</h3>
+                        <div className="glass-panel p-6" style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                            <h3 className="mb-4 text-base text-primary font-semibold">การจัดการเอกสาร:</h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                                 {po.status === 'Draft' && (
                                     <>
-                                        <button onClick={() => navigate(`/dashboard/supplier-pos/${id}/edit?mode=receive`)} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', padding: '1rem' }}>
+                                        <button onClick={() => navigate(`/dashboard/supplier-pos/${id}/edit?mode=receive`)} className="btn-primary w-full p-4" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem' }}>
                                             <CheckCircle size={20} /> <span className="font-semibold">รับสินค้าเข้าคลัง (Receive)</span>
                                         </button>
-                                        <button onClick={() => handleStatusUpdate('Cancelled')} className="btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', color: '#ef4444', borderColor: '#ef4444', background: 'white', padding: '1rem' }}>
+                                        <button onClick={handleCancel} className="btn-secondary w-full text-red-500 bg-white p-4" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', borderColor: '#ef4444' }}>
                                             <XCircle size={20} /> <span className="font-semibold">ยกเลิกรายการ</span>
                                         </button>
                                     </>
                                 )}
                                 {(po.status === 'Partial' || (po.status === 'Completed' && po.supplier_po_items && !po.supplier_po_items.every(i => (i.received_quantity || 0) >= i.quantity))) && (
                                     <>
-                                        <button onClick={() => navigate(`/dashboard/supplier-pos/${id}/edit?mode=receive`)} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', padding: '1rem' }}>
+                                        <button onClick={() => navigate(`/dashboard/supplier-pos/${id}/edit?mode=receive`)} className="btn-primary w-full p-4" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem' }}>
                                             <CheckCircle size={20} /> <span className="font-semibold">รับสินค้าเพิ่มเติม</span>
                                         </button>
-                                        <button onClick={handleCancel} className="btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', color: '#ef4444', borderColor: '#ef4444', background: 'white', padding: '1rem' }}>
+                                        <button onClick={handleCancel} className="btn-secondary w-full text-red-500 bg-white p-4" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', borderColor: '#ef4444' }}>
                                             <XCircle size={20} /> <span className="font-semibold">ยกเลิกใบสั่งซื้อ (หักสต็อกคืน)</span>
                                         </button>
                                     </>
                                 )}
                                 {po.status === 'Completed' && po.supplier_po_items && po.supplier_po_items.every(i => (i.received_quantity || 0) >= i.quantity) && (
-                                    <button onClick={handleCancel} className="btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', color: '#ef4444', borderColor: '#ef4444', background: 'white', padding: '1rem' }}>
+                                    <button onClick={handleCancel} className="btn-secondary w-full text-red-500 bg-white p-4" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', borderColor: '#ef4444' }}>
                                         <XCircle size={20} /> <span className="font-semibold">ยกเลิกใบสั่งซื้อ (หักสต็อกคืน)</span>
                                     </button>
                                 )}
@@ -296,26 +258,26 @@ const SupplierPoDetailPage = () => {
                     )}
 
                     <div className="glass-panel p-6">
-                        <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.1rem', fontWeight: '600' }}>สรุปยอดเงิน</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <h3 className="text-lg font-semibold" style={{ margin: '0 0 1.5rem 0' }}>สรุปยอดเงิน</h3>
+                        <div className="flex flex-col gap-4">
                             <div className="flex justify-between">
                                 <span className="text-textMuted">รวมเป็นเงิน</span>
                                 <span className="font-medium">฿{(po.sub_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
+                            <div className="border-b border-border" style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '1rem' }}>
                                 <span className="text-textMuted">ภาษีมูลค่าเพิ่ม ({po.vat_rate}%)</span>
                                 <span className="font-medium">฿{(po.vat_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', padding: '1rem', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '12px' }}>
-                                <span style={{ color: 'var(--primary)', fontWeight: '600' }}>ยอดเงินสุทธิ</span>
-                                <span style={{ color: 'var(--primary)', fontWeight: '700', fontSize: '1.3rem' }}>฿{(po.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            <div className="p-4 rounded-xl" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', background: 'rgba(59, 130, 246, 0.05)' }}>
+                                <span className="text-primary font-semibold">ยอดเงินสุทธิ</span>
+                                <span className="text-primary font-bold text-xl">฿{(po.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                             </div>
                         </div>
                     </div>
 
                     <div className="glass-panel p-6">
-                        <h3 style={{ margin: '0 0 1.2rem 0', fontSize: '1.1rem', fontWeight: '600' }}>ข้อมูลการจัดซื้อ</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.95rem' }}>
+                        <h3 className="text-lg font-semibold" style={{ margin: '0 0 1.2rem 0' }}>ข้อมูลการจัดซื้อ</h3>
+                        <div className="text-[0.95rem] flex flex-col gap-4">
                             <div className="flex justify-between">
                                 <span className="text-textMuted">วันที่สั่งซื้อ</span>
                                 <span className="font-medium">{new Date(po.date).toLocaleDateString('th-TH')}</span>
@@ -335,24 +297,34 @@ const SupplierPoDetailPage = () => {
 
                             <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                        <User size={16} /> ผู้สั่งซื้อ: <span style={{ color: 'var(--text-main)', fontWeight: '600' }}>{po.purchased_by || '-'}</span>
+                                    <div className="text-textMuted text-sm flex items-center gap-2">
+                                        <User size={16} /> ผู้สั่งซื้อ: <span className="text-main font-semibold">{po.purchased_by || '-'}</span>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                        <CheckCircle size={16} /> ผู้อนุมัติ: <span style={{ color: 'var(--text-main)', fontWeight: '600' }}>{po.approved_by || '-'}</span>
+                                    <div className="text-textMuted text-sm flex items-center gap-2">
+                                        <CheckCircle size={16} /> ผู้อนุมัติ: <span className="text-main font-semibold">{po.approved_by || '-'}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="glass-panel" style={{ padding: '1.2rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                    <div className="glass-panel p-5 text-textMuted text-xs" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        <div className="flex items-center gap-2">
                             <Clock size={14} /> สร้างเมื่อ: {new Date(po.created_at).toLocaleString('th-TH')}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {po.created_by_name && (
+                            <div className="flex items-center gap-2">
+                                <User size={14} /> สร้างโดย: <span className="text-main font-semibold">{po.created_by_name}</span>
+                            </div>
+                        )}
+                        <div className="flex items-center gap-2">
                             <Clock size={14} /> อัปเดตล่าสุด: {new Date(po.updated_at).toLocaleString('th-TH')}
                         </div>
+                        {po.updated_by && (
+                            <div className="flex items-center gap-2">
+                                <User size={14} /> แก้ไขล่าสุดโดย: <span className="text-main font-semibold">{po.updated_by}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

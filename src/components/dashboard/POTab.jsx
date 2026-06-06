@@ -154,8 +154,9 @@ const POTab = () => {
 
         const isUpcoming = type === 'upcoming';
         const days = isUpcoming ? getDaysLeft(dateStr) : getDaysOverdue(dateStr);
-        const color = isUpcoming ? '#f59e0b' : '#ef4444';
-        const bg = isUpcoming ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+        const colorClass = isUpcoming ? 'text-amber-500' : 'text-red-500';
+        const bgClass = isUpcoming ? 'bg-amber-500/10' : 'bg-red-500/10';
+        const borderClass = isUpcoming ? 'border-amber-500/25' : 'border-red-500/25';
         const text = isUpcoming ? `เหลือ ${days} วัน` : `เลยกำหนด ${days} วัน`;
 
         const dateParts = formatDate(dateStr).split(' ');
@@ -164,13 +165,13 @@ const POTab = () => {
         const [day, month, year] = dateParts;
 
         return (
-            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', background: 'var(--bg-main)', border: `1px solid ${color}40`, borderRadius: '6px', overflow: 'hidden', minWidth: '75px' }}>
-                <div style={{ background: bg, color: color, fontSize: '0.7rem', padding: '0.2rem 0.4rem', width: '100%', textAlign: 'center', fontWeight: '600' }}>
+            <div className={`inline-flex flex-col items-center bg-bgMain border ${borderClass} rounded-md overflow-hidden min-w-[75px]`}>
+                <div className={`${bgClass} ${colorClass} text-[0.7rem] px-1.5 py-1 w-full text-center font-semibold`}>
                     {text}
                 </div>
-                <div style={{ padding: '0.3rem 0.4rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-main)', lineHeight: '1.2', textAlign: 'center' }}>
+                <div className="px-1.5 py-1 text-[0.85rem] font-semibold text-textMain leading-tight text-center">
                     {day} {month}<br />
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>{year}</span>
+                    <span className="text-[0.7rem] text-textMuted font-normal">{year}</span>
                 </div>
             </div>
         );
@@ -179,74 +180,71 @@ const POTab = () => {
     return (
         <div className="tab-content">
             <div className="kpi-grid">
-                <div className="kpi-card glass-panel" style={{ padding: '1rem 1.5rem' }}>
+                <div className="kpi-card glass-panel px-6 py-4">
                     <div className="kpi-icon-wrapper blue">
                         <ShoppingCart size={20} />
                     </div>
                     <div className="kpi-content">
                         <span className="kpi-label">PO ทั้งหมด</span>
                         <span className="kpi-value">{data.total.toLocaleString()} <span className="unit">ใบ</span></span>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                        <div className="text-xs text-textMuted mt-1">
                             ฿{data.totalAmount.toLocaleString()} | {data.totalQuantity.toLocaleString()} หน่วย
                         </div>
                     </div>
                 </div>
 
-                <div className="kpi-card glass-panel" style={{ padding: '1rem 1.5rem' }}>
+                <div className="kpi-card glass-panel px-6 py-4">
                     <div className="kpi-icon-wrapper green">
                         <ShoppingCart size={20} />
                     </div>
                     <div className="kpi-content">
                         <span className="kpi-label">PO เดือนนี้</span>
                         <span className="kpi-value">{data.monthly.toLocaleString()} <span className="unit">ใบ</span></span>
-                        <div style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: '600', marginTop: '0.2rem' }}>
+                        <div className="text-xs text-emerald-500 font-semibold mt-1">
                             ฿{data.monthlyAmount.toLocaleString()} | {data.monthlyQuantity.toLocaleString()} หน่วย
                         </div>
                     </div>
                 </div>
 
-                <div className="kpi-card glass-panel" style={{ padding: '1rem 1.5rem' }}>
+                <div className="kpi-card glass-panel px-6 py-4">
                     <div className="kpi-icon-wrapper yellow">
                         <Clock size={20} />
                     </div>
                     <div className="kpi-content">
                         <span className="kpi-label">PO รอดำเนินการ</span>
                         <span className="kpi-value">{data.pending.toLocaleString()} <span className="unit">ใบ</span></span>
-                        <div style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: '600', marginTop: '0.2rem' }}>
+                        <div className="text-xs text-amber-500 font-semibold mt-1">
                             ฿{data.pendingAmount.toLocaleString()} | {data.pendingQuantity.toLocaleString()} หน่วย
                         </div>
                     </div>
                 </div>
 
-                <div className="kpi-card glass-panel" style={{ padding: '1rem 1.5rem' }}>
+                <div className="kpi-card glass-panel px-6 py-4">
                     <div className="kpi-icon-wrapper red">
                         <AlertTriangle size={20} />
                     </div>
                     <div className="kpi-content">
                         <span className="kpi-label">PO เลยกำหนดส่ง</span>
                         <span className="kpi-value alert">{data.overdue.toLocaleString()} <span className="unit">ใบ</span></span>
-                        <div style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: '600', marginTop: '0.2rem' }}>
+                        <div className="text-xs text-red-500 font-semibold mt-1">
                             ฿{data.overdueAmount.toLocaleString()} | {data.overdueQuantity.toLocaleString()} หน่วย
                         </div>
                     </div>
                 </div>
 
-                <div className="kpi-card glass-panel" style={{ borderLeft: '4px solid #10b981', padding: '1rem 1.5rem' }}>
-                    <div className="kpi-icon-wrapper green" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                <div className="kpi-card glass-panel px-6 py-4">
+                    <div className="kpi-icon-wrapper bg-emerald-500/10 text-emerald-500">
                         <CheckCircle size={20} />
                     </div>
                     <div className="kpi-content">
                         <span className="kpi-label">สินค้า สั่ง / ส่งแล้ว</span>
-                        <span className="kpi-value" style={{ fontSize: '1.2rem' }}>
-                            {data.totalQuantity.toLocaleString()} / <span style={{ color: '#10b981' }}>{data.deliveredQuantity.toLocaleString()}</span>
-                            <span className="unit" style={{ marginLeft: '4px' }}>ชิ้น</span>
+                        <span className="kpi-value text-xl">
+                            {data.totalQuantity.toLocaleString()} / <span className="text-emerald-500">{data.deliveredQuantity.toLocaleString()}</span>
+                            <span className="unit ml-1">ชิ้น</span>
                         </span>
-                        <div style={{ width: '100%', height: '4px', background: '#f1f5f9', borderRadius: '2px', marginTop: '8px', overflow: 'hidden' }}>
-                            <div style={{
-                                width: `${Math.min(100, (data.deliveredQuantity / (data.totalQuantity || 1)) * 100)}%`,
-                                height: '100%',
-                                background: '#10b981',
-                                transition: 'width 0.5s ease'
+                        <div className="w-full h-1 bg-slate-100 rounded-sm mt-2 overflow-hidden">
+                            <div className="h-full bg-emerald-500 transition-[width] duration-500 ease-in-out" style={{
+                                width: `${Math.min(100, (data.deliveredQuantity / (data.totalQuantity || 1)) * 100)}%`
                             }}></div>
                         </div>
                     </div>
@@ -254,23 +252,23 @@ const POTab = () => {
             </div>
 
             {/* Status Breakdown */}
-            <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-main)' }}>สถานะ PO ทั้งหมด</h3>
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <div className="glass-panel p-6 mb-6">
+                <h3 className="m-0 mb-4 text-base text-textMain">สถานะ PO ทั้งหมด</h3>
+                <div className="flex gap-4 flex-wrap">
                     {[
-                        { label: 'Waiting', count: data.waiting, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },
-                        { label: 'Progressing', count: data.inProgress, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },
-                        { label: 'Completed', count: data.completed, color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
-                        { label: 'Cancelled', count: data.cancelled, color: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)' }
+                        { label: 'Waiting', count: data.waiting, colorClass: 'text-amber-500', bgClass: 'bg-amber-500/10' },
+                        { label: 'Progressing', count: data.inProgress, colorClass: 'text-blue-500', bgClass: 'bg-blue-500/10' },
+                        { label: 'Completed', count: data.completed, colorClass: 'text-emerald-500', bgClass: 'bg-emerald-500/10' },
+                        { label: 'Cancelled', count: data.cancelled, colorClass: 'text-gray-500', bgClass: 'bg-gray-500/10' }
                     ].map(s => (
-                        <div key={s.label} style={{ flex: '1 1 120px', padding: '1rem', borderRadius: '10px', background: s.bg, textAlign: 'center' }}>
-                            <div style={{ fontSize: '1.6rem', fontWeight: '700', color: s.color }}>{s.count ?? 0}</div>
-                            <div style={{ fontSize: '0.8rem', color: s.color, fontWeight: '500', marginTop: '0.25rem' }}>{s.label}</div>
+                        <div key={s.label} className={`flex-[1_1_120px] p-4 rounded-xl text-center ${s.bgClass}`}>
+                            <div className={`text-[1.6rem] font-bold ${s.colorClass}`}>{s.count ?? 0}</div>
+                            <div className={`text-sm font-medium mt-1 ${s.colorClass}`}>{s.label}</div>
                         </div>
                     ))}
                 </div>
-                <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                    ยอดรวม PO เดือนนี้: <strong style={{ color: '#3b82f6' }}>฿{data.monthlyAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                <div className="mt-4 text-sm text-textMuted">
+                    ยอดรวม PO เดือนนี้: <strong className="text-blue-500">฿{data.monthlyAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
                 </div>
             </div>
 
@@ -292,25 +290,25 @@ const POTab = () => {
 
             <div className="dashboard-grid">
                 {/* Upcoming POs - REDESIGNED TO MATCH REFERENCE */}
-                <div className="glass-panel" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: '400px' }}>
-                    <div className="panel-header" style={{ padding: '1.2rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.6rem', fontWeight: '700' }}>
-                            <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.4rem', borderRadius: '50%', display: 'flex' }}>
+                <div className="glass-panel overflow-hidden flex flex-col min-h-[400px]">
+                    <div className="panel-header px-6 py-5 border-b border-border flex justify-between items-center">
+                        <h3 className="m-0 text-[1.1rem] text-emerald-500 flex items-center gap-2.5 font-bold">
+                            <div className="bg-emerald-500/10 p-1.5 rounded-full flex">
                                 <Clock size={18} color="#10b981" />
                             </div>
                             PO ที่ต้องส่ง (ภายใน 7 วัน)
                         </h3>
-                        <button onClick={() => navigate('/dashboard/purchase-orders')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', fontWeight: '500' }}>
+                        <button onClick={() => navigate('/dashboard/purchase-orders')} className="bg-transparent border-none text-textMuted cursor-pointer flex items-center gap-1.5 text-sm font-medium hover:text-textMain">
                             ดูทั้งหมด <ExternalLink size={14} />
                         </button>
                     </div>
-                    <div className="table-responsive-wrapper" style={{ overflowY: 'auto', flex: 1 }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <div className="table-responsive-wrapper overflow-y-auto flex-1">
+                        <table className="w-full border-collapse">
                             <thead>
-                                <tr style={{ background: 'var(--bg-main)', textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem' }}>เลขที่ PO</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem' }}>ลูกค้า</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem', textAlign: 'right' }}>กำหนดส่ง</th>
+                                <tr className="bg-bgMain text-left border-b border-border">
+                                    <th className="px-6 py-4 text-textMuted font-semibold text-sm">เลขที่ PO</th>
+                                    <th className="px-6 py-4 text-textMuted font-semibold text-sm">ลูกค้า</th>
+                                    <th className="px-6 py-4 text-textMuted font-semibold text-sm text-right">กำหนดส่ง</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -329,12 +327,12 @@ const POTab = () => {
                                         const dateFormatted = `${dueDate.getDate()}/${dueDate.getMonth() + 1}/${dueDate.getFullYear() + 543}`;
 
                                         return (
-                                            <tr key={po.id} style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => navigate(`/dashboard/purchase-orders/${po.id}/edit`)} className="po-row-hover">
-                                                <td style={{ padding: '1.2rem 1.5rem', fontWeight: '600', color: '#3b82f6', fontSize: '0.95rem' }}>{po.po_number}</td>
-                                                <td style={{ padding: '1.2rem 1.5rem', color: 'var(--text-main)', fontWeight: '500', fontSize: '0.9rem' }}>{po.customers?.name}</td>
-                                                <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '600' }}>
+                                            <tr key={po.id} onClick={() => navigate(`/dashboard/purchase-orders/${po.id}/edit`)} className="po-row-hover border-b border-border cursor-pointer">
+                                                <td className="px-6 py-5 font-semibold text-blue-500 text-[0.95rem]">{po.po_number}</td>
+                                                <td className="px-6 py-5 text-textMain font-medium text-sm">{po.customers?.name}</td>
+                                                <td className="px-6 py-5 text-right font-semibold">
                                                     {isOverdue ? (
-                                                        <span style={{ color: '#ef4444' }}>เลยกำหนดส่ง</span>
+                                                        <span className="text-red-500">เลยกำหนดส่ง</span>
                                                     ) : (
                                                         <span className="text-textMain">{dateFormatted}</span>
                                                     )}
@@ -344,7 +342,7 @@ const POTab = () => {
                                     });
                                 })()}
                                 {(data.upcomingPOs.length === 0 && data.overduePOs.length === 0) && (
-                                    <tr><td colSpan="3" style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>ไม่มี PO ที่ต้องส่งในขณะนี้</td></tr>
+                                    <tr><td colSpan="3" className="p-12 text-center text-slate-400">ไม่มี PO ที่ต้องส่งในขณะนี้</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -352,13 +350,13 @@ const POTab = () => {
                 </div>
 
                 {/* Top Customers Widget - REPLACING Status Breakdown */}
-                <div className="glass-panel" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: '400px' }}>
-                    <div className="panel-header" style={{ padding: '1.2rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-                        <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-main)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div className="glass-panel overflow-hidden flex flex-col min-h-[400px]">
+                    <div className="panel-header px-6 py-5 border-b border-border">
+                        <h3 className="m-0 text-base text-textMain font-bold flex items-center gap-2">
                             <Users size={18} color="#3b82f6" /> ลูกค้าที่มียอดสั่งซื้อสูงสุด
                         </h3>
                     </div>
-                    <div style={{ padding: '0.5rem 0' }}>
+                    <div className="py-2">
                         {(() => {
                             const customerTotals = data.rawPOs.reduce((acc, po) => {
                                 const name = po.customers?.name || 'ไม่ระบุ';
@@ -372,22 +370,22 @@ const POTab = () => {
                                 .slice(0, 5);
 
                             return topCustomers.map((cust, idx) => (
-                                <div key={cust.name} style={{ padding: '1rem 1.5rem', borderBottom: idx === topCustomers.length - 1 ? 'none' : '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: idx === 0 ? 'rgba(59, 130, 246, 0.1)' : 'var(--card-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: '800', color: idx === 0 ? '#3b82f6' : 'var(--text-muted)' }}>
+                                <div key={cust.name} className={`px-6 py-4 flex items-center gap-4 ${idx === topCustomers.length - 1 ? '' : 'border-b border-border'}`}>
+                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-extrabold ${idx === 0 ? 'bg-blue-500/10 text-blue-500' : 'bg-cardHover text-textMuted'}`}>
                                         {idx + 1}
                                     </div>
                                     <div className="flex-1">
-                                        <div style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{cust.name}</div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '500' }}>ยอดสั่งซื้อรวม</div>
+                                        <div className="text-sm font-semibold text-textMain whitespace-nowrap overflow-hidden text-ellipsis max-w-[160px]">{cust.name}</div>
+                                        <div className="text-xs text-textMuted font-medium">ยอดสั่งซื้อรวม</div>
                                     </div>
                                     <div className="text-right">
-                                        <div style={{ fontSize: '1rem', fontWeight: '800', color: 'var(--text-main)' }}>฿{cust.total.toLocaleString()}</div>
+                                        <div className="text-base font-extrabold text-textMain">฿{cust.total.toLocaleString()}</div>
                                     </div>
                                 </div>
                             ));
                         })()}
                         {data.rawPOs.length === 0 && (
-                            <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>ไม่มีข้อมูลลูกค้า</div>
+                            <div className="p-12 text-center text-slate-400">ไม่มีข้อมูลลูกค้า</div>
                         )}
                     </div>
                 </div>

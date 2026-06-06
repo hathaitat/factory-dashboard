@@ -53,7 +53,7 @@ const OverviewTab = () => {
                     (warehouses || []).map(wh => warehouseService.getInventoryByWarehouse(wh.id))
                 );
                 const flatInventory = allInventory.flat();
-                const lowStock = flatInventory.filter(item => item.quantity <= item.min_stock);
+                const lowStock = flatInventory.filter(item => item.quantity < 0 || (item.min_stock > 0 && item.quantity <= item.min_stock));
 
                 const now = new Date();
                 const currentMonth = now.getMonth();
@@ -120,8 +120,6 @@ const OverviewTab = () => {
 
     return (
         <div className="tab-content">
-
-
             <div className="kpi-grid">
                 <div className="kpi-card glass-panel cursor-pointer" onClick={() => navigate('/dashboard/customers')}>
                     <div className="kpi-icon-wrapper blue">
@@ -133,7 +131,7 @@ const OverviewTab = () => {
                     </div>
                 </div>
 
-                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard?tab=warehouse')} style={{ cursor: 'pointer', borderLeft: data.lowStockItems.length > 0 ? '4px solid #ef4444' : undefined }}>
+                <div className="kpi-card glass-panel cursor-pointer" onClick={() => navigate('/dashboard?tab=warehouse')}>
                     <div className="kpi-icon-wrapper red">
                         <Package size={24} />
                     </div>
@@ -142,7 +140,7 @@ const OverviewTab = () => {
                         <div className="flex flex-col">
                             <span className="kpi-value">{data.totalInventoryItems.toLocaleString()} <span className="unit">รายการ</span></span>
                             {data.lowStockItems.length > 0 && (
-                                <span className="kpi-sub-value" style={{ fontSize: '0.8rem', color: '#ef4444', fontWeight: '600', marginTop: '0.2rem' }}>
+                                <span className="kpi-sub-value text-[0.8rem] text-red-500 font-semibold mt-[0.2rem]">
                                     ใกล้หมด {data.lowStockItems.length} รายการ
                                 </span>
                             )}
@@ -158,7 +156,7 @@ const OverviewTab = () => {
                         <span className="kpi-label">ยอดขายเดือนนี้</span>
                         <div className="flex flex-col">
                             <span className="kpi-value">฿{data.monthlySales.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-                            <span className="kpi-sub-value" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                            <span className="kpi-sub-value text-[0.8rem] text-textMuted mt-[0.2rem]">
                                 รวม {data.monthlyInvoiceCount} ใบกำกับภาษี
                             </span>
                         </div>
@@ -173,7 +171,7 @@ const OverviewTab = () => {
                         <span className="kpi-label">PO เดือนนี้</span>
                         <div className="flex flex-col">
                             <span className="kpi-value">{data.monthlyPOCount.toLocaleString()} <span className="unit">ใบ</span></span>
-                            <span className="kpi-sub-value" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                            <span className="kpi-sub-value text-[0.8rem] text-textMuted mt-[0.2rem]">
                                 ยอดรวม ฿{data.monthlyPOAmount.toLocaleString()}
                             </span>
                         </div>
@@ -188,7 +186,7 @@ const OverviewTab = () => {
                         <span className="kpi-label">ใบเสนอราคาเดือนนี้</span>
                         <div className="flex flex-col">
                             <span className="kpi-value">{data.monthlyQuotationCount.toLocaleString()} <span className="unit">ใบ</span></span>
-                            <span className="kpi-sub-value" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                            <span className="kpi-sub-value text-[0.8rem] text-textMuted mt-[0.2rem]">
                                 ยอดรวม ฿{data.monthlyQuotationAmount.toLocaleString()}
                             </span>
                         </div>
@@ -211,38 +209,38 @@ const OverviewTab = () => {
 
             <div className="mb-6">
                 {/* Expiring Certificates */}
-                <div className="glass-panel" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '340px' }}>
-                    <div className="panel-header" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: data.expiringCertificates.length > 0 ? 'rgba(239, 68, 68, 0.05)' : undefined }}>
-                        <h3 style={{ margin: 0, fontSize: '1rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="glass-panel overflow-hidden flex flex-col max-h-[340px]">
+                    <div className={`panel-header py-4 px-6 border-b border-border flex justify-between items-center ${data.expiringCertificates.length > 0 ? 'bg-red-500/[0.05]' : ''}`}>
+                        <h3 className="m-0 text-[1rem] text-red-500 flex items-center gap-2">
                             <ShieldAlert size={16} /> Certificate ใกล้หมดอายุ
                         </h3>
-                        <button onClick={() => navigate('/dashboard/certificates')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem' }}>
+                        <button onClick={() => navigate('/dashboard/certificates')} className="bg-transparent border-none text-textMuted cursor-pointer flex items-center gap-1 text-[0.85rem]">
                             ดูทั้งหมด <ExternalLink size={14} />
                         </button>
                     </div>
-                    <div style={{ overflowY: 'auto', flex: 1, padding: '0.5rem 0' }}>
+                    <div className="overflow-y-auto flex-1 py-2">
                         {data.expiringCertificates.map((cert, index) => {
                             const isExpired = cert.expiry_date && new Date(cert.expiry_date) < new Date();
                             const customers = cert.certificate_customers?.map(cc => cc.customers?.name).filter(Boolean).join(', ');
                             return (
-                                <div key={index} style={{ padding: '0.8rem 1.5rem', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => navigate(`/dashboard/certificates/${cert.id}/edit`)} className="hover-row">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div key={index} className="hover-row py-[0.8rem] px-6 border-b border-border cursor-pointer" onClick={() => navigate(`/dashboard/certificates/${cert.id}/edit`)}>
+                                    <div className="flex justify-between items-start">
                                         <div>
-                                            <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '0.9rem' }}>{cert.name}</div>
-                                            {customers && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{customers}</div>}
+                                            <div className="font-semibold text-textMain text-[0.9rem]">{cert.name}</div>
+                                            {customers && <div className="text-[0.8rem] text-textMuted mt-[0.2rem]">{customers}</div>}
                                         </div>
-                                        <span style={{ padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', flexShrink: 0, background: isExpired ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: isExpired ? '#ef4444' : '#f59e0b' }}>
+                                        <span className={`py-[0.2rem] px-[0.6rem] rounded-[12px] text-[0.75rem] font-semibold shrink-0 ${isExpired ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'}`}>
                                             {isExpired ? 'หมดอายุแล้ว' : 'ใกล้หมดอายุ'}
                                         </span>
                                     </div>
-                                    <div style={{ fontSize: '0.8rem', color: isExpired ? '#ef4444' : '#f59e0b', marginTop: '0.3rem' }}>
+                                    <div className={`text-[0.8rem] mt-[0.3rem] ${isExpired ? 'text-red-500' : 'text-amber-500'}`}>
                                         หมดอายุ: {cert.expiry_date ? new Date(cert.expiry_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }) : 'ไม่ระบุ'}
                                     </div>
                                 </div>
                             );
                         })}
                         {data.expiringCertificates.length === 0 && (
-                            <div style={{ padding: '2rem', textAlign: 'center', color: '#10b981' }}>
+                            <div className="p-8 text-center text-emerald-500">
                                 ไม่มี Certificate ที่ใกล้หมดอายุ 👍
                             </div>
                         )}
@@ -250,32 +248,32 @@ const OverviewTab = () => {
                 </div>
 
                 {/* Low Stock Alert */}
-                <div className="glass-panel mt-4" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '340px' }}>
-                    <div className="panel-header" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: data.lowStockItems.length > 0 ? 'rgba(239, 68, 68, 0.05)' : undefined }}>
-                        <h3 style={{ margin: 0, fontSize: '1rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="glass-panel mt-4 overflow-hidden flex flex-col max-h-[340px]">
+                    <div className={`panel-header py-4 px-6 border-b border-border flex justify-between items-center ${data.lowStockItems.length > 0 ? 'bg-red-500/[0.05]' : ''}`}>
+                        <h3 className="m-0 text-[1rem] text-red-500 flex items-center gap-2">
                             <AlertTriangle size={16} /> สินค้าใกล้หมด/ต้องสั่งเพิ่ม
                         </h3>
-                        <button onClick={() => navigate('/dashboard?tab=warehouse')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem' }}>
+                        <button onClick={() => navigate('/dashboard?tab=warehouse')} className="bg-transparent border-none text-textMuted cursor-pointer flex items-center gap-1 text-[0.85rem]">
                             ดูคลังสินค้า <ExternalLink size={14} />
                         </button>
                     </div>
-                    <div style={{ overflowY: 'auto', flex: 1, padding: '0.5rem 0' }}>
+                    <div className="overflow-y-auto flex-1 py-2">
                         {data.lowStockItems.map((item, index) => (
-                            <div key={index} style={{ padding: '0.8rem 1.5rem', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => navigate('/dashboard/warehouses')} className="hover-row">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div key={index} className="hover-row py-[0.8rem] px-6 border-b border-border cursor-pointer" onClick={() => navigate('/dashboard/warehouses')}>
+                                <div className="flex justify-between items-start">
                                     <div>
-                                        <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '0.9rem' }}>{item.product_name}</div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>SKU: {item.sku || '-'}</div>
+                                        <div className="font-semibold text-textMain text-[0.9rem]">{item.product_name}</div>
+                                        <div className="text-[0.8rem] text-textMuted mt-[0.2rem]">SKU: {item.sku || '-'}</div>
                                     </div>
                                     <div className="text-right">
-                                        <div style={{ fontWeight: '700', color: '#ef4444', fontSize: '0.9rem' }}>{item.quantity.toLocaleString()} {item.unit}</div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Min: {item.min_stock}</div>
+                                        <div className="font-bold text-red-500 text-[0.9rem]">{item.quantity.toLocaleString()} {item.unit}</div>
+                                        <div className="text-[0.75rem] text-textMuted">Min: {item.min_stock}</div>
                                     </div>
                                 </div>
                             </div>
                         ))}
                         {data.lowStockItems.length === 0 && (
-                            <div style={{ padding: '2rem', textAlign: 'center', color: '#10b981' }}>
+                            <div className="p-8 text-center text-emerald-500">
                                 สินค้าในคลังเพียงพอทุกรายการ 👍
                             </div>
                         )}
@@ -285,52 +283,51 @@ const OverviewTab = () => {
 
             <div className="dashboard-grid">
                 {/* Top Products */}
-                <div className="glass-panel" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '340px' }}>
-                    <div className="panel-header" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3 style={{ margin: 0, fontSize: '1rem', color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="glass-panel overflow-hidden flex flex-col max-h-[340px]">
+                    <div className="panel-header py-4 px-6 border-b border-border flex justify-between items-center">
+                        <h3 className="m-0 text-[1rem] text-blue-500 flex items-center gap-2">
                             <DollarSign size={16} /> สินค้าขายดี 5 อันดับแรก
                         </h3>
                     </div>
-                    <div style={{ overflowY: 'auto', flex: 1, padding: '0.5rem 0' }}>
+                    <div className="overflow-y-auto flex-1 py-2">
                         {data.topProducts.map((item, index) => (
-                            <div key={index} style={{ padding: '0.7rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.8rem' }} className="hover-row">
-                                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--card-hover)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '0.8rem', fontWeight: '700', flexShrink: 0 }}>{index + 1}</div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.quantity.toLocaleString()} หน่วย | ฿{item.amount.toLocaleString()}</div>
+                            <div key={index} className="hover-row py-[0.7rem] px-6 border-b border-border flex items-center gap-3">
+                                <div className="w-7 h-7 rounded-full bg-[var(--card-hover)] flex justify-center items-center text-[0.8rem] font-bold shrink-0">{index + 1}</div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-[0.9rem] font-semibold text-textMain whitespace-nowrap overflow-hidden text-ellipsis">{item.name}</div>
+                                    <div className="text-[0.75rem] text-textMuted">{item.quantity.toLocaleString()} หน่วย | ฿{item.amount.toLocaleString()}</div>
                                 </div>
                             </div>
                         ))}
                         {data.topProducts.length === 0 && (
-                            <div style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>ยังไม่มีข้อมูลสินค้า</div>
+                            <div className="p-8 text-center text-slate-500">ยังไม่มีข้อมูลสินค้า</div>
                         )}
                     </div>
                 </div>
 
                 {/* Top Customers */}
-                <div className="glass-panel" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '340px' }}>
-                    <div className="panel-header" style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3 style={{ margin: 0, fontSize: '1rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="glass-panel overflow-hidden flex flex-col max-h-[340px]">
+                    <div className="panel-header py-4 px-6 border-b border-border flex justify-between items-center">
+                        <h3 className="m-0 text-[1rem] text-purple-500 flex items-center gap-2">
                             <Users size={16} /> Top 5 ลูกค้าที่มียอดซื้อสูงสุด
                         </h3>
                     </div>
-                    <div style={{ overflowY: 'auto', flex: 1, padding: '0.5rem 0' }}>
+                    <div className="overflow-y-auto flex-1 py-2">
                         {data.topCustomers.map((item, index) => (
-                            <div key={index} style={{ padding: '0.7rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.8rem' }} className="hover-row">
-                                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--card-hover)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '0.8rem', fontWeight: '700', flexShrink: 0 }}>{index + 1}</div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</div>
-                                    <div style={{ fontSize: '0.75rem', color: '#8b5cf6' }}>฿{item.totalAmount.toLocaleString()} | {item.totalQuantity?.toLocaleString() || 0} หน่วย</div>
+                            <div key={index} className="hover-row py-[0.7rem] px-6 border-b border-border flex items-center gap-3">
+                                <div className="w-7 h-7 rounded-full bg-[var(--card-hover)] flex justify-center items-center text-[0.8rem] font-bold shrink-0">{index + 1}</div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-[0.9rem] font-semibold text-textMain whitespace-nowrap overflow-hidden text-ellipsis">{item.name}</div>
+                                    <div className="text-[0.75rem] text-purple-500">฿{item.totalAmount.toLocaleString()} | {item.totalQuantity?.toLocaleString() || 0} หน่วย</div>
                                 </div>
                             </div>
                         ))}
                         {data.topCustomers.length === 0 && (
-                            <div style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>ยังไม่มีข้อมูลลูกค้า</div>
+                            <div className="p-8 text-center text-slate-500">ยังไม่มีข้อมูลลูกค้า</div>
                         )}
                     </div>
                 </div>
             </div>
-
 
             <style>{`
                 .hover-row:hover { background: var(--bg-main) !important; }

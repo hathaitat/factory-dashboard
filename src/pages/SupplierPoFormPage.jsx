@@ -1,6 +1,7 @@
+import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Save, X, Plus, Trash2, ArrowLeft, Image as ImageIcon, Building2, AlertTriangle } from 'lucide-react';
+import { Save, X, Plus, Trash2, ArrowLeft, Image as ImageIcon, Building2, AlertTriangle, User } from 'lucide-react';
 import { supplierPoService } from '../services/supplierPoService';
 import { supplierService } from '../services/supplierService';
 import { supplierProductService } from '../services/supplierProductService';
@@ -8,8 +9,11 @@ import { warehouseService } from '../services/warehouseService';
 import { useDialog } from '../contexts/DialogContext';
 import { userService } from '../services/userService';
 import { calculateSubcontractTotal } from '../utils/bomCalculator';
+import PageHeader from '../components/PageHeader';
+import { useAuth } from '../contexts/AuthContext';
 
 const SupplierPoFormPage = () => {
+    const { user } = useAuth();
     const { id } = useParams();
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
@@ -24,6 +28,7 @@ const SupplierPoFormPage = () => {
     const isEdit = Boolean(id);
     const navigate = useNavigate();
     const { showAlert, showError, showConfirm } = useDialog();
+    const [isDirty, setIsDirty] = useState(false);
 
     const [suppliers, setSuppliers] = useState([]);
     const [supplierProducts, setSupplierProducts] = useState([]);
@@ -46,7 +51,9 @@ const SupplierPoFormPage = () => {
         sub_total: 0,
         vat_rate: 7,
         vat_amount: 0,
-        grand_total: 0
+        grand_total: 0,
+        created_by_name: '',
+        updated_by: ''
     });
 
     const [items, setItems] = useState([
@@ -55,6 +62,25 @@ const SupplierPoFormPage = () => {
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isDirty]);
+
+    const handleBack = async () => {
+        if (isDirty) {
+            const confirmed = await showConfirm('คุณมีข้อมูลที่ยังไม่ได้บันทึก ยืนยันที่จะย้อนกลับหรือไม่?');
+            if (!confirmed) return;
+        }
+        navigate('/dashboard/supplier-pos');
+    };
 
     useEffect(() => {
         loadInitialData();
@@ -88,7 +114,7 @@ const SupplierPoFormPage = () => {
             // Set default warehouse and current user for new POs
             if (!isEdit && !duplicateId) {
                 const defaultWh = warehousesData?.find(w => w.is_default);
-                const currentUser = userService.getCurrentUser();
+                const currentUser = user;
 
                 setFormData(prev => ({
                     ...prev,
@@ -110,13 +136,15 @@ const SupplierPoFormPage = () => {
                         credit_term: poData.credit_term || '',
                         reference_doc: poData.reference_doc || '',
                         remark: poData.remark || '',
-                        purchased_by: isEdit ? (poData.purchased_by || '') : (userService.getCurrentUser()?.fullName || poData.purchased_by || ''),
+                        purchased_by: isEdit ? (poData.purchased_by || '') : (user?.fullName || poData.purchased_by || ''),
                         approved_by: poData.approved_by || '',
                         status: isEdit ? (poData.status || 'Draft') : 'Draft',
                         sub_total: poData.sub_total || 0,
                         vat_rate: poData.vat_rate || 7,
                         vat_amount: poData.vat_amount || 0,
-                        grand_total: poData.grand_total || 0
+                        grand_total: poData.grand_total || 0,
+                        created_by_name: poData.created_by_name || '',
+                        updated_by: poData.updated_by || ''
                     });
 
                     // If in receive mode and currently Draft, suggest Partial status
@@ -162,6 +190,7 @@ const SupplierPoFormPage = () => {
     const handleSupplierChange = async (e) => {
         const vendorId = e.target.value;
         setFormData(prev => ({ ...prev, supplier_id: vendorId }));
+        setIsDirty(true);
 
         if (!vendorId) {
             setSupplierProducts([]);
@@ -177,6 +206,7 @@ const SupplierPoFormPage = () => {
             ...prev,
             [name]: name === 'vat_rate' ? parseFloat(value) || 0 : value
         }));
+        setIsDirty(true);
     };
 
     const handleImageUpload = async (index, file) => {
@@ -229,7 +259,7 @@ const SupplierPoFormPage = () => {
             if (subcontractInventoryId) {
                 matchingRule = inventoryBomRules.find(r => r.supplier_product_id === item.supplier_product_id && r.inventory_id === subcontractInventoryId);
             }
-            
+
             // If no exact match with subcontract material, find ANY rule for this product
             if (!matchingRule) {
                 matchingRule = inventoryBomRules.find(r => r.supplier_product_id === item.supplier_product_id);
@@ -273,16 +303,19 @@ const SupplierPoFormPage = () => {
         }
 
         setItems(newItems);
+        setIsDirty(true);
     };
 
     const addItem = () => {
         setItems([...items, { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, received_quantity: 0, previous_received: 0, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }]);
+        setIsDirty(true);
     };
 
     const removeItem = (index) => {
         if (items.length > 1) {
             const newItems = items.filter((_, i) => i !== index);
             setItems(newItems);
+            setIsDirty(true);
         } else {
             showAlert('ต้องมีรายการสินค้าอย่างน้อย 1 รายการ');
         }
@@ -337,11 +370,15 @@ const SupplierPoFormPage = () => {
                 }
             }
 
+            const currentUser = user;
+            const operatorName = currentUser?.fullName || currentUser?.username || 'Unknown';
             const payload = {
                 ...formData,
+                created_by_name: isEdit ? (formData.created_by_name || operatorName) : operatorName,
+                updated_by: operatorName,
                 status: finalStatus,
                 items: validItems.map(item => {
-                    const { id, previous_received, received_this_round, ...rest } = item;
+                    const { id, previous_received, received_this_round, raw_material_qty, ...rest } = item;
                     return {
                         ...rest,
                         supplier_product_id: rest.supplier_product_id || null, // null if custom item
@@ -359,7 +396,7 @@ const SupplierPoFormPage = () => {
                 // Automatically deduct stock for subcontracting ONLY ON CREATE
                 if (subcontractInventoryId && Number(subcontractQty) > 0) {
                     try {
-                        const currentUser = userService.getCurrentUser();
+                        const currentUser = user;
                         await warehouseService.adjustStock(
                             subcontractInventoryId,
                             'OUT',
@@ -370,67 +407,96 @@ const SupplierPoFormPage = () => {
                         await showAlert('สร้างใบสั่งซื้อ และตัดยอดสต็อกวัตถุดิบสำเร็จ');
                     } catch (err) {
                         console.error('Failed to deduct subcontract material:', err);
-                        await showAlert('บันทึกใบสั่งซื้อสำเร็จ แต่ไม่สามารถตัดสต็อกวัตถุดิบได้ กรุณาไปตัดสต็อกด้วยตนเองที่หน้าคลังสินค้า');
+                        await supplierPoService.deleteSupplierPo(savedPo.id);
+                        throw new Error(`ไม่สามารถตัดสต็อกวัตถุดิบได้ (${err.message || 'สต็อกอาจไม่เพียงพอ'}) ระบบได้ยกเลิกการสร้างใบสั่งซื้อนี้แล้ว`);
                     }
                 } else {
                     await showAlert('สร้างใบสั่งซื้อสำเร็จ');
                 }
             }
+            setIsDirty(false);
             navigate('/dashboard/supplier-pos');
         } catch (error) {
             console.error('Error saving PO:', error);
-            showError('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+            showError(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
         } finally {
             setIsSaving(false);
         }
-    };
-
-    if (isLoading) return <div className="loading-spinner" style={{ margin: '3rem auto' }}></div>;
+    }; if (isLoading) return <div className="loading-spinner my-12 mx-auto"></div>;
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem' }}>
+        <div className="px-4 pb-8">
             <button
-                onClick={() => navigate('/dashboard/supplier-pos')}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '1.5rem', fontSize: '0.9rem' }}
+                type="button"
+                onClick={handleBack}
+                className="bg-transparent border-none text-textMuted cursor-pointer mb-6 text-sm flex items-center gap-2"
             >
                 <ArrowLeft size={18} /> ย้อนกลับ
             </button>
 
-            <form onSubmit={handleSubmit}>
+            <PageHeader
+                title={isReceiveMode ? 'รับสินค้าเข้าคลัง' : (isEdit ? 'แก้ไขใบสั่งซื้อผู้ขาย' : 'สร้างใบสั่งซื้อผู้ขาย')}
+                subtitle={isEdit ? `เลขที่ใบสั่งซื้อ: ${formData.po_number || '-'}` : 'กรอกรายละเอียดเพื่อสร้างใบสั่งซื้อใหม่'}
+            >
+                <div className="flex gap-4" style={{ alignItems: 'center' }}>
+                    <select
+                        value={formData.status}
+                        onChange={e => {
+                            setFormData({ ...formData, status: e.target.value });
+                            setIsDirty(true);
+                        }}
+                        className="glass-input px-4 py-2.5 bg-main rounded-lg text-main border border-border"
+                    >
+                        <option value="Draft">ฉบับร่าง (Draft)</option>
+                        <option value="Partial">รับสินค้าบางส่วน (Partially Received)</option>
+                        <option value="Completed">ได้รับสินค้าครบแล้ว (Completed)</option>
+                        <option value="Cancelled">ยกเลิก (Cancelled)</option>
+                    </select>
+                    <button
+                        type="submit"
+                        form="po-form"
+                        disabled={isSaving}
+                        className="btn-primary flex items-center gap-2" style={{ padding: '0.6rem 1.5rem' }}
+                    >
+                        <Save size={18} /> {isSaving ? 'กำลังบันทึก...' : 'บันทึกใบสั่งซื้อ'}
+                    </button>
+                </div>
+            </PageHeader>
+
+            <form id="po-form" onSubmit={handleSubmit}>
                 {subcontractInventoryId && !isEdit && (
-                    <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', borderLeft: '4px solid #8b5cf6' }}>
-                        <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8b5cf6' }}>
+                    <div className="glass-panel p-6 mb-8" style={{ borderLeft: '4px solid #8b5cf6' }}>
+                        <h3 className="mt-0 text-violet-500 flex items-center gap-2">
                             <Building2 size={20} /> วัตถุดิบที่ต้องเบิกใช้สำหรับการจ้างผลิต
                         </h3>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                        <p className="text-textMuted text-sm mb-4">
                             เมื่อบันทึกใบสั่งซื้อนี้เป็นครั้งแรก ระบบจะทำการ <b>"เบิกตัดสต็อก"</b> วัตถุดิบรายการนี้ออกจากคลังให้โดยอัตโนมัติ
                         </p>
-                        
+
                         {subcontractQty > 0 && subcontractCalculationNote && (
                             <div className="mb-6 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-600 flex items-start gap-2">
                                 <AlertTriangle size={18} className="mt-0.5 shrink-0" />
                                 <div className="text-[0.85rem] leading-relaxed">
-                                    <span>ยอดคำนวณอัตโนมัติ <b>{subcontractCalculationNote}</b></span><br/>
+                                    <span>ยอดคำนวณอัตโนมัติ <b>{subcontractCalculationNote}</b></span><br />
                                     <span>โปรดตรวจสอบและปรับแก้ตัวเลขในช่องด้านล่างให้ตรงกับจำนวนจริงที่จะเบิกใช้</span>
                                 </div>
                             </div>
                         )}
 
-                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                        <div className="flex gap-4" style={{ alignItems: 'flex-end' }}>
                             <div style={{ flex: 2 }}>
-                                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>รายการวัตถุดิบ (อ้างอิงจากคลังที่เลือก)</label>
-                                <input type="text" value={subcontractMaterial} disabled className="glass-input" style={{ width: '100%', padding: '0.8rem', opacity: 0.7 }} />
+                                <label className="text-sm text-textMuted mb-2" style={{ display: 'block' }}>รายการวัตถุดิบ (อ้างอิงจากคลังที่เลือก)</label>
+                                <input type="text" value={subcontractMaterial} disabled className="glass-input w-full p-3" style={{ opacity: 0.7 }} />
                             </div>
                             <div style={{ flex: 1 }}>
-                                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>จำนวนที่ต้องการเบิกใช้</label>
+                                <label className="text-sm text-textMuted mb-2" style={{ display: 'block' }}>จำนวนที่ต้องการเบิกใช้</label>
                                 <input
                                     type="number"
                                     min="0.01"
                                     step="0.01"
                                     value={subcontractQty}
                                     onChange={e => setSubcontractQty(e.target.value)}
-                                    className="glass-input"
-                                    style={{ width: '100%', padding: '0.8rem', borderColor: '#8b5cf6' }}
+                                    className="glass-input w-full p-3" style={{ borderColor: '#8b5cf6' }}
                                     placeholder="ระบุจำนวน"
                                     required={!!subcontractInventoryId}
                                 />
@@ -439,55 +505,28 @@ const SupplierPoFormPage = () => {
                     </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                    <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>
-                        {isReceiveMode ? 'รับสินค้าเข้าคลัง' : (isEdit ? 'แก้ไขใบสั่งซื้อผู้ขาย' : 'สร้างใบสั่งซื้อผู้ขาย')}
-                    </h1>
-                    <div className="flex gap-4">
-                        <select
-                            value={formData.status}
-                            onChange={e => setFormData({ ...formData, status: e.target.value })}
-                            className="glass-input"
-                            style={{ padding: '0.6rem 1rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
-                        >
-                            <option value="Draft">ฉบับร่าง (Draft)</option>
-                            <option value="Partial">รับสินค้าบางส่วน (Partially Received)</option>
-                            <option value="Completed">ได้รับสินค้าครบแล้ว (Completed)</option>
-                            <option value="Cancelled">ยกเลิก (Cancelled)</option>
-                        </select>
-                        <button
-                            type="submit"
-                            disabled={isSaving}
-                            style={{ padding: '0.6rem 1.5rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-                        >
-                            <Save size={18} /> {isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
-                        </button>
-                    </div>
-                </div>
-                <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem' }}>
-                    <h3 style={{ margin: '0 0 1.5rem 0', color: 'var(--primary)' }}>ข้อมูลทั่วไป</h3>
+                <div className="glass-panel p-8 mb-8">
+                    <h3 className="text-primary" style={{ margin: '0 0 1.5rem 0' }}>ข้อมูลทั่วไป</h3>
                     <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เลขที่ PO</label>
+                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>เลขที่ PO</label>
                             <input
                                 type="text"
                                 name="po_number"
                                 value={formData.po_number}
                                 onChange={handleChange}
-                                className="glass-input"
                                 placeholder="สร้างอัตโนมัติเมื่อบันทึก"
-                                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border"
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ผู้ขาย (Vendor) *</label>
+                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>ผู้ขาย (Vendor) *</label>
                             <select
                                 name="supplier_id"
                                 value={formData.supplier_id}
                                 onChange={handleSupplierChange}
-                                className="glass-input"
                                 required
-                                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border"
                             >
                                 <option value="">-- เลือกผู้ขาย --</option>
                                 {suppliers.map(s => (
@@ -496,26 +535,24 @@ const SupplierPoFormPage = () => {
                             </select>
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>วันที่สั่งซื้อ *</label>
+                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>วันที่สั่งซื้อ *</label>
                             <input
                                 type="date"
                                 name="date"
                                 value={formData.date}
                                 onChange={handleChange}
-                                className="glass-input"
                                 required
-                                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border"
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>สถานที่ส่ง (คลังสินค้า) *</label>
+                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>สถานที่ส่ง (คลังสินค้า) *</label>
                             <select
                                 name="delivery_warehouse_id"
                                 value={formData.delivery_warehouse_id || ''}
                                 onChange={handleChange}
-                                className="glass-input"
                                 required
-                                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border"
                             >
                                 <option value="">-- เลือกคลังสินค้า --</option>
                                 {warehouses.map(w => (
@@ -526,56 +563,52 @@ const SupplierPoFormPage = () => {
                             </select>
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>กำหนดส่งสินค้า *</label>
+                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>กำหนดส่งสินค้า *</label>
                             <input
                                 type="date"
                                 name="delivery_date"
                                 value={formData.delivery_date}
                                 onChange={handleChange}
-                                className="glass-input"
                                 required
-                                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border"
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เครดิตเทอม</label>
+                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>เครดิตเทอม</label>
                             <input
                                 type="text"
                                 name="credit_term"
                                 value={formData.credit_term}
                                 onChange={handleChange}
-                                className="glass-input"
                                 placeholder="เช่น เครดิต 60 วัน, เงินสด"
-                                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border"
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>อ้างอิงเอกสาร</label>
+                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>อ้างอิงเอกสาร</label>
                             <input
                                 type="text"
                                 name="reference_doc"
                                 value={formData.reference_doc}
                                 onChange={handleChange}
-                                className="glass-input"
-                                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border"
                             />
                         </div>
                     </div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '0', marginBottom: '1.5rem', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.2rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--primary)' }}>รายการสินค้า</h3>
-                        <button type="button" onClick={addItem} style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: 'var(--primary)', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem' }}>
+                <div className="glass-panel p-0 mb-6 overflow-hidden">
+                    <div className="px-6 py-5 border-b border-border flex justify-between items-center">
+                        <h3 className="m-0 text-lg text-primary">รายการสินค้า</h3>
+                        <button type="button" onClick={addItem} className="text-primary cursor-pointer text-sm" style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '0.4rem 0.8rem', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <Plus size={16} /> เพิ่มรายการ
                         </button>
                     </div>
 
-                    <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                    <div className="table-responsive-wrapper overflow-x-auto touch-pan-x">
+                        <table className="w-full border-collapse" style={{ minWidth: '800px' }}>
                             <thead>
                                 <tr className="border-b border-border text-left">
-                                    <th className="p-4 w-[50px]"></th>
                                     <th className="px-6 py-4 text-textMuted font-medium w-[50px] text-center">ลำดับ</th>
                                     <th className="px-6 py-4 text-textMuted font-medium w-[40%]">รายละเอียดสินค้า (เลือกจากผู้ขายหรือพิมพ์เอง)</th>
                                     <th className="px-6 py-4 text-textMuted font-medium w-[15%] text-right">จำนวนสั่ง</th>
@@ -585,21 +618,12 @@ const SupplierPoFormPage = () => {
                                     <th className="px-6 py-4 text-textMuted font-medium w-[10%]">หน่วย</th>
                                     <th className="px-6 py-4 text-textMuted font-medium w-[15%] text-right">ราคา/หน่วย</th>
                                     <th className="px-6 py-4 text-textMuted font-medium w-[15%] text-right">จำนวนเงิน</th>
+                                    <th className="p-4 w-[50px]"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {items.map((item, index) => (
                                     <tr key={item.id} className="border-b border-border">
-                                        <td className="p-4 text-center">
-                                            <button
-                                                type="button"
-                                                onClick={() => removeItem(index)}
-                                                className="p-1.5 text-textMuted hover:text-error hover:bg-error/10 rounded-md transition-colors"
-                                                title="ลบรายการ"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </td>
                                         <td className="px-6 py-3.5 text-center text-textMuted">{index + 1}</td>
                                         <td className="px-6 py-3.5">
                                             <div className="relative flex items-center">
@@ -608,9 +632,8 @@ const SupplierPoFormPage = () => {
                                                     list={`supplier-products-${index}`}
                                                     value={item.description}
                                                     onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                                                    className="glass-panel"
                                                     placeholder="เลือกสินค้าหรือพิมพ์รายละเอียดเอง..."
-                                                    style={{ width: '100%', padding: '0.5rem', paddingRight: '2rem', background: 'var(--card-hover)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                                    className="glass-panel w-full p-2 bg-cardHover rounded text-main border border-border" style={{ paddingRight: '2rem' }}
                                                     required
                                                 />
                                                 {item.description && (
@@ -696,8 +719,7 @@ const SupplierPoFormPage = () => {
                                                 onChange={(e) => {
                                                     handleItemChange(index, 'quantity', e.target.value);
                                                 }}
-                                                className="glass-input"
-                                                style={{ width: '100%', padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)', textAlign: 'right' }}
+                                                className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border text-right"
                                                 required
                                             />
                                         </td>
@@ -710,8 +732,7 @@ const SupplierPoFormPage = () => {
                                                     step="0.01"
                                                     value={item.received_this_round ?? 0}
                                                     onChange={(e) => handleItemChange(index, 'received_this_round', e.target.value)}
-                                                    className="glass-input"
-                                                    style={{ width: '100%', padding: '0.5rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '4px', color: '#10b981', border: '1px solid #10b981', textAlign: 'right', fontWeight: 'bold' }}
+                                                    className="glass-input w-full p-2 rounded text-emerald-500 text-right" style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid #10b981', fontWeight: 'bold' }}
                                                     required
                                                 />
                                                 {item.previous_received > 0 && (
@@ -731,9 +752,8 @@ const SupplierPoFormPage = () => {
                                                 type="text"
                                                 value={item.unit}
                                                 onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
-                                                className="glass-input"
                                                 placeholder="ชิ้น/กก."
-                                                style={{ width: '100%', padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                                className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
                                             />
                                         </td>
                                         <td className="px-6 py-3.5">
@@ -743,8 +763,7 @@ const SupplierPoFormPage = () => {
                                                 step="0.01"
                                                 value={item.unit_price}
                                                 onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
-                                                className="glass-input"
-                                                style={{ width: '100%', padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)', textAlign: 'right' }}
+                                                className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border text-right"
                                             />
                                         </td>
                                         <td className="px-6 py-3.5 text-right font-medium">
@@ -753,82 +772,120 @@ const SupplierPoFormPage = () => {
                                             </div>
                                             ฿{(parseFloat(item.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
+                                        <td className="p-4 text-center">
+                                            <button
+                                                type="button"
+                                                onClick={() => removeItem(index)}
+                                                className="bg-transparent border-none text-red-500 cursor-pointer p-1.5"
+                                                title="ลบรายการ"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
 
-                    <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', padding: '1.5rem' }}>
+                    <div className="grid-mobile-stack p-6" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                         <div className="glass-panel p-6">
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>หมายเหตุ (REMARK)</label>
+                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>หมายเหตุ (REMARK)</label>
                             <textarea
                                 name="remark"
                                 value={formData.remark}
                                 onChange={handleChange}
                                 rows="4"
-                                className="glass-input"
-                                style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)', resize: 'none', marginBottom: '1.5rem' }}
+                                className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border mb-6" style={{ resize: 'none' }}
                                 placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
                             />
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ผู้สั่งซื้อ (PURCHASE BY) *</label>
+                                    <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>ผู้สั่งซื้อ (PURCHASE BY) *</label>
                                     <input
                                         type="text"
                                         name="purchased_by"
                                         value={formData.purchased_by}
                                         onChange={handleChange}
                                         required
-                                        className="glass-input"
-                                        style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                        className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border"
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ผู้อนุมัติ (APPROVER BY) *</label>
+                                    <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>ผู้อนุมัติ (APPROVER BY) *</label>
                                     <input
                                         type="text"
                                         name="approved_by"
                                         value={formData.approved_by}
                                         onChange={handleChange}
                                         required
-                                        className="glass-input"
-                                        style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                                        className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border"
                                     />
                                 </div>
                             </div>
                         </div>
 
                         <div className="glass-panel p-6">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div className="flex flex-col gap-4">
                                 <div className="flex justify-between items-center">
                                     <span className="text-textMuted">รวมเป็นเงิน (SUB TOTAL)</span>
-                                    <span style={{ fontSize: '1.1rem', color: 'var(--text-main)' }}>฿{formData.sub_total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span className="text-lg text-main">฿{formData.sub_total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div className="flex items-center gap-2">
                                         <span className="text-textMuted">ภาษีมูลค่าเพิ่ม (VAT)</span>
                                         <input
                                             type="number"
                                             name="vat_rate"
                                             value={formData.vat_rate}
                                             onChange={handleChange}
-                                            className="glass-input"
-                                            style={{ width: '50px', padding: '0.2rem', textAlign: 'center', background: 'var(--bg-main)', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '0.8rem' }}
+                                            className="glass-input text-center bg-main rounded text-main border border-border text-xs" style={{ width: '50px', padding: '0.2rem' }}
                                         />
                                         <span className="text-textMuted">%</span>
                                     </div>
                                     <span className="text-textMain">฿{formData.vat_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
-                                <div style={{ padding: '1rem 0', borderTop: '1px solid var(--border-color)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '1.2rem', fontWeight: '600', color: 'var(--primary)' }}>ยอดเงินสุทธิ (TOTAL)</span>
-                                    <span style={{ fontSize: '1.5rem', fontWeight: '700', color: '#10b981' }}>฿{formData.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <div className="flex justify-between items-center" style={{ padding: '1rem 0', borderTop: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+                                    <span className="text-xl font-semibold text-primary">ยอดเงินสุทธิ (TOTAL)</span>
+                                    <span className="text-2xl font-bold text-emerald-500">฿{formData.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <div className="mt-6 p-6 flex justify-end gap-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+                    <button
+                        type="button"
+                        onClick={() => navigate('/dashboard/supplier-pos')}
+                        className="px-6 py-3 rounded-lg border border-border bg-transparent text-textMuted cursor-pointer"
+                    >
+                        ยกเลิก
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={isSaving}
+                        className="px-6 py-3 rounded-lg border-none text-white font-medium flex items-center gap-2" style={{ background: 'var(--primary)', cursor: isSaving ? 'not-allowed' : 'pointer' }}
+                    >
+                        <Save size={18} />
+                        {isSaving ? 'กำลังบันทึก...' : 'บันทึกใบสั่งซื้อ'}
+                    </button>
+                </div>
+                {isEdit && (
+                    <div className="glass-panel p-5 text-textMuted text-sm flex flex-col gap-2 mt-6">
+                        {formData.created_by_name && (
+                            <div className="flex items-center gap-2">
+                                <User size={14} /> สร้างโดย: <span className="text-main font-semibold">{formData.created_by_name}</span>
+                            </div>
+                        )}
+                        {formData.updated_by && (
+                            <div className="flex items-center gap-2">
+                                <User size={14} /> แก้ไขล่าสุดโดย: <span className="text-main font-semibold">{formData.updated_by}</span>
+                            </div>
+                        )}
+                    </div>
+                )}
             </form>
         </div>
     );

@@ -1,6 +1,31 @@
 import { supabase } from './supabaseClient';
 import { supplierCategoryService } from './supplierCategoryService';
 import { settingService } from './settingService';
+import { sanitizeSearchTerm } from './sanitize';
+
+const _mapSupplier = (supplier, mapping, catMap) => {
+    const categoryIds = mapping[supplier.id] || [];
+    return {
+        id: supplier.id,
+        code: supplier.code,
+        name: supplier.name,
+        taxId: supplier.tax_id,
+        branch: supplier.branch,
+        address: supplier.address,
+        contactPerson: supplier.contact_person,
+        phone: supplier.phone,
+        email: supplier.email,
+        creditTerm: supplier.credit_term,
+        status: supplier.status,
+        notes: supplier.notes,
+        categoryIds: categoryIds,
+        categoryNames: categoryIds.map(cid => catMap[cid]).filter(Boolean),
+        createdAt: supplier.created_at,
+        updatedAt: supplier.updated_at,
+        createdBy: supplier.created_by,
+        updatedBy: supplier.updated_by
+    };
+};
 
 export const supplierService = {
     // Get all suppliers
@@ -19,30 +44,77 @@ export const supplierService = {
             const mapping = mappingData || {};
             
             // Transform snake_case to camelCase
-            return suppliersResult.data.map(supplier => {
-                const categoryIds = mapping[supplier.id] || [];
-                
-                return {
-                    id: supplier.id,
-                    code: supplier.code,
-                    name: supplier.name,
-                    taxId: supplier.tax_id,
-                    branch: supplier.branch,
-                    address: supplier.address,
-                    contactPerson: supplier.contact_person,
-                    phone: supplier.phone,
-                    email: supplier.email,
-                    creditTerm: supplier.credit_term,
-                    status: supplier.status,
-                    notes: supplier.notes,
-                    categoryIds: categoryIds,
-                    categoryNames: categoryIds.map(cid => catMap[cid]).filter(Boolean),
-                    createdAt: supplier.created_at,
-                    updatedAt: supplier.updated_at
-                };
-            });
+            return suppliersResult.data.map(supplier => _mapSupplier(supplier, mapping, catMap));
         } catch (error) {
             console.error('Error fetching suppliers:', error);
+            throw error;
+        }
+    },
+
+    // Server-Side Pagination
+    getSuppliersPaginated: async ({ page = 1, limit = 50, searchTerm = '', status = '' }) => {
+        try {
+            let query = supabase.from('suppliers').select('*', { count: 'exact' });
+
+            if (searchTerm) {
+                const safe = sanitizeSearchTerm(searchTerm);
+                if (safe) query = query.or(`name.ilike.%${safe}%,code.ilike.%${safe}%,contact_person.ilike.%${safe}%`);
+            }
+            if (status) {
+                query = query.eq('status', status);
+            }
+
+            const from = (page - 1) * limit;
+            const to = from + limit - 1;
+
+            const [queryResult, categories, mappingData] = await Promise.all([
+                query.order('name', { ascending: true }).range(from, to),
+                supplierCategoryService.getCategories(),
+                settingService.getSetting('supplier_categories_map')
+            ]);
+
+            if (queryResult.error) throw queryResult.error;
+
+            const catMap = {};
+            categories.forEach(c => { catMap[c.id] = c.name; });
+            const mapping = mappingData || {};
+            
+            const processedData = queryResult.data.map(supplier => _mapSupplier(supplier, mapping, catMap));
+
+            return { data: processedData, total: queryResult.count };
+        } catch (error) {
+            console.error('Error fetching paginated suppliers:', error);
+            return { data: [], total: 0, error };
+        }
+    },
+
+    exportSuppliers: async ({ searchTerm = '', status = '' }) => {
+        try {
+            let query = supabase.from('suppliers').select('*');
+
+            if (searchTerm) {
+                const safe = sanitizeSearchTerm(searchTerm);
+                if (safe) query = query.or(`name.ilike.%${safe}%,code.ilike.%${safe}%,contact_person.ilike.%${safe}%`);
+            }
+            if (status) {
+                query = query.eq('status', status);
+            }
+
+            const [queryResult, categories, mappingData] = await Promise.all([
+                query.order('name', { ascending: true }),
+                supplierCategoryService.getCategories(),
+                settingService.getSetting('supplier_categories_map')
+            ]);
+
+            if (queryResult.error) throw queryResult.error;
+
+            const catMap = {};
+            categories.forEach(c => { catMap[c.id] = c.name; });
+            const mapping = mappingData || {};
+            
+            return queryResult.data.map(supplier => _mapSupplier(supplier, mapping, catMap));
+        } catch (error) {
+            console.error('Error exporting suppliers:', error);
             throw error;
         }
     },
@@ -60,31 +132,10 @@ export const supplierService = {
             const data = supplierResult.data;
             const mapping = mappingData || {};
 
-            // Lookup category names
-            const categoryIds = mapping[data.id] || [];
-            
             const catMap = {};
             categories.forEach(c => { catMap[c.id] = c.name; });
-            const categoryNames = categoryIds.map(cid => catMap[cid]).filter(Boolean);
-            
-            return {
-                id: data.id,
-                code: data.code,
-                name: data.name,
-                taxId: data.tax_id,
-                branch: data.branch,
-                address: data.address,
-                contactPerson: data.contact_person,
-                phone: data.phone,
-                email: data.email,
-                creditTerm: data.credit_term,
-                status: data.status,
-                notes: data.notes,
-                categoryIds: categoryIds,
-                categoryNames: categoryNames,
-                createdAt: data.created_at,
-                updatedAt: data.updated_at
-            };
+
+            return _mapSupplier(data, mapping, catMap);
         } catch (error) {
             console.error('Error fetching supplier:', error);
             throw error;
@@ -105,7 +156,9 @@ export const supplierService = {
                 email: supplierData.email,
                 credit_term: supplierData.creditTerm,
                 status: supplierData.status || 'Active',
-                notes: supplierData.notes
+                notes: supplierData.notes,
+                created_by: supplierData.createdBy || null,
+                updated_by: supplierData.updatedBy || null
             };
 
             const { data, error } = await supabase
@@ -144,7 +197,8 @@ export const supplierService = {
                 credit_term: supplierData.creditTerm,
                 status: supplierData.status,
                 notes: supplierData.notes,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                updated_by: supplierData.updatedBy || null
             };
 
             const { data, error } = await supabase

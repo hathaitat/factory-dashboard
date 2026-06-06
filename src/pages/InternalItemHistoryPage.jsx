@@ -9,12 +9,14 @@ import { internalItemService } from '../services/internalItemService';
 import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader from '../components/PageHeader';
+import { useAuth } from '../contexts/AuthContext';
 
 const InternalItemHistoryPage = () => {
+    const { user } = useAuth();
     const { id } = useParams();
     const navigate = useNavigate();
     const { showError, showAlert } = useDialog();
-    const currentUser = userService.getCurrentUser();
+    const currentUser = user;
 
     const [item, setItem] = useState(null);
     const [logs, setLogs] = useState([]);
@@ -106,7 +108,7 @@ const InternalItemHistoryPage = () => {
         }
     };
 
-    if (isLoading && !item) return <div className="loading-spinner" style={{ margin: '3rem auto' }}></div>;
+    if (isLoading && !item) return <div className="loading-spinner my-12 mx-auto"></div>;
     if (!item) return null;
 
     // Calculate Summary
@@ -117,12 +119,12 @@ const InternalItemHistoryPage = () => {
     }, { totalIn: 0, totalOut: 0 });
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div className="px-4 pb-8">
+            <div className="mb-8 flex justify-between items-center">
+                <div className="flex items-center gap-4">
                     <button
                         onClick={() => navigate('/dashboard/internal-items')}
-                        style={{ background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' }}
+                        className="bg-transparent border border-border text-main rounded-lg cursor-pointer" style={{ padding: '0.5rem' }}
                     >
                         <ArrowLeft size={20} />
                     </button>
@@ -132,19 +134,17 @@ const InternalItemHistoryPage = () => {
                         style={{ marginBottom: 0 }}
                     />
                 </div>
-                <div style={{ display: 'flex', gap: '0.8rem' }}>
+                <div className="flex gap-3">
                     <button
                         onClick={() => setShowAdjustModal(true)}
-                        className="btn-primary"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem' }}
+                        className="btn-primary px-5 py-2.5 flex items-center gap-2"
                     >
                         <Plus size={18} /> ปรับสต๊อก
                     </button>
                     {logs.length === 0 && (
                         <button
                             onClick={handleInitializeHistory}
-                            className="btn-secondary"
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', borderColor: 'var(--primary)', padding: '0.6rem 1rem' }}
+                            className="btn-secondary text-primary px-4 py-2.5 flex items-center gap-2" style={{ borderColor: 'var(--primary)' }}
                         >
                             <History size={18} /> บันทึกยอดเริ่มต้น
                         </button>
@@ -153,39 +153,39 @@ const InternalItemHistoryPage = () => {
             </div>
 
             {/* Item Info & Stats */}
-            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
-                <div className="glass-panel" style={{ padding: '1rem', borderLeft: '4px solid var(--primary)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+            <div className="grid-mobile-stack mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="glass-panel p-4" >
+                    <div className="text-textMuted text-sm mb-2 flex items-center gap-3">
                         <Package size={16} /> จำนวนคงเหลือ
                     </div>
-                    <div style={{ fontSize: '1.3rem', fontWeight: '700', color: 'var(--primary)' }}>
-                        {Number(item.current_stock).toLocaleString()} <span style={{ fontSize: '0.9rem', fontWeight: '400', color: 'var(--text-muted)' }}>{item.unit}</span>
+                    <div className="text-xl font-bold text-primary">
+                        {Number(item.current_stock).toLocaleString()} <span className="text-sm font-normal text-textMuted">{item.unit}</span>
                     </div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '1rem', borderLeft: '4px solid #10b981' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: '#10b981', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                <div className="glass-panel p-4" >
+                    <div className="text-emerald-500 text-sm mb-2 flex items-center gap-3">
                         <TrendingUp size={16} /> รวมการนำเข้า
                     </div>
-                    <div style={{ fontSize: '1.3rem', fontWeight: '700', color: '#10b981' }}>
-                        +{stats.totalIn.toLocaleString()} <span style={{ fontSize: '0.9rem', fontWeight: '400', color: 'var(--text-muted)' }}>{item.unit}</span>
+                    <div className="text-xl font-bold text-emerald-500">
+                        +{stats.totalIn.toLocaleString()} <span className="text-sm font-normal text-textMuted">{item.unit}</span>
                     </div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '1rem', borderLeft: '4px solid #ef4444' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: '#ef4444', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                <div className="glass-panel p-4">
+                    <div className="text-red-500 text-sm mb-2 flex items-center gap-3">
                         <TrendingDown size={16} /> รวมการเบิกออก
                     </div>
-                    <div style={{ fontSize: '1.3rem', fontWeight: '700', color: '#ef4444' }}>
-                        -{stats.totalOut.toLocaleString()} <span style={{ fontSize: '0.9rem', fontWeight: '400', color: 'var(--text-muted)' }}>{item.unit}</span>
+                    <div className="text-xl font-bold text-red-500">
+                        -{stats.totalOut.toLocaleString()} <span className="text-sm font-normal text-textMuted">{item.unit}</span>
                     </div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '1rem', borderLeft: '4px solid #f59e0b' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: '#f59e0b', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                <div className="glass-panel p-4" >
+                    <div className="text-amber-500 text-sm mb-2 flex items-center gap-3">
                         <DollarSign size={16} /> ราคาซื้อล่าสุด
                     </div>
-                    <div style={{ fontSize: '1.3rem', fontWeight: '700', color: '#f59e0b' }}>
+                    <div className="text-xl font-bold text-amber-500">
                         {(() => {
                             const lastPurchase = logs.find(l => l.type === 'IN' && l.unit_cost);
                             return lastPurchase ? `฿${Number(lastPurchase.unit_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-';
@@ -195,92 +195,84 @@ const InternalItemHistoryPage = () => {
             </div>
 
             {/* History Table */}
-            <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.01)', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+            <div className="glass-panel p-0 overflow-hidden">
+                <div className="p-6 border-b border-border flex items-center gap-3" style={{ background: 'rgba(0, 0, 0, 0.01)' }}>
                     <History size={20} color="var(--primary)" />
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600' }}>ประวัติรายการเข้า-ออก (Stock Card)</h3>
+                    <h3 className="m-0 text-lg font-semibold">ประวัติรายการเข้า-ออก (Stock Card)</h3>
                 </div>
 
                 <div className="table-responsive-wrapper">
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <table className="w-full border-collapse">
                         <thead>
-                            <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-main)', textAlign: 'left' }}>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>วันที่/เวลา</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>ประเภท</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวน</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>ราคา/หน่วย</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>ก่อนหน้า</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>ยอดหลังทำรายการ</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ที่มา/อ้างอิง</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ผู้ทำรายการ</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>หมายเหตุ</th>
+                            <tr className="border-b border-border text-left" style={{ background: 'var(--bg-main)' }}>
+                                <th className="px-6 py-5 text-textMuted font-medium">วันที่/เวลา</th>
+                                <th className="px-6 py-5 text-textMuted font-medium text-center">ประเภท</th>
+                                <th className="px-6 py-5 text-textMuted font-medium text-right">จำนวน</th>
+                                <th className="px-6 py-5 text-textMuted font-medium text-right">ราคา/หน่วย</th>
+                                <th className="px-6 py-5 text-textMuted font-medium text-right">ก่อนหน้า</th>
+                                <th className="px-6 py-5 text-textMuted font-medium text-right">ยอดหลังทำรายการ</th>
+                                <th className="px-6 py-5 text-textMuted font-medium">ที่มา/อ้างอิง</th>
+                                <th className="px-6 py-5 text-textMuted font-medium">ผู้ทำรายการ</th>
+                                <th className="px-6 py-5 text-textMuted font-medium">หมายเหตุ</th>
                             </tr>
                         </thead>
                         <tbody>
                             {logs.length > 0 ? (
                                 logs.map((log) => (
-                                    <tr key={log.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.01)'} onMouseOut={e => e.currentTarget.style.background = 'none'}>
-                                        <td style={{ padding: '1.2rem 1.5rem' }}>
-                                            <div style={{ fontSize: '0.95rem', fontWeight: '500' }}>{new Date(log.created_at).toLocaleDateString('th-TH')}</div>
-                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</div>
+                                    <tr key={log.id} className="border-b border-border" style={{ transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.01)'} onMouseOut={e => e.currentTarget.style.background = 'none'}>
+                                        <td className="px-6 py-5">
+                                            <div className="text-[0.95rem] font-medium">{new Date(log.created_at).toLocaleDateString('th-TH')}</div>
+                                            <div className="text-xs text-textMuted">{new Date(log.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</div>
                                         </td>
-                                        <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
+                                        <td className="px-6 py-5 text-center">
                                             {log.type === 'IN' ? (
-                                                <span style={{
-                                                    display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-                                                    background: 'rgba(16, 185, 129, 0.1)', color: '#10b981',
-                                                    padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '600'
-                                                }}>
+                                                <span className="text-emerald-500 rounded-full text-xs font-semibold" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(16, 185, 129, 0.1)', padding: '0.3rem 0.8rem' }}>
                                                     <ArrowUpRight size={14} /> เข้า
                                                 </span>
                                             ) : (
-                                                <span style={{
-                                                    display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-                                                    background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444',
-                                                    padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '600'
-                                                }}>
+                                                <span className="text-red-500 rounded-full text-xs font-semibold" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(239, 68, 68, 0.1)', padding: '0.3rem 0.8rem' }}>
                                                     <ArrowDownLeft size={14} /> ออก
                                                 </span>
                                             )}
                                         </td>
-                                        <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '700', color: log.type === 'IN' ? '#10b981' : '#ef4444' }}>
+                                        <td className="px-6 py-5 text-right font-bold" style={{ color: log.type === 'IN' ? '#10b981' : '#ef4444' }}>
                                             {log.type === 'IN' ? '+' : '-'}{Number(log.qty || 0).toLocaleString()}
                                         </td>
-                                        <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', color: log.unit_cost ? '#f59e0b' : 'var(--text-muted)', fontWeight: log.unit_cost ? '600' : '400' }}>
+                                        <td className="px-6 py-5 text-right" style={{ color: log.unit_cost ? '#f59e0b' : 'var(--text-muted)', fontWeight: log.unit_cost ? '600' : '400' }}>
                                             {log.unit_cost ? `฿${Number(log.unit_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}
                                         </td>
-                                        <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', color: 'var(--text-muted)' }}>
+                                        <td className="px-6 py-5 text-right text-textMuted">
                                             {Number(log.previous_stock || 0).toLocaleString()}
                                         </td>
-                                        <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '600' }}>
+                                        <td className="px-6 py-5 text-right font-semibold">
                                             {Number(log.new_stock || 0).toLocaleString()}
                                         </td>
-                                        <td style={{ padding: '1.2rem 1.5rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <td className="px-6 py-5">
+                                            <div className="flex items-center gap-2">
                                                 {log.source_type === 'requisition' ? (
                                                     <span
-                                                        style={{ color: '#3b82f6', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.85rem' }}
+                                                        className="text-blue-500 font-semibold cursor-pointer underline text-sm"
                                                         onClick={() => navigate(`/dashboard/internal-requisitions/${log.source_id}`)}
                                                     >
                                                         {log.reference_no || 'ใบสั่งซื้อ'}
                                                     </span>
                                                 ) : (
-                                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>ปรับด้วยมือ</span>
+                                                    <span className="text-sm text-textMuted">ปรับด้วยมือ</span>
                                                 )}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.2rem 1.5rem', fontSize: '0.9rem', fontWeight: '500' }}>
+                                        <td className="px-6 py-5 text-sm font-medium">
                                             {log.performed_by || '-'}
                                         </td>
-                                        <td style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: '250px' }}>
+                                        <td className="px-6 py-5 text-textMuted text-sm" style={{ maxWidth: '250px' }}>
                                             {log.remark || '-'}
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="9" style={{ padding: '5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                        <History size={48} style={{ opacity: 0.1, marginBottom: '1rem' }} />
+                                    <td colSpan="9" className="p-20 text-center text-textMuted">
+                                        <History size={48} className="mb-4" style={{ opacity: 0.1 }} />
                                         <div>ยังไม่มีประวัติความเคลื่อนไหวสำหรับสินค้านี้</div>
                                     </td>
                                 </tr>
@@ -293,43 +285,33 @@ const InternalItemHistoryPage = () => {
             {/* Manual Adjustment Modal */}
             {showAdjustModal && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
-                    <div className="glass-panel" style={{ width: '90%', maxWidth: '420px', padding: '2rem', background: 'white' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ margin: 0 }}>ปรับยอดสต๊อก — {item.name}</h3>
-                            <button onClick={() => setShowAdjustModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={24} /></button>
+                    <div className="glass-panel p-8" style={{ width: '90%', maxWidth: '420px', background: 'white' }}>
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="m-0">ปรับยอดสต๊อก — {item.name}</h3>
+                            <button onClick={() => setShowAdjustModal(false)} className="bg-transparent border-none cursor-pointer"><X size={24} /></button>
                         </div>
                         <form onSubmit={handleAdjustSubmit}>
-                            <div style={{ marginBottom: '1.2rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>ประเภทรายการ</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                            <div className="mb-5">
+                                <label className="block text-sm text-textMuted mb-2">ประเภทรายการ</label>
+                                <div className="grid grid-cols-2 gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setAdjustType('IN')}
-                                        style={{
-                                            padding: '0.8rem', borderRadius: '8px', border: '1px solid #10b981',
-                                            background: adjustType === 'IN' ? '#10b981' : 'white',
-                                            color: adjustType === 'IN' ? 'white' : '#10b981',
-                                            fontWeight: '600', cursor: 'pointer'
-                                        }}
+                                        className="p-3 rounded-lg font-semibold cursor-pointer" style={{ border: '1px solid #10b981', background: adjustType === 'IN' ? '#10b981' : 'white', color: adjustType === 'IN' ? 'white' : '#10b981' }}
                                     >
                                         นำเข้า (+)
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setAdjustType('OUT')}
-                                        style={{
-                                            padding: '0.8rem', borderRadius: '8px', border: '1px solid #ef4444',
-                                            background: adjustType === 'OUT' ? '#ef4444' : 'white',
-                                            color: adjustType === 'OUT' ? 'white' : '#ef4444',
-                                            fontWeight: '600', cursor: 'pointer'
-                                        }}
+                                        className="p-3 rounded-lg font-semibold cursor-pointer" style={{ border: '1px solid #ef4444', background: adjustType === 'OUT' ? '#ef4444' : 'white', color: adjustType === 'OUT' ? 'white' : '#ef4444' }}
                                     >
                                         เบิกออก (-)
                                     </button>
                                 </div>
                             </div>
-                            <div style={{ marginBottom: '1.2rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>จำนวน ({item.unit})</label>
+                            <div className="mb-5">
+                                <label className="block text-sm text-textMuted mb-2">จำนวน ({item.unit})</label>
                                 <input
                                     type="number"
                                     step="1"
@@ -337,36 +319,33 @@ const InternalItemHistoryPage = () => {
                                     required
                                     value={adjustQty}
                                     onChange={e => setAdjustQty(e.target.value)}
-                                    className="glass-input"
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '8px' }}
+                                    className="glass-input w-full p-3 rounded-lg"
                                 />
                             </div>
                             {adjustType === 'IN' && (
-                                <div style={{ marginBottom: '1.2rem' }}>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>ราคาซื้อต่อหน่วย (บาท) — ไม่บังคับ</label>
+                                <div className="mb-5">
+                                    <label className="block text-sm text-textMuted mb-2">ราคาซื้อต่อหน่วย (บาท) — ไม่บังคับ</label>
                                     <input
                                         type="number"
                                         step="0.01"
                                         min="0"
                                         value={adjustCost}
                                         onChange={e => setAdjustCost(e.target.value)}
-                                        className="glass-input"
-                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '8px' }}
+                                        className="glass-input w-full p-3 rounded-lg"
                                         placeholder="เช่น 80.00"
                                     />
                                 </div>
                             )}
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>หมายเหตุ</label>
+                            <div className="mb-6">
+                                <label className="block text-sm text-textMuted mb-2">หมายเหตุ</label>
                                 <textarea
                                     value={adjustRemark}
                                     onChange={e => setAdjustRemark(e.target.value)}
-                                    className="glass-input"
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', minHeight: '80px' }}
+                                    className="glass-input w-full p-3 rounded-lg min-h-[80px]"
                                     placeholder="เช่น ซื้อเพิ่มจากร้าน ABC, เบิกใช้ในงาน XYZ..."
                                 />
                             </div>
-                            <div style={{ display: 'flex', gap: '0.8rem' }}>
+                            <div className="flex gap-3">
                                 <button type="button" onClick={() => setShowAdjustModal(false)} className="btn-secondary" style={{ flex: 1 }}>ยกเลิก</button>
                                 <button type="submit" disabled={isSaving} className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                                     <Save size={18} /> {isSaving ? 'กำลังบันทึก...' : 'บันทึก'}

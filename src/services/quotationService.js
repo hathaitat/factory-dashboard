@@ -1,6 +1,30 @@
 import { supabase } from './supabaseClient';
 import { settingService } from './settingService';
 import { documentNumberHelper } from '../utils/documentNumbering';
+import { sanitizeSearchTerm } from './sanitize';
+
+const _mapQuotation = (qt) => ({
+    id: qt.id,
+    quotationNo: qt.quotation_no,
+    date: qt.date,
+    customerId: qt.customer_id,
+    customerName: qt.customer?.name || qt.customer_snapshot?.name || 'Unknown',
+    customerSnapshot: qt.customer_snapshot,
+    attnName: qt.attn_name,
+    validityDays: qt.validity_days,
+    paymentCondition: qt.payment_condition,
+    deliveryTime: qt.delivery_time,
+    subtotal: Number(qt.subtotal),
+    discount: Number(qt.discount),
+    vatRate: Number(qt.vat_rate),
+    vatAmount: Number(qt.vat_amount),
+    grandTotal: Number(qt.grand_total),
+    status: qt.status,
+    costCalculation: qt.cost_calculation || {},
+    createdAt: qt.created_at,
+    createdBy: qt.created_by,
+    updatedBy: qt.updated_by
+});
 
 export const quotationService = {
     // Get all quotations with customer details
@@ -16,29 +40,98 @@ export const quotationService = {
 
             if (error) throw error;
 
-            return data.map(qt => ({
-                id: qt.id,
-                quotationNo: qt.quotation_no,
-                date: qt.date,
-                customerId: qt.customer_id,
-                customerName: qt.customer?.name || qt.customer_snapshot?.name || 'Unknown',
-                customerSnapshot: qt.customer_snapshot,
-                attnName: qt.attn_name,
-                validityDays: qt.validity_days,
-                paymentCondition: qt.payment_condition,
-                deliveryTime: qt.delivery_time,
-                subtotal: Number(qt.subtotal),
-                discount: Number(qt.discount),
-                vatRate: Number(qt.vat_rate),
-                vatAmount: Number(qt.vat_amount),
-                grandTotal: Number(qt.grand_total),
-                status: qt.status,
-                costCalculation: qt.cost_calculation || {},
-                createdAt: qt.created_at
-            }));
+            return data.map(_mapQuotation);
         } catch (error) {
             console.error('Error fetching quotations:', error);
             return [];
+        }
+    },
+
+    // Server-Side Pagination
+    getQuotationsPaginated: async ({ page = 1, limit = 50, searchTerm = '', dateFrom = '', dateTo = '' }) => {
+        try {
+            let query = supabase.from('quotations').select(`
+                *,
+                customer:customers(name)
+            `, { count: 'exact' });
+
+            if (searchTerm) {
+                const safe = sanitizeSearchTerm(searchTerm);
+                if (safe) query = query.or(`quotation_no.ilike.%${safe}%,customer_snapshot->>name.ilike.%${safe}%`);
+            }
+
+            if (dateFrom) {
+                query = query.gte('date', dateFrom);
+            }
+            if (dateTo) {
+                query = query.lte('date', dateTo);
+            }
+
+            const from = (page - 1) * limit;
+            const to = from + limit - 1;
+
+            const { data, count, error } = await query
+                .order('created_at', { ascending: false })
+                .range(from, to);
+
+            if (error) throw error;
+
+            const processedData = data.map(_mapQuotation);
+
+            return { data: processedData, total: count };
+        } catch (error) {
+            console.error('Error fetching paginated quotations:', error);
+            return { data: [], total: 0, error };
+        }
+    },
+
+    exportQuotations: async ({ searchTerm = '', dateFrom = '', dateTo = '' }) => {
+        try {
+            let query = supabase.from('quotations').select(`
+                *,
+                customer:customers(name)
+            `);
+
+            if (searchTerm) {
+                const safe = sanitizeSearchTerm(searchTerm);
+                if (safe) query = query.or(`quotation_no.ilike.%${safe}%,customer_snapshot->>name.ilike.%${safe}%`);
+            }
+            if (dateFrom) {
+                query = query.gte('date', dateFrom);
+            }
+            if (dateTo) {
+                query = query.lte('date', dateTo);
+            }
+
+            const { data, error } = await query.order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            return data.map(_mapQuotation);
+        } catch (error) {
+            console.error('Error exporting quotations:', error);
+            throw error;
+        }
+    },
+
+    getQuotationStats: async () => {
+        try {
+            const [draftRes, sentRes, approvedRes, totalValueRes] = await Promise.all([
+                supabase.from('quotations').select('id', { count: 'exact', head: true }).eq('status', 'Draft'),
+                supabase.from('quotations').select('id', { count: 'exact', head: true }).eq('status', 'Sent'),
+                supabase.from('quotations').select('id', { count: 'exact', head: true }).eq('status', 'Approved'),
+                supabase.from('quotations').select('grand_total').eq('status', 'Approved')
+            ]);
+
+            const draft = draftRes.count || 0;
+            const sent = sentRes.count || 0;
+            const approved = approvedRes.count || 0;
+            const totalValue = (totalValueRes.data || []).reduce((sum, row) => sum + (Number(row.grand_total) || 0), 0);
+
+            return { draft, sent, approved, totalValue };
+        } catch (error) {
+            console.error('Error fetching quotation stats:', error);
+            return { draft: 0, sent: 0, approved: 0, totalValue: 0 };
         }
     },
 
@@ -94,6 +187,10 @@ export const quotationService = {
                 notes: qt.notes,
                 status: qt.status,
                 costCalculation: qt.cost_calculation || {},
+                createdAt: qt.created_at,
+                updatedAt: qt.updated_at,
+                createdBy: qt.created_by,
+                updatedBy: qt.updated_by,
                 items: items.map(item => ({
                     id: item.id,
                     productName: item.product_name,
@@ -131,7 +228,9 @@ export const quotationService = {
                 status: quotationData.status || 'Draft',
                 // Note: Ensure 'cost_calculation' column exists in your Supabase 'quotations' table (JSONB)
                 cost_calculation: quotationData.costCalculation || {},
-                customer_snapshot: quotationData.customerSnapshot || null
+                customer_snapshot: quotationData.customerSnapshot || null,
+                created_by: quotationData.createdBy || null,
+                updated_by: quotationData.updatedBy || null
             };
 
             const { data: qt, error: qtError } = await supabase
@@ -195,7 +294,8 @@ export const quotationService = {
                 status: quotationData.status,
                 cost_calculation: quotationData.costCalculation || {},
                 customer_snapshot: quotationData.customerSnapshot || null,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                updated_by: quotationData.updatedBy || null
             };
 
             const { error: qtError } = await supabase
@@ -243,11 +343,11 @@ export const quotationService = {
     },
 
     // Change Quotation Status
-    updateStatus: async (id, status) => {
+    updateStatus: async (id, status, updatedBy) => {
         try {
             const { error } = await supabase
                 .from('quotations')
-                .update({ status, updated_at: new Date().toISOString() })
+                .update({ status, updated_at: new Date().toISOString(), updated_by: updatedBy || null })
                 .eq('id', id);
 
             if (error) throw error;

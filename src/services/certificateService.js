@@ -175,7 +175,9 @@ export const certificateService = {
           file_url: certData.file_url,
           issue_date: certData.issue_date || null,
           expiry_date: certData.expiry_date || null,
-          status: certData.status || 'Active'
+          status: certData.status || 'Active',
+          created_by: certData.createdBy || certData.created_by || null,
+          updated_by: certData.updatedBy || certData.updated_by || null
         }])
         .select()
         .single();
@@ -226,7 +228,8 @@ export const certificateService = {
           issue_date: certData.issue_date || null,
           expiry_date: certData.expiry_date || null,
           status: certData.status,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          updated_by: certData.updatedBy || certData.updated_by || null
         })
         .eq('id', id)
         .select()

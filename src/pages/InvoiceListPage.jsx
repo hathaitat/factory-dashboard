@@ -9,39 +9,73 @@ import { useDialog } from '../contexts/DialogContext';
 import { getLocalDateString } from '../utils/dateUtils';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
+import Pagination from '../components/Pagination';
+import { useServerPagination } from '../hooks/useServerPagination';
 
 const InvoiceListPage = () => {
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
     const { showConfirm, showAlert, showError } = useDialog();
-    const [invoices, setInvoices] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [dateFilterType, setDateFilterType] = useState('date');
     const [statusFilter, setStatusFilter] = useState('');
+    const [kpis, setKpis] = useState({ monthCount: 0, pendingCount: 0, paidCount: 0, totalCount: 0 });
+
+    const {
+        data: paginatedData,
+        totalItems,
+        totalPages,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        isLoading,
+        updateFilters,
+        startItem,
+        endItem,
+        refresh
+    } = useServerPagination(invoiceService.getInvoicesPaginated, { searchTerm: '', status: '', dateFrom: '', dateTo: '' }, 50);
 
     useEffect(() => {
-        loadInvoices();
-    }, []);
+        const loadKPIs = async () => {
+            const stats = await invoiceService.getInvoiceStats();
+            setKpis({
+                monthCount: stats.monthCount || 0,
+                pendingCount: stats.pendingCount || 0,
+                paidCount: stats.paidCount || 0,
+                totalCount: stats.totalCount || 0
+            });
+        };
+        loadKPIs();
+    }, [refresh]);
 
-    const loadInvoices = async () => {
-        setIsLoading(true);
-        const data = await invoiceService.getInvoices();
-        setInvoices(data || []);
-        setIsLoading(false);
+    const hasActiveFilters = !!(statusFilter || dateFrom || dateTo);
+    const clearFilters = () => {
+        setStatusFilter('');
+        setDateFrom('');
+        setDateTo('');
+        updateFilters({ status: '', dateFrom: '', dateTo: '' });
     };
+
+    // Debounce filters
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            updateFilters({ searchTerm, status: statusFilter, dateFrom, dateTo });
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm, statusFilter, dateFrom, dateTo, updateFilters]);
 
     const handleDelete = async (id, invoiceNo) => {
         const confirmed = await showConfirm(`ต้องการลบใบกำกับภาษีเลขที่ ${invoiceNo} หรือไม่?`);
         if (confirmed) {
             const success = await invoiceService.deleteInvoice(id);
             if (success) {
-                setInvoices(invoices.filter(inv => inv.id !== id));
+                refresh();
             } else {
-                await showError(error.message || 'ไม่สามารถลบใบกำกับภาษีได้');
+                await showError('ไม่สามารถลบใบกำกับภาษีได้');
             }
         }
     };
@@ -53,9 +87,14 @@ const InvoiceListPage = () => {
         setIsExporting(true);
         try {
             const company = await companyService.getCompanyInfo();
-            const invoiceIds = filteredInvoices.map(inv => inv.id);
+            const allFilteredInvoices = await invoiceService.exportInvoices({
+                searchTerm,
+                status: statusFilter,
+                dateFrom,
+                dateTo
+            });
             const fullInvoices = await Promise.all(
-                invoiceIds.map(id => invoiceService.getInvoiceById(id))
+                allFilteredInvoices.map(inv => invoiceService.getInvoiceById(inv.id))
             );
 
             // Style helpers
@@ -436,118 +475,38 @@ const InvoiceListPage = () => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Invoice_${group.replace(/ /g, '_')}.xlsx`;
+            a.download = `Invoices_Export.xlsx`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            await showAlert(`ส่งออก Excel เดือน${group} เรียบร้อย (${fullInvoices.filter(Boolean).length} ใบ)`);
+            await showAlert(`ส่งออก Excel เรียบร้อย (${fullInvoices.filter(Boolean).length} ใบ)`);
         } catch (error) {
-            console.error('Export month error:', error);
+            console.error('Export error:', error);
             await showError('ไม่สามารถส่งออก Excel ได้: ' + (error.message || ''));
         } finally {
             setIsExporting(false);
         }
     };
 
-    const hasActiveFilters = dateFrom || dateTo;
-    const clearFilters = () => { setDateFrom(''); setDateTo(''); setDateFilterType('date'); };
-
-    const filteredInvoices = invoices.filter(inv => {
-        const matchSearch = inv.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            inv.customerName.toLowerCase().includes(searchTerm.toLowerCase());
-
-        const targetDate = dateFilterType === 'dueDate' ? inv.dueDate : inv.date;
-        const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
-        const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
-        return matchSearch && matchDateFrom && matchDateTo;
-    });
-
-    // Grouping by Month/Year
-    const getMonthYear = (dateString) => {
-        const date = new Date(dateString);
-        const monthNames = [
-            "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-        ];
-        return `${monthNames[date.getMonth()]} ${date.getFullYear() + 543}`;
-    };
-
-    const groupedInvoices = filteredInvoices.reduce((acc, inv) => {
-        const group = getMonthYear(inv.date);
-        if (!acc[group]) acc[group] = [];
-        acc[group].push(inv);
-        return acc;
-    }, {});
-
-    const monthYearGroups = Object.keys(groupedInvoices).sort((a, b) => {
-        const dateA = Math.max(...groupedInvoices[a].map(inv => new Date(inv.date).getTime()));
-        const dateB = Math.max(...groupedInvoices[b].map(inv => new Date(inv.date).getTime()));
-        return dateB - dateA;
-    });
-
-    // KPI Calculations
-    const kpis = React.useMemo(() => {
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-
-        const monthlyInvoices = invoices.filter(inv => {
-            const d = new Date(inv.date);
-            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-        });
-
-        const monthCount = monthlyInvoices.length;
-        const pendingCount = invoices.filter(inv => inv.status !== 'Paid' && inv.status !== 'Cancelled').length;
-        const paidCount = invoices.filter(inv => inv.status === 'Paid').length;
-        const totalCount = invoices.filter(inv => inv.status !== 'Cancelled').length;
-
-        return { monthCount, pendingCount, paidCount, totalCount };
-    }, [invoices]);
-
     return (
-        <div style={{ padding: '0 1rem' }}>
+        <div className="px-4">
             <PageHeader
                 title="รายการใบกำกับภาษี (Invoices)"
                 helpContent={HELP_CONTENT.invoices}
             >
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div className="flex gap-3">
                     <button
                         onClick={exportToExcel}
                         disabled={isExporting}
-                        className="glass-panel"
-                        style={{
-                            padding: '0.6rem 1rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            background: 'white',
-                            border: '1px solid #e2e8f0',
-                            color: 'var(--success)',
-                            cursor: isExporting ? 'not-allowed' : 'pointer',
-                            borderRadius: '8px',
-                            fontWeight: '500',
-                            fontSize: '0.9rem'
-                        }}
+                        className="glass-panel px-4 py-2.5 text-emerald-500 rounded-lg font-medium text-sm flex items-center gap-2" style={{ background: 'white', border: '1px solid #e2e8f0', cursor: isExporting ? 'not-allowed' : 'pointer' }}
                     >
                         <FileSpreadsheet size={18} /> {isExporting ? 'Exporting...' : 'Export All'}
                     </button>
                     {hasPermission('invoices', 'create') && (
                         <button
                             onClick={() => navigate('/dashboard/invoices/new')}
-                            style={{
-                                padding: '0.6rem 1.2rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                background: '#3b82f6',
-                                border: 'none',
-                                color: 'white',
-                                cursor: 'pointer',
-                                borderRadius: '8px',
-                                fontWeight: '600',
-                                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)'
-                            }}
+                            className="px-5 py-2.5 border-none text-white cursor-pointer rounded-lg font-semibold flex items-center gap-2" style={{ background: '#3b82f6', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)' }}
                         >
                             <Plus size={20} /> ออกใบกำกับภาษี
                         </button>
@@ -556,43 +515,43 @@ const InvoiceListPage = () => {
             </PageHeader>
 
             {/* KPI Cards */}
-            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
-                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(16, 185, 129, 0.1)', background: 'rgba(16, 185, 129, 0.02)' }}>
-                    <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#10b981' }}><FileText size={20} /></div>
+            <div className="grid-mobile-stack mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="glass-panel flex items-center gap-4" style={{ padding: '1.25rem', border: '1px solid rgba(16, 185, 129, 0.1)', background: 'rgba(16, 185, 129, 0.02)' }}>
+                    <div className="rounded-xl text-emerald-500" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.7rem' }}><FileText size={20} /></div>
                     <div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>จำนวนใบกำกับภาษีเดือนนี้</div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#10b981' }}>{kpis.monthCount} ใบ</div>
+                        <div className="text-xs text-textMuted">จำนวนใบกำกับภาษีเดือนนี้</div>
+                        <div className="text-xl font-bold text-emerald-500">{kpis.monthCount} ใบ</div>
                     </div>
                 </div>
-                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(245, 158, 11, 0.1)', background: 'rgba(245, 158, 11, 0.02)' }}>
-                    <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#f59e0b' }}><Clock size={20} /></div>
+                <div className="glass-panel flex items-center gap-4" style={{ padding: '1.25rem', border: '1px solid rgba(245, 158, 11, 0.1)', background: 'rgba(245, 158, 11, 0.02)' }}>
+                    <div className="rounded-xl text-amber-500" style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '0.7rem' }}><Clock size={20} /></div>
                     <div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>รอเก็บเงิน</div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#f59e0b' }}>{kpis.pendingCount} ใบ</div>
+                        <div className="text-xs text-textMuted">รอเก็บเงิน</div>
+                        <div className="text-xl font-bold text-amber-500">{kpis.pendingCount} ใบ</div>
                     </div>
                 </div>
-                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(16, 185, 129, 0.1)', background: 'rgba(16, 185, 129, 0.02)' }}>
-                    <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#10b981' }}><CheckCircle size={20} /></div>
+                <div className="glass-panel flex items-center gap-4" style={{ padding: '1.25rem', border: '1px solid rgba(16, 185, 129, 0.1)', background: 'rgba(16, 185, 129, 0.02)' }}>
+                    <div className="rounded-xl text-emerald-500" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.7rem' }}><CheckCircle size={20} /></div>
                     <div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>เก็บเงินแล้ว</div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#10b981' }}>{kpis.paidCount} ใบ</div>
+                        <div className="text-xs text-textMuted">เก็บเงินแล้ว</div>
+                        <div className="text-xl font-bold text-emerald-500">{kpis.paidCount} ใบ</div>
                     </div>
                 </div>
-                <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', border: '1px solid rgba(59, 130, 246, 0.1)', background: 'rgba(59, 130, 246, 0.02)' }}>
-                    <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.7rem', borderRadius: '10px', color: '#3b82f6' }}><TrendingUp size={20} /></div>
+                <div className="glass-panel flex items-center gap-4" style={{ padding: '1.25rem', border: '1px solid rgba(59, 130, 246, 0.1)', background: 'rgba(59, 130, 246, 0.02)' }}>
+                    <div className="rounded-xl text-blue-500" style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.7rem' }}><TrendingUp size={20} /></div>
                     <div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ใบกำกับภาษีสะสม</div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#3b82f6' }}>{kpis.totalCount} ใบ</div>
+                        <div className="text-xs text-textMuted">ใบกำกับภาษีสะสม</div>
+                        <div className="text-xl font-bold text-blue-500">{kpis.totalCount} ใบ</div>
                     </div>
                 </div>
             </div>
 
-            <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+            <div className="glass-panel p-4 mb-6 border border-border flex items-center gap-4" style={{ background: 'var(--card-bg)' }}>
                 <Search size={20} className="text-textMuted" />
                 <input
                     type="text"
                     placeholder="ค้นตามเลขที่หรือชื่อลูกค้า..."
-                    style={{ background: 'none', border: 'none', color: 'var(--text-main)', fontSize: '1rem', width: '100%', outline: 'none' }}
+                    className="bg-transparent border-none text-main w-full" style={{ fontSize: '1rem', outline: 'none' }}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -618,164 +577,134 @@ const InvoiceListPage = () => {
                 hasActiveFilters={!!hasActiveFilters}
             />
 
-            <div className="glass-panel" style={{ padding: '0', overflowX: 'auto' }}>
-                <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="glass-panel overflow-x-auto" style={{ padding: '0' }}>
+                <div className="table-responsive-wrapper overflow-x-auto touch-pan-x">
+                    <table className="w-full border-collapse">
                         <thead>
-                            <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                                <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ใบกำกับ</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อลูกค้า</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>อ้างอิง(PO)</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>วันที่</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวนเงินสุทธิ</th>
-                                <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
+                            <tr className="border-b border-border text-left">
+                                <th className="actions-column text-textMuted font-medium">จัดการ</th>
+                                <th className="px-6 py-5 text-textMuted font-medium">เลขที่ใบกำกับ</th>
+                                <th className="px-6 py-5 text-textMuted font-medium">ชื่อลูกค้า</th>
+                                <th className="px-6 py-5 text-textMuted font-medium">อ้างอิง(PO)</th>
+                                <th className="px-6 py-5 text-textMuted font-medium">วันที่</th>
+                                <th className="px-6 py-5 text-textMuted font-medium text-right">จำนวนเงินสุทธิ</th>
+                                <th className="px-6 py-5 text-textMuted font-medium text-center">สถานะ</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                        <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+                                    <td colSpan="8" className="p-12 text-center text-textMuted">
+                                        <div className="loading-spinner mx-auto mb-4"></div>
                                         กำลังโหลดข้อมูล...
                                     </td>
                                 </tr>
-                            ) : filteredInvoices.length > 0 ? (
-                                monthYearGroups.map((group) => (
-                                    <React.Fragment key={group}>
-                                        <tr style={{ background: 'rgba(59, 130, 246, 0.02)' }}>
-                                            <td colSpan="8" style={{ padding: '1rem 1.5rem', fontWeight: '700', color: '#37477C', borderBottom: '1px solid var(--border-color)', borderTop: 'none', fontSize: '1rem' }}>
-                                                <div className="flex justify-between items-center">
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                        <Calendar size={18} color="#3b82f6" />
-                                                        <span>{group}</span>
-                                                        <span style={{ fontSize: '0.8rem', fontWeight: '400', color: 'var(--text-muted)', background: 'white', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{groupedInvoices[group].length} รายการ</span>
-                                                    </div>
+                            ) : paginatedData.length > 0 ? (
+                                paginatedData.map((inv) => (
+                                    <tr key={inv.id} className="border-b border-border" style={{ transition: 'background 0.2s', background: 'var(--card-bg)' }}>
+                                        <td className="actions-column">
+                                            <div className="table-actions">
+                                                <Link
+                                                    className="action-view"
+                                                    to={`/dashboard/invoices/${inv.id}`}
+                                                    target="_blank"
+                                                    title="View"
+                                                >
+                                                    <Eye size={18} />
+                                                </Link>
+                                                <Link
+                                                    className="action-print"
+                                                    to={`/dashboard/invoices/${inv.id}/print`}
+                                                    target="_blank"
+                                                    title="Print"
+                                                >
+                                                    <Printer size={18} />
+                                                </Link>
+                                                {hasPermission('billing', 'create') && (
                                                     <button
-                                                        onClick={(e) => { e.stopPropagation(); exportMonthToExcel(group, groupedInvoices[group]); }}
-                                                        disabled={isExporting}
-                                                        title={`Export Excel เดือน${group}`}
-                                                        style={{
-                                                            display: 'flex', alignItems: 'center', gap: '0.4rem',
-                                                            padding: '0.4rem 0.8rem', borderRadius: '6px',
-                                                            border: '1px solid rgba(16, 185, 129, 0.2)',
-                                                            background: 'white',
-                                                            color: 'var(--success)', cursor: isExporting ? 'not-allowed' : 'pointer',
-                                                            fontSize: '0.8rem', fontWeight: '600',
-                                                            transition: 'all 0.2s',
-                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                                                        }}
-                                                        onMouseOver={e => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.05)'}
-                                                        onMouseOut={e => e.currentTarget.style.background = 'white'}
+                                                        className="action-link"
+                                                        onClick={() => navigate('/dashboard/billing-notes/new', { state: { preselectInvoice: inv } })}
+                                                        title="ออกใบวางบิล"
                                                     >
-                                                        <FileSpreadsheet size={14} /> ส่งออก Excel
+                                                        <FileText size={18} />
                                                     </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {groupedInvoices[group].map((inv) => (
-                                            <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s', background: 'var(--card-bg)' }}>
-                                                <td className="actions-column">
-                                                    <div className="table-actions">
-                                                        <button
-                                                            className="action-view"
-                                                            onClick={() => window.open(`/dashboard/invoices/${inv.id}`, '_blank')}
-                                                            title="View"
-                                                        >
-                                                            <Eye size={18} />
-                                                        </button>
-                                                        <button
-                                                            className="action-print"
-                                                            onClick={() => window.open(`/dashboard/invoices/${inv.id}/print`, '_blank')}
-                                                            title="Print"
-                                                        >
-                                                            <Printer size={18} />
-                                                        </button>
-                                                        {hasPermission('billing', 'create') && (
-                                                            <button
-                                                                className="action-link"
-                                                                onClick={() => navigate('/dashboard/billing-notes/new', { state: { preselectInvoice: inv } })}
-                                                                title="ออกใบวางบิล"
-                                                            >
-                                                                <FileText size={18} />
-                                                            </button>
-                                                        )}
-                                                        {hasPermission('invoices', 'edit') && (
-                                                            <button
-                                                                className="action-edit"
-                                                                onClick={() => navigate(`/dashboard/invoices/${inv.id}/edit`)}
-                                                                title="Edit"
-                                                            >
-                                                                <Edit size={18} />
-                                                            </button>
-                                                        )}
-                                                        {hasPermission('invoices', 'delete') && (
-                                                            <button
-                                                                className="action-delete"
-                                                                onClick={() => handleDelete(inv.id, inv.invoiceNo)}
-                                                                title="Delete"
-                                                            >
-                                                                <Trash2 size={18} />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td style={{ padding: '1.2rem 1.5rem', fontWeight: '600', color: '#3b82f6', fontSize: '1.1rem', fontFamily: 'monospace' }}>
-                                                    <Link to={`/dashboard/invoices/${inv.id}`} style={{ color: '#3b82f6', textDecoration: 'none' }}>
-                                                        {inv.invoiceNo}
-                                                    </Link>
-                                                </td>
-                                                <td style={{ padding: '1.2rem 1.5rem' }}>{inv.customerName}</td>
-                                                <td style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)' }}>{inv.referenceNo || '-'}</td>
-                                                <td style={{ padding: '1.2rem 1.5rem' }}>{new Date(inv.date).toLocaleDateString('th-TH')}</td>
-                                                <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
-                                                    ฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                </td>
-                                                <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
-                                                    <span style={{
-                                                        padding: '0.4rem 0.8rem',
-                                                        borderRadius: '20px',
-                                                        fontSize: '0.8rem',
-                                                        fontWeight: '600',
-                                                        whiteSpace: 'nowrap',
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px',
-                                                        background: inv.status === 'Draft' ? '#f3f4f6' :
-                                                            (inv.status === 'Sent' || inv.status === 'Pending') ? 'rgba(245, 158, 11, 0.08)' :
-                                                                inv.status === 'Paid' ? 'rgba(16, 185, 129, 0.08)' :
-                                                                    inv.status === 'Cancelled' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(107, 114, 128, 0.08)',
-                                                        color: inv.status === 'Draft' ? '#6b7280' :
-                                                            (inv.status === 'Sent' || inv.status === 'Pending') ? '#d97706' :
-                                                                inv.status === 'Paid' ? '#059669' :
-                                                                    inv.status === 'Cancelled' ? '#dc2626' : '#4b5563',
-                                                        border: inv.status === 'Draft' ? '1px solid #e5e7eb' :
-                                                            (inv.status === 'Sent' || inv.status === 'Pending') ? '1px solid rgba(245, 158, 11, 0.2)' :
-                                                                inv.status === 'Paid' ? '1px solid rgba(16, 185, 129, 0.2)' :
-                                                                    inv.status === 'Cancelled' ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid #e5e7eb'
-                                                    }}>
-                                                        {inv.status === 'Draft' && <Clock size={14} />}
-                                                        {inv.status === 'Paid' && <CheckCircle size={14} />}
-                                                        {(inv.status === 'Sent' || inv.status === 'Pending') && <AlertCircle size={14} />}
-                                                        {inv.status === 'Cancelled' && <XCircle size={14} />}
-                                                        {inv.status === 'Draft' ? 'แบบร่าง' :
-                                                            (inv.status === 'Sent' || inv.status === 'Pending') ? 'ส่งแล้ว' :
-                                                                inv.status === 'Paid' ? 'จ่ายแล้ว' :
-                                                                    inv.status === 'Cancelled' ? 'ยกเลิก' : inv.status}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </React.Fragment>
+                                                )}
+                                                {hasPermission('invoices', 'edit') && (
+                                                    <button
+                                                        className="action-edit"
+                                                        onClick={() => navigate(`/dashboard/invoices/${inv.id}/edit`)}
+                                                        title="Edit"
+                                                    >
+                                                        <Edit size={18} />
+                                                    </button>
+                                                )}
+                                                {hasPermission('invoices', 'delete') && (
+                                                    <button
+                                                        className="action-delete"
+                                                        onClick={() => handleDelete(inv.id, inv.invoiceNo)}
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5 font-semibold text-blue-500 text-lg font-mono">
+                                            <Link to={`/dashboard/invoices/${inv.id}`} className="text-blue-500 no-underline">
+                                                {inv.invoiceNo}
+                                            </Link>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            {inv.customer_id ? (
+                                                <Link
+                                                    to={`/dashboard/customers/${inv.customer_id}`}
+                                                    className="text-blue-500 no-underline"
+                                                    onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                                                    onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+                                                >
+                                                    {inv.customerName}
+                                                </Link>
+                                            ) : (
+                                                inv.customerName
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-5 text-textMuted">{inv.referenceNo || '-'}</td>
+                                        <td className="px-6 py-5">{new Date(inv.date).toLocaleDateString('th-TH')}</td>
+                                        <td className="px-6 py-5 text-right font-semibold text-emerald-500">
+                                            ฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </td>
+                                        <td className="px-6 py-5 text-center">
+                                            <span className="rounded-full text-xs font-semibold" style={{ padding: '0.4rem 0.8rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '4px', background: inv.status === 'Draft' ? '#f3f4f6' : (inv.status === 'Sent' || inv.status === 'Pending') ? 'rgba(245, 158, 11, 0.08)' : inv.status === 'Paid' ? 'rgba(16, 185, 129, 0.08)' : inv.status === 'Cancelled' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(107, 114, 128, 0.08)', color: inv.status === 'Draft' ? '#6b7280' : (inv.status === 'Sent' || inv.status === 'Pending') ? '#d97706' : inv.status === 'Paid' ? '#059669' : inv.status === 'Cancelled' ? '#dc2626' : '#4b5563', border: inv.status === 'Draft' ? '1px solid #e5e7eb' : (inv.status === 'Sent' || inv.status === 'Pending') ? '1px solid rgba(245, 158, 11, 0.2)' : inv.status === 'Paid' ? '1px solid rgba(16, 185, 129, 0.2)' : inv.status === 'Cancelled' ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid #e5e7eb' }}>
+                                                {inv.status === 'Draft' && <Clock size={14} />}
+                                                {inv.status === 'Paid' && <CheckCircle size={14} />}
+                                                {(inv.status === 'Sent' || inv.status === 'Pending') && <AlertCircle size={14} />}
+                                                {inv.status === 'Cancelled' && <XCircle size={14} />}
+                                                {inv.status === 'Draft' ? 'แบบร่าง (Draft)' :
+                                                    (inv.status === 'Sent' || inv.status === 'Pending') ? 'ใบวางบิล (Sent)' :
+                                                        inv.status === 'Paid' ? 'ชำระเงินแล้ว (Paid)' :
+                                                            inv.status === 'Cancelled' ? 'ยกเลิก (Cancelled)' : inv.status}
+                                            </span>
+                                        </td>
+                                    </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>ไม่พบรายการใบกำกับภาษี</td>
+                                    <td colSpan="8" className="p-12 text-center text-textMuted">ไม่พบรายการใบกำกับภาษี</td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    totalPages={totalPages}
+                    startItem={startItem}
+                    endItem={endItem}
+                    onPageChange={setCurrentPage}
+                    onItemsPerPageChange={setItemsPerPage}
+                />
             </div>
         </div>
     );

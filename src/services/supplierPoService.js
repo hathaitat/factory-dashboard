@@ -1,4 +1,7 @@
 import { supabase } from './supabaseClient';
+import { sanitizeSearchTerm } from './sanitize';
+
+const normalizeStr = (str) => (str || '').trim().toLowerCase();
 
 export const supplierPoService = {
     // Get all supplier POs
@@ -19,6 +22,100 @@ export const supplierPoService = {
         } catch (error) {
             console.error('Error fetching supplier POs:', error);
             throw error;
+        }
+    },
+
+    // Server-Side Pagination
+    getSupplierPosPaginated: async ({ page = 1, limit = 50, searchTerm = '', dateFrom = '', dateTo = '' }) => {
+        try {
+            let query = supabase.from('supplier_pos').select(`
+                *,
+                suppliers (id, code, name),
+                warehouses (name, code),
+                supplier_po_items (*)
+            `, { count: 'exact' });
+
+            if (searchTerm) {
+                const safe = sanitizeSearchTerm(searchTerm);
+                if (safe) query = query.or(`po_number.ilike.%${safe}%,suppliers.name.ilike.%${safe}%`);
+            }
+            if (dateFrom) {
+                query = query.gte('po_date', dateFrom);
+            }
+            if (dateTo) {
+                query = query.lte('po_date', dateTo);
+            }
+
+            const from = (page - 1) * limit;
+            const to = from + limit - 1;
+
+            const { data, count, error } = await query
+                .order('created_at', { ascending: false })
+                .range(from, to);
+
+            if (error) throw error;
+            return { data, total: count };
+        } catch (error) {
+            console.error('Error fetching paginated supplier POs:', error);
+            return { data: [], total: 0, error };
+        }
+    },
+
+    exportSupplierPos: async ({ searchTerm = '', dateFrom = '', dateTo = '' }) => {
+        try {
+            let query = supabase.from('supplier_pos').select(`
+                *,
+                suppliers (id, code, name),
+                warehouses (name, code),
+                supplier_po_items (*)
+            `);
+
+            if (searchTerm) {
+                const safe = sanitizeSearchTerm(searchTerm);
+                if (safe) query = query.or(`po_number.ilike.%${safe}%,suppliers.name.ilike.%${safe}%`);
+            }
+            if (dateFrom) {
+                query = query.gte('po_date', dateFrom);
+            }
+            if (dateTo) {
+                query = query.lte('po_date', dateTo);
+            }
+
+            const { data, error } = await query.order('created_at', { ascending: false });
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error exporting supplier POs:', error);
+            throw error;
+        }
+    },
+
+    getSupplierPoStats: async () => {
+        try {
+            const [completedRes, partialRes, draftRes, cancelledRes] = await Promise.all([
+                supabase.from('supplier_pos').select('id', { count: 'exact', head: true }).eq('status', 'Completed'),
+                supabase.from('supplier_pos').select('id', { count: 'exact', head: true }).eq('status', 'Partial'),
+                supabase.from('supplier_pos').select('id', { count: 'exact', head: true }).eq('status', 'Draft'),
+                supabase.from('supplier_pos').select('id', { count: 'exact', head: true }).eq('status', 'Cancelled')
+            ]);
+            
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            
+            // For overdue we still need to fetch items that are draft/partial and have delivery_date
+            const { data: overdueData } = await supabase.from('supplier_pos').select('delivery_date').in('status', ['Draft', 'Partial']).not('delivery_date', 'is', null);
+            const overdue = (overdueData || []).filter(p => p.delivery_date && new Date(p.delivery_date) < now).length;
+
+            return {
+                completed: completedRes.count || 0,
+                partial: partialRes.count || 0,
+                draft: draftRes.count || 0,
+                cancelled: cancelledRes.count || 0,
+                overdue
+            };
+        } catch (error) {
+            console.error('Error getting supplier PO stats:', error);
+            return { completed: 0, partial: 0, draft: 0, cancelled: 0, overdue: 0 };
         }
     },
 
@@ -118,11 +215,14 @@ export const supplierPoService = {
             if (poError) throw poError;
 
             if (items && items.length > 0) {
-                const itemsToInsert = items.map((item, index) => ({
-                    ...item,
-                    po_id: poResult.id,
-                    item_no: index + 1
-                }));
+                const itemsToInsert = items.map((item, index) => {
+                    const { raw_material_qty, ...itemData } = item;
+                    return {
+                        ...itemData,
+                        po_id: poResult.id,
+                        item_no: index + 1
+                    };
+                });
 
                 const { error: itemsError } = await supabase
                     .from('supplier_po_items')
@@ -153,7 +253,7 @@ export const supplierPoService = {
                             const rcvQty = item.received_quantity !== undefined ? Number(item.received_quantity) : Number(item.quantity);
                             if (rcvQty <= 0) continue;
                             
-                            const existingItem = (currentInventory || []).find(inv => inv.product_name === item.description);
+                            const existingItem = (currentInventory || []).find(inv => normalizeStr(inv.product_name) === normalizeStr(item.description));
 
                             if (existingItem) {
                                 const newQty = Number(existingItem.quantity) + rcvQty;
@@ -248,11 +348,14 @@ export const supplierPoService = {
 
                 // Insert new items
                 if (items.length > 0) {
-                    const itemsToInsert = items.map((item, index) => ({
-                        ...item,
-                        po_id: id,
-                        item_no: index + 1
-                    }));
+                    const itemsToInsert = items.map((item, index) => {
+                        const { raw_material_qty, ...itemData } = item;
+                        return {
+                            ...itemData,
+                            po_id: id,
+                            item_no: index + 1
+                        };
+                    });
 
                     const { error: itemsError } = await supabase
                         .from('supplier_po_items')
@@ -283,14 +386,14 @@ export const supplierPoService = {
                                 const newRcvQty = item.received_quantity !== undefined ? Number(item.received_quantity) : 0;
                                 
                                 // Find old received quantity
-                                const oldItem = (oldPo?.items || []).find(old => old.description === item.description);
+                                const oldItem = (oldPo?.items || []).find(old => normalizeStr(old.description) === normalizeStr(item.description));
                                 const oldRcvQty = oldItem && oldItem.received_quantity !== undefined ? Number(oldItem.received_quantity) : 0;
                                 
                                 const diffRcvQty = newRcvQty - oldRcvQty;
                                 
                                 if (diffRcvQty <= 0) continue; // Skip if no new goods received
                                 
-                                const existingItem = (currentInventory || []).find(inv => inv.product_name === item.description);
+                                const existingItem = (currentInventory || []).find(inv => normalizeStr(inv.product_name) === normalizeStr(item.description));
 
                                 if (existingItem) {
                                     const newQty = Number(existingItem.quantity) + diffRcvQty;
@@ -357,12 +460,77 @@ export const supplierPoService = {
             // Check if it's completed first
             const { data: po } = await supabase
                 .from('supplier_pos')
-                .select('status')
+                .select('id, status, po_number')
                 .eq('id', id)
                 .single();
 
-            if (po?.status === 'Completed') {
-                throw new Error('ไม่สามารถลบใบสั่งซื้อที่รับสินค้าเข้าคลังแล้วได้ กรุณาใช้การยกเลิกแทน');
+            if (po?.status === 'Completed' || po?.status === 'Partial') {
+                throw new Error('ไม่สามารถลบใบสั่งซื้อที่อยู่ในสถานะรับสินค้าบางส่วนหรือเสร็จสมบูรณ์ได้ กรุณาใช้การยกเลิกแทน');
+            }
+
+            // Subcontracting Return Check (Return stock if it was deducted during PO creation)
+            if (po) {
+                const searchRemarkPattern1 = `%PO: ${po.po_number})%`;
+                const searchRemarkPattern2 = `%PO: ${po.id})%`;
+                
+                const { data: logs1 } = await supabase
+                    .from('inventory_logs')
+                    .select('*')
+                    .ilike('remark', searchRemarkPattern1);
+                    
+                const { data: logs2 } = await supabase
+                    .from('inventory_logs')
+                    .select('*')
+                    .ilike('remark', searchRemarkPattern2);
+                    
+                const allLogs = [...(logs1 || []), ...(logs2 || [])];
+                const subcontractLogs = Array.from(new Map(allLogs.map(item => [item.id, item])).values());
+
+                if (subcontractLogs && subcontractLogs.length > 0) {
+                    for (const log of subcontractLogs) {
+                        const returnRemark = `คืนสต็อกเนื่องจากการลบใบสั่งจ้างผลิต (PO: ${po.po_number || po.id})`;
+                        const { data: existingReturn } = await supabase
+                            .from('inventory_logs')
+                            .select('id')
+                            .eq('inventory_id', log.inventory_id)
+                            .eq('remark', returnRemark)
+                            .maybeSingle();
+
+                        if (!existingReturn) {
+                            const { data: currentItem } = await supabase
+                                .from('warehouse_inventory')
+                                .select('quantity')
+                                .eq('id', log.inventory_id)
+                                .single();
+                                
+                            if (currentItem) {
+                                const newQty = Number(currentItem.quantity) + Number(log.qty);
+                                
+                                // Update inventory
+                                await supabase
+                                    .from('warehouse_inventory')
+                                    .update({
+                                        quantity: newQty,
+                                        last_updated: new Date().toISOString()
+                                    })
+                                    .eq('id', log.inventory_id);
+                                    
+                                // Insert IN log
+                                await supabase.from('inventory_logs').insert([{
+                                    inventory_id: log.inventory_id,
+                                    type: 'IN',
+                                    qty: Number(log.qty),
+                                    old_quantity: Number(currentItem.quantity),
+                                    balance: newQty,
+                                    source_type: 'po',
+                                    source_id: po.id,
+                                    reference_no: po.po_number || 'N/A',
+                                    remark: returnRemark
+                                }]);
+                            }
+                        }
+                    }
+                }
             }
 
             const { error } = await supabase
@@ -379,7 +547,7 @@ export const supplierPoService = {
     },
 
     // Cancel supplier PO with inventory check
-    cancelSupplierPo: async (id) => {
+    cancelSupplierPo: async (id, updatedBy) => {
         try {
             // 1. Get PO details and items
             const { data: po, error: poError } = await supabase
@@ -410,7 +578,7 @@ export const supplierPoService = {
                     // Validation Loop
                     for (const item of itemsToDeduct) {
                         const existingItem = (currentInventory || []).find(inv => 
-                            inv.product_name === item.description
+                            normalizeStr(inv.product_name) === normalizeStr(item.description)
                         );
 
                         const qtyToDeduct = Number(item.received_quantity || 0);
@@ -422,7 +590,7 @@ export const supplierPoService = {
 
                     // Deduction Loop
                     for (const item of itemsToDeduct) {
-                        const existingItem = currentInventory.find(inv => inv.product_name === item.description);
+                        const existingItem = currentInventory.find(inv => normalizeStr(inv.product_name) === normalizeStr(item.description));
                         const qtyToDeduct = Number(item.received_quantity || 0);
                         const newQty = Number(existingItem.quantity) - qtyToDeduct;
                         const { error: updateError } = await supabase
@@ -451,12 +619,92 @@ export const supplierPoService = {
                 }
             }
 
-            // 3. Update PO status to Cancelled
+            // 3. Subcontracting Return Check
+            // Find any inventory logs that deducted stock for this subcontract PO
+            // Using only English characters to avoid any Thai text encoding issues in PostgREST
+            const searchRemarkPattern1 = `%PO: ${po.po_number})%`;
+            const searchRemarkPattern2 = `%PO: ${po.id})%`;
+            
+            const { data: logs1 } = await supabase
+                .from('inventory_logs')
+                .select('*')
+                .ilike('remark', searchRemarkPattern1);
+                
+            const { data: logs2 } = await supabase
+                .from('inventory_logs')
+                .select('*')
+                .ilike('remark', searchRemarkPattern2);
+                
+            // Combine and remove duplicates
+            const allLogs = [...(logs1 || []), ...(logs2 || [])];
+            const subcontractLogs = Array.from(new Map(allLogs.map(item => [item.id, item])).values());
+            
+            console.log('--- CANCEL PO LOGS ---', { 
+                poId: po.id, 
+                poNum: po.po_number,
+                pattern1: searchRemarkPattern1, 
+                pattern2: searchRemarkPattern2, 
+                logs1Count: logs1?.length || 0,
+                logs2Count: logs2?.length || 0,
+                subcontractLogs
+            });
+
+            if (subcontractLogs && subcontractLogs.length > 0) {
+                // For each deduction, we must RETURN the stock
+                for (const log of subcontractLogs) {
+                    // Check if it's already returned to avoid double returning
+                    const returnRemark = `คืนสต็อกเนื่องจากการยกเลิกใบสั่งจ้างผลิต (PO: ${po.po_number || po.id})`;
+                    const { data: existingReturn } = await supabase
+                        .from('inventory_logs')
+                        .select('id')
+                        .eq('inventory_id', log.inventory_id)
+                        .eq('remark', returnRemark)
+                        .maybeSingle(); // maybeSingle instead of single to handle 0 results without throwing
+
+                    if (!existingReturn) {
+                        const { data: currentItem } = await supabase
+                            .from('warehouse_inventory')
+                            .select('quantity')
+                            .eq('id', log.inventory_id)
+                            .single();
+                            
+                        if (currentItem) {
+                            const newQty = Number(currentItem.quantity) + Number(log.qty);
+                            
+                            // Update inventory
+                            await supabase
+                                .from('warehouse_inventory')
+                                .update({
+                                    quantity: newQty,
+                                    last_updated: new Date().toISOString(),
+                                    updated_by: updatedBy || null
+                                })
+                                .eq('id', log.inventory_id);
+                                
+                            // Insert IN log
+                            const finalRemark = returnRemark + (updatedBy ? ` (โดย ${updatedBy})` : '');
+                            await supabase.from('inventory_logs').insert([{
+                                inventory_id: log.inventory_id,
+                                type: 'IN',
+                                qty: Number(log.qty),
+                                old_quantity: Number(currentItem.quantity),
+                                balance: newQty,
+                                source_type: 'po',
+                                source_id: po.id,
+                                reference_no: po.po_number || 'N/A',
+                                remark: finalRemark
+                            }]);
+                        }
+                    }
+                }
+            }
+
             const { data, error: finalError } = await supabase
                 .from('supplier_pos')
                 .update({ 
                     status: 'Cancelled',
                     updated_at: new Date().toISOString(),
+                    updated_by: updatedBy || null,
                     remark: (po.remark ? po.remark + ' ' : '') + `(ยกเลิกเมื่อ ${new Date().toLocaleDateString('th-TH')})`
                 })
                 .eq('id', id)
@@ -471,8 +719,7 @@ export const supplierPoService = {
         }
     },
 
-    // Update status
-    updateStatus: async (id, status) => {
+    updateStatus: async (id, status, updatedBy) => {
         try {
             // First get the PO with its items to know what to receive
             const { data: po, error: poError } = await supabase
@@ -492,7 +739,8 @@ export const supplierPoService = {
                 .from('supplier_pos')
                 .update({ 
                     status,
-                    updated_at: new Date().toISOString()
+                    updated_at: new Date().toISOString(),
+                    updated_by: updatedBy || null
                 })
                 .eq('id', id)
                 .select()
@@ -526,12 +774,15 @@ export const supplierPoService = {
                     if (invFetchError) throw invFetchError;
 
                     for (const item of po.items) {
+                        const qtyToAdd = Number(item.quantity) - Number(item.received_quantity || 0);
+                        if (qtyToAdd <= 0) continue;
+
                         const existingItem = (currentInventory || []).find(inv => 
-                            inv.product_name === item.description
+                            normalizeStr(inv.product_name) === normalizeStr(item.description)
                         );
 
                         if (existingItem) {
-                            const newQty = Number(existingItem.quantity) + Number(item.quantity);
+                            const newQty = Number(existingItem.quantity) + qtyToAdd;
                             const { error: updateError } = await supabase
                                 .from('warehouse_inventory')
                                 .update({
@@ -546,7 +797,7 @@ export const supplierPoService = {
                             const { error: logError } = await supabase.from('inventory_logs').insert([{
                                 inventory_id: existingItem.id,
                                 type: 'IN',
-                                qty: item.quantity,
+                                qty: qtyToAdd,
                                 old_quantity: existingItem.quantity,
                                 balance: newQty,
                                 source_type: 'po',
@@ -561,7 +812,7 @@ export const supplierPoService = {
                                 const { error: retryError } = await supabase.from('inventory_logs').insert([{
                                     inventory_id: existingItem.id,
                                     type: 'IN',
-                                    qty: item.quantity,
+                                    qty: qtyToAdd,
                                     remark: `รับสินค้า (Retry): ${po.po_number || id}`
                                 }]);
                                 if (retryError) throw retryError;
@@ -573,7 +824,7 @@ export const supplierPoService = {
                                     warehouse_id: targetWarehouseId,
                                     product_type: 'material',
                                     product_name: item.description || 'Unknown Item',
-                                    quantity: Number(item.quantity) || 0,
+                                    quantity: qtyToAdd,
                                     unit: item.unit || 'PCS',
                                     min_stock: 0
                                 }])
@@ -587,9 +838,9 @@ export const supplierPoService = {
                                 const { error: logError } = await supabase.from('inventory_logs').insert([{
                                     inventory_id: newItem.id,
                                     type: 'IN',
-                                    qty: item.quantity,
+                                    qty: qtyToAdd,
                                     old_quantity: 0,
-                                    balance: item.quantity,
+                                    balance: qtyToAdd,
                                     source_type: 'po',
                                     source_id: id,
                                     reference_no: po.po_number || 'N/A',
@@ -599,6 +850,15 @@ export const supplierPoService = {
                                 if (logError) throw logError;
                             }
                         }
+                    }
+
+                    // Update received_quantity in supplier_po_items to match quantity
+                    for (const item of po.items) {
+                        const { error: itemUpdateError } = await supabase
+                            .from('supplier_po_items')
+                            .update({ received_quantity: item.quantity })
+                            .eq('id', item.id);
+                        if (itemUpdateError) throw itemUpdateError;
                     }
                 }
             }

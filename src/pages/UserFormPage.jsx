@@ -1,8 +1,11 @@
+import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Save, ArrowLeft, User, Shield, Check, X, Eye, EyeOff } from 'lucide-react';
 import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
+import LastUpdated from '../components/LastUpdated';
+import { useAuth } from '../contexts/AuthContext';
 
 const MODULES = [
     { id: 'overview', label: 'ภาพรวม (Dashboard)' },
@@ -15,13 +18,15 @@ const MODULES = [
     { id: 'quotations', label: 'ใบเสนอราคา' },
     { id: 'invoices', label: 'ใบกำกับภาษี' },
     { id: 'billing', label: 'ใบวางบิล' },
+    { id: 'certificate_receipts', label: 'ใบรับรองแทนใบเสร็จ' },
     { id: 'employees', label: 'พนักงาน' },
     { id: 'company', label: 'ข้อมูลบริษัท' },
     { id: 'users', label: 'สิทธิ์การใช้งาน' },
     { id: 'settings', label: 'ตั้งค่าระบบ' },
     { id: 'production', label: 'ข้อมูลการผลิต' },
     { id: 'internal_items', label: 'ของใช้ในโรงงาน (Items)' },
-    { id: 'internal_requisitions', label: 'ประวัติการเบิก/สั่งซื้อ (History)' }
+    { id: 'internal_requisitions', label: 'ประวัติการเบิก/สั่งซื้อ (History)' },
+    { id: 'alerts', label: 'การแจ้งเตือน (Alerts)' }
 ];
 
 const ACTIONS = [
@@ -32,6 +37,7 @@ const ACTIONS = [
 ];
 
 const UserFormPage = () => {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const { id } = useParams();
     const isEditMode = !!id;
@@ -42,7 +48,9 @@ const UserFormPage = () => {
         username: '',
         email: '',
         password: '',
-        permissions: {} // Structure: { "customers": { "view": true, ... } }
+        permissions: {}, // Structure: { "customers": { "view": true, ... } }
+        createdBy: '',
+        updatedBy: ''
     });
     const [isLoading, setIsLoading] = useState(isEditMode);
     const [isSaving, setIsSaving] = useState(false);
@@ -77,7 +85,12 @@ const UserFormPage = () => {
                         permissions[module.id] = { view: false, create: false, edit: false, delete: false };
                     }
                 });
-                setFormData({ ...data, permissions });
+                setFormData({
+                    ...data,
+                    permissions,
+                    createdBy: data.createdBy || '',
+                    updatedBy: data.updatedBy || ''
+                });
             } else {
                 await showAlert('ไม่พบข้อมูลผู้ใช้งาน');
                 navigate('/dashboard/users');
@@ -96,7 +109,7 @@ const UserFormPage = () => {
     };
 
     const handlePermissionChange = (moduleId, actionId) => {
-        const currentUser = userService.getCurrentUser();
+        const currentUser = user;
         const isEditingSelf = String(id) === String(currentUser?.id);
 
         // Prevent self-lockout: Cannot disable 'view' or 'edit' for 'users' module if editing self
@@ -107,7 +120,7 @@ const UserFormPage = () => {
         setFormData(prev => {
             const currentPerms = prev.permissions[moduleId] || { view: false, create: false, edit: false, delete: false };
             const newValue = !currentPerms[actionId];
-            
+
             let newModulePerms = {
                 ...currentPerms,
                 [actionId]: newValue
@@ -132,10 +145,17 @@ const UserFormPage = () => {
         e.preventDefault();
         setIsSaving(true);
         try {
+            const activeUser = user;
+            const operatorName = activeUser?.fullName || activeUser?.username || 'Unknown';
+            const payload = {
+                ...formData,
+                createdBy: isEditMode ? (formData.createdBy || operatorName) : operatorName,
+                updatedBy: operatorName
+            };
             if (isEditMode) {
-                await userService.updateUser(id, formData);
+                await userService.updateUser(id, payload);
             } else {
-                await userService.createUser(formData);
+                await userService.createUser(payload);
             }
             navigate('/dashboard/users');
         } catch (error) {
@@ -146,96 +166,92 @@ const UserFormPage = () => {
         }
     };
 
-    if (isLoading) return <div style={{ padding: '2rem', color: 'var(--text-muted)' }}>กำลังโหลดข้อมูล...</div>;
+    if (isLoading) return <div className="p-8 text-textMuted">กำลังโหลดข้อมูล...</div>;
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem', maxWidth: '900px', margin: '0 auto' }}>
-            <div className="mb-8">
-                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>
-                    {isEditMode ? 'แก้ไขผู้ใช้งาน' : 'เพิ่มผู้ใช้งานใหม่'}
-                </h1>
-                <p style={{ margin: '0.5rem 0 0 0', color: '#888' }}>
-                    {isEditMode ? 'แก้ไขรายละเอียดและกำหนดสิทธิ์แยกตามเมนู' : 'สร้างบัญชีและกำหนดสิทธิ์รายเมนู'}
-                </p>
+        <div className="px-4 pb-8" style={{ maxWidth: '900px', margin: '0 auto' }}>
+            <div className="mb-8 flex justify-between items-center" style={{ flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                    <h1 className="m-0 font-semibold" style={{ fontSize: '1.8rem' }}>
+                        {isEditMode ? 'แก้ไขผู้ใช้งาน' : 'เพิ่มผู้ใช้งานใหม่'}
+                    </h1>
+                    <p className="text-gray-400" style={{ margin: '0.5rem 0 0 0' }}>
+                        {isEditMode ? 'แก้ไขรายละเอียดและกำหนดสิทธิ์แยกตามเมนู' : 'สร้างบัญชีและกำหนดสิทธิ์รายเมนู'}
+                    </p>
+                </div>
+                <button
+                    type="submit"
+                    form="user-form"
+                    disabled={isSaving}
+                    className="px-6 py-3 rounded-lg border-none text-white font-medium flex items-center gap-2" style={{ background: '#8b5cf6', cursor: isSaving ? 'not-allowed' : 'pointer' }}
+                >
+                    <Save size={18} />
+                    {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                </button>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '2rem' }}>
+            <form id="user-form" onSubmit={handleSubmit} style={{ display: 'grid', gap: '2rem' }}>
                 {/* ข้อมูลทั่วไป */}
                 <div className="glass-panel p-8">
-                    <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8b5cf6' }}>
+                    <h3 className="mt-0 mb-6 text-violet-500 flex items-center gap-2">
                         <User size={20} /> ข้อมูลทั่วไป
                     </h3>
                     <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                         <div className="form-group">
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ชื่อ - นามสกุล <span style={{ color: '#ef4444' }}>*</span></label>
+                            <label className="mb-2 text-gray-400" style={{ display: 'block' }}>ชื่อ - นามสกุล <span className="text-red-500">*</span></label>
                             <input
                                 type="text"
                                 name="fullName"
                                 value={formData.fullName}
                                 onChange={handleChange}
                                 required
-                                className="glass-input"
                                 placeholder="เช่น สมชาย ใจดี"
-                                style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                             />
                         </div>
                         <div className="form-group">
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>Username <span style={{ color: '#ef4444' }}>*</span></label>
+                            <label className="mb-2 text-gray-400" style={{ display: 'block' }}>Username <span className="text-red-500">*</span></label>
                             <input
                                 type="text"
                                 name="username"
                                 value={formData.username}
                                 onChange={handleChange}
                                 required
-                                className="glass-input"
                                 placeholder="ภาษาอังกฤษเท่านั้น"
-                                style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                             />
                         </div>
                     </div>
                     <div className="form-group mt-4">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>อีเมล</label>
+                        <label className="mb-2 text-gray-400" style={{ display: 'block' }}>อีเมล</label>
                         <input
                             type="email"
                             name="email"
                             value={formData.email || ''}
                             onChange={handleChange}
-                            className="glass-input"
                             placeholder="name@example.com"
-                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                         />
                     </div>
                     <div className="form-group mt-4">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>
-                            รหัสผ่าน {isEditMode && <span style={{ fontSize: '0.8rem', color: '#f59e0b' }}>(เว้นว่างไว้หากไม่ต้องการเปลี่ยน)</span>}
+                        <label className="mb-2 text-gray-400" style={{ display: 'block' }}>
+                            รหัสผ่าน {isEditMode && <span className="text-xs text-amber-500">(เว้นว่างไว้หากไม่ต้องการเปลี่ยน)</span>}
                         </label>
-                        <div style={{ position: 'relative' }}>
+                        <div className="relative">
                             <input
                                 type={showPassword ? "text" : "password"}
                                 name="password"
                                 value={formData.password || ''}
                                 onChange={handleChange}
                                 required={!isEditMode}
-                                className="glass-input"
                                 placeholder="ระบุรหัสผ่านสำหรับการเข้าใช้งาน"
-                                style={{ width: '100%', padding: '0.8rem', paddingRight: '3rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main" style={{ paddingRight: '3rem' }}
                                 autoComplete="new-password"
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                style={{
-                                    position: 'absolute',
-                                    right: '0.8rem',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    background: 'none',
-                                    border: 'none',
-                                    color: 'var(--text-muted)',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center'
-                                }}
+                                className="absolute top-1/2 -translate-y-1/2 bg-transparent border-none text-textMuted cursor-pointer" style={{ right: '0.8rem', display: 'flex', alignItems: 'center' }}
                             >
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
@@ -244,20 +260,20 @@ const UserFormPage = () => {
                 </div>
 
                 {/* สิทธิ์การใช้งาน (Matrix Layout) */}
-                <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.5rem', background: 'rgba(139, 92, 246, 0.05)', borderBottom: '1px solid var(--border-color)' }}>
-                        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8b5cf6' }}>
+                <div className="glass-panel p-0 overflow-hidden">
+                    <div className="p-6 border-b border-border" style={{ background: 'rgba(139, 92, 246, 0.05)' }}>
+                        <h3 className="m-0 text-violet-500 flex items-center gap-2">
                             <Shield size={20} /> กำหนดสิทธิ์การใช้งาน (Permission Matrix)
                         </h3>
                     </div>
 
-                    <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <div className="table-responsive-wrapper overflow-x-auto touch-pan-x">
+                        <table className="w-full border-collapse">
                             <thead>
-                                <tr style={{ background: 'var(--card-hover)' }}>
-                                    <th style={{ padding: '1rem', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>เมนูการใช้งาน</th>
+                                <tr className="bg-cardHover">
+                                    <th className="p-4 text-left text-textMuted border-b border-border">เมนูการใช้งาน</th>
                                     {ACTIONS.map(action => (
-                                        <th key={action.id} style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>
+                                        <th key={action.id} className="p-4 text-center text-textMuted border-b border-border">
                                             {action.label}
                                         </th>
                                     ))}
@@ -265,24 +281,13 @@ const UserFormPage = () => {
                             </thead>
                             <tbody>
                                 {MODULES.map(module => (
-                                    <tr key={module.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                        <td style={{ padding: '1rem', fontWeight: '500' }}>{module.label}</td>
+                                    <tr key={module.id} className="border-b border-border">
+                                        <td className="p-4 font-medium">{module.label}</td>
                                         {ACTIONS.map(action => {
                                             const isChecked = formData.permissions[module.id]?.[action.id];
                                             return (
-                                                <td key={action.id} style={{ padding: '1rem', textAlign: 'center' }}>
-                                                    <label style={{
-                                                        display: 'inline-flex',
-                                                        cursor: 'pointer',
-                                                        width: '24px',
-                                                        height: '24px',
-                                                        borderRadius: '6px',
-                                                        background: isChecked ? '#8b5cf6' : 'var(--bg-main)',
-                                                        border: isChecked ? 'none' : '1px solid var(--border-color)',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        transition: 'all 0.2s'
-                                                    }}>
+                                                <td key={action.id} className="p-4 text-center">
+                                                    <label className="cursor-pointer" style={{ display: 'inline-flex', width: '24px', height: '24px', borderRadius: '6px', background: isChecked ? '#8b5cf6' : 'var(--bg-main)', border: isChecked ? 'none' : '1px solid var(--border-color)', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
                                                         <input
                                                             type="checkbox"
                                                             checked={!!isChecked}
@@ -298,37 +303,36 @@ const UserFormPage = () => {
                                 ))}
                             </tbody>
                         </table>
-</div>
+                    </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                <div className="flex justify-end gap-4">
                     <button
                         type="button"
                         onClick={() => navigate('/dashboard/users')}
-                        style={{ padding: '0.8rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
+                        className="px-6 py-3 rounded-lg border border-border bg-transparent text-textMuted cursor-pointer"
                     >
                         ยกเลิก
                     </button>
                     <button
                         type="submit"
                         disabled={isSaving}
-                        style={{
-                            padding: '0.8rem 1.5rem',
-                            borderRadius: '8px',
-                            border: 'none',
-                            background: '#8b5cf6',
-                            color: 'white',
-                            cursor: isSaving ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            fontWeight: '500'
-                        }}
+                        className="px-6 py-3 rounded-lg border-none text-white font-medium flex items-center gap-2" style={{ background: '#8b5cf6', cursor: isSaving ? 'not-allowed' : 'pointer' }}
                     >
                         <Save size={18} />
                         {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
                     </button>
                 </div>
+                {isEditMode && (
+                    <div className="glass-panel p-5 text-textMuted text-sm flex flex-col gap-2 mt-6">
+                        {formData.createdBy && (
+                            <div className="flex items-center gap-2">
+                                <User size={14} /> สร้างโดย: <span className="text-main font-semibold">{formData.createdBy}</span>
+                            </div>
+                        )}
+                        <LastUpdated updatedBy={formData.updatedBy} updatedAt={formData.updatedAt} />
+                    </div>
+                )}
             </form>
         </div>
     );

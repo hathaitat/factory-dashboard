@@ -6,8 +6,10 @@ import { internalItemService } from '../services/internalItemService';
 import { useDialog } from '../contexts/DialogContext';
 import { userService } from '../services/userService';
 import FormPageHeader from '../components/FormPageHeader';
+import { useAuth } from '../contexts/AuthContext';
 
 const InternalRequisitionFormPage = () => {
+    const { user } = useAuth();
     const { id } = useParams();
     const isEdit = Boolean(id);
     const navigate = useNavigate();
@@ -46,7 +48,7 @@ const InternalRequisitionFormPage = () => {
             setAllItems(itemsData.filter(i => i.status === 'active'));
 
             if (!isEdit) {
-                const currentUser = userService.getCurrentUser();
+                const currentUser = user;
                 const reqNum = await internalRequisitionService.generateRequisitionNumber('purchase');
                 setFormData(prev => ({
                     ...prev,
@@ -161,7 +163,13 @@ const InternalRequisitionFormPage = () => {
                 }
             }
 
-            const requisitionData = { ...formData };
+            const currentUser = user;
+            const userName = currentUser?.fullName || currentUser?.username || 'Unknown';
+            const requisitionData = {
+                ...formData,
+                created_by: isEdit ? undefined : userName,
+                updated_by: userName
+            };
             const itemsData = items.map(i => ({
                 item_id: i.item_id || null,
                 item_name: i.item_name,
@@ -186,7 +194,7 @@ const InternalRequisitionFormPage = () => {
         }
     };
 
-    if (isLoading) return <div className="loading-spinner" style={{ margin: '3rem auto' }}></div>;
+    if (isLoading) return <div className="loading-spinner my-12 mx-auto"></div>;
 
     const statusOptions = [
         { value: 'Draft', label: 'แบบร่าง (Draft)' },
@@ -211,27 +219,27 @@ const InternalRequisitionFormPage = () => {
 
             <form onSubmit={handleSubmit}>
 
-                <div className="glass-panel" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
+                <div className="glass-panel p-8 mb-6">
                     <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>เลขที่เอกสาร</label>
-                            <input type="text" value={formData.requisition_number} readOnly className="glass-input" style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-muted)', border: '1px solid var(--border-color)', opacity: 0.8 }} />
+                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>เลขที่เอกสาร</label>
+                            <input type="text" value={formData.requisition_number} readOnly className="glass-input w-full rounded-lg text-textMuted border border-border" style={{ padding: '0.7rem', background: 'var(--bg-main)', opacity: 0.8 }} />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>วันที่เอกสาร *</label>
-                            <input type="date" name="date" value={formData.date} onChange={handleChange} required className="glass-input" style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }} />
+                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>วันที่เอกสาร *</label>
+                            <input type="date" name="date" value={formData.date} onChange={handleChange} required className="glass-input w-full rounded-lg text-main border border-border" style={{ padding: '0.7rem', background: 'var(--bg-main)' }} />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ผู้ขอเบิก / สั่งซื้อ *</label>
-                            <input type="text" name="requested_by" value={formData.requested_by} onChange={handleChange} required placeholder="ระบุชื่อผู้ขอเบิก" className="glass-input" style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }} />
+                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>ผู้ขอเบิก / สั่งซื้อ *</label>
+                            <input type="text" name="requested_by" value={formData.requested_by} onChange={handleChange} required placeholder="ระบุชื่อผู้ขอเบิก" className="glass-input w-full rounded-lg text-main border border-border" style={{ padding: '0.7rem', background: 'var(--bg-main)' }} />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ผู้อนุมัติ (ถ้ามี)</label>
-                            <input type="text" name="approved_by" value={formData.approved_by} onChange={handleChange} placeholder="ระบุชื่อผู้อนุมัติ" className="glass-input" style={{ width: '100%', padding: '0.7rem', background: 'var(--bg-main)', borderRadius: '8px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }} />
+                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>ผู้อนุมัติ (ถ้ามี)</label>
+                            <input type="text" name="approved_by" value={formData.approved_by} onChange={handleChange} placeholder="ระบุชื่อผู้อนุมัติ" className="glass-input w-full rounded-lg text-main border border-border" style={{ padding: '0.7rem', background: 'var(--bg-main)' }} />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>ประเภทเอกสาร</label>
-                            <div className="glass-input" style={{ width: '100%', padding: '0.7rem', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '8px', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.1)', fontWeight: '600', display: 'flex', alignItems: 'center' }}>
+                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>ประเภทเอกสาร</label>
+                            <div className="glass-input w-full rounded-lg text-blue-500 font-semibold" style={{ padding: '0.7rem', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center' }}>
                                 <ShoppingCart size={14} style={{ marginRight: '0.5rem' }} /> สั่งซื้อ (Purchase)
                             </div>
                         </div>
@@ -239,40 +247,40 @@ const InternalRequisitionFormPage = () => {
                 </div>
 
 
-                <div className="glass-panel" style={{ padding: '0', marginBottom: '1.5rem', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.2rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--primary)' }}>รายการสินค้า</h3>
+                <div className="glass-panel mb-6 overflow-hidden" style={{ padding: '0' }}>
+                    <div className="px-6 py-5 border-b border-border flex justify-between items-center">
+                        <h3 className="m-0 text-lg text-primary">รายการสินค้า</h3>
                         <button
                             type="button"
                             onClick={addItem}
-                            style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: 'var(--primary)', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem' }}
+                            className="text-primary cursor-pointer text-sm" style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '0.4rem 0.8rem', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                         >
                             <Plus size={16} /> เพิ่มรายการ
                         </button>
                     </div>
                     <div className="table-responsive-wrapper">
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <table className="w-full border-collapse">
                             <thead>
-                                <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '50px', textAlign: 'center' }}>#</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>รายละเอียดสินค้า</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '150px', textAlign: 'right' }}>จำนวน</th>
-                                    <th style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', width: '120px', textAlign: 'center' }}>หน่วย</th>
-                                    <th style={{ padding: '1rem', width: '50px' }}></th>
+                                <tr className="border-b border-border text-left">
+                                    <th className="text-textMuted font-medium text-center" style={{ padding: '1rem 1.5rem', width: '50px' }}>#</th>
+                                    <th className="text-textMuted font-medium" style={{ padding: '1rem 1.5rem' }}>รายละเอียดสินค้า</th>
+                                    <th className="text-textMuted font-medium text-right" style={{ padding: '1rem 1.5rem', width: '150px' }}>จำนวน</th>
+                                    <th className="text-textMuted font-medium text-center" style={{ padding: '1rem 1.5rem', width: '120px' }}>หน่วย</th>
+                                    <th className="p-4" style={{ width: '50px' }}></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {items.map((item, index) => (
                                     <tr key={item.id} className="border-b border-border">
-                                        <td style={{ padding: '1rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>{index + 1}</td>
+                                        <td className="text-center text-textMuted" style={{ padding: '1rem 1.5rem' }}>{index + 1}</td>
                                         <td style={{ padding: '1rem 1.5rem' }}>
-                                            <select value={item.item_id || ''} onChange={e => handleItemSelect(index, e.target.value)} className="glass-panel" style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', background: 'var(--card-hover)', color: 'var(--text-main)', border: '1px solid var(--border-color)', marginBottom: '0.5rem' }}>
+                                            <select value={item.item_id || ''} onChange={e => handleItemSelect(index, e.target.value)} className="glass-panel w-full text-main border border-border mb-2" style={{ padding: '0.6rem', borderRadius: '6px', background: 'var(--card-hover)' }}>
                                                 <option value="">-- เลือกสินค้า --</option>
                                                 {allItems.map(i => (
                                                     <option key={i.id} value={i.id}>{i.name} ({i.category?.name || '-'})</option>
                                                 ))}
                                             </select>
-                                            <input type="text" value={item.item_name} onChange={e => handleItemChange(index, 'item_name', e.target.value)} placeholder="หรือพิมพ์ชื่อสินค้าเอง..." className="glass-input" style={{ width: '100%', padding: '0.4rem 0.6rem', background: 'transparent', borderRadius: '4px', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '0.8rem', borderStyle: 'dashed' }} />
+                                            <input type="text" value={item.item_name} onChange={e => handleItemChange(index, 'item_name', e.target.value)} placeholder="หรือพิมพ์ชื่อสินค้าเอง..." className="glass-input w-full bg-transparent text-main border border-border text-xs" style={{ padding: '0.4rem 0.6rem', borderRadius: '4px', borderStyle: 'dashed' }} />
                                             {item.item_name && !item.item_id && (
                                                 <div className="flex items-center gap-1 mt-1 text-[10px] text-[#f59e0b]">
                                                     <PackagePlus size={10} /> สินค้าใหม่ — จะถูกเพิ่มเข้าระบบอัตโนมัติเมื่อบันทึก
@@ -280,14 +288,14 @@ const InternalRequisitionFormPage = () => {
                                             )}
                                         </td>
                                         <td style={{ padding: '1rem 1.5rem' }}>
-                                            <input type="number" min="1" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} className="glass-input" style={{ width: '100%', padding: '0.6rem', textAlign: 'right', background: 'var(--card-hover)', borderRadius: '6px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }} />
+                                            <input type="number" min="1" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} className="glass-input w-full text-right text-main border border-border" style={{ padding: '0.6rem', background: 'var(--card-hover)', borderRadius: '6px' }} />
                                         </td>
                                         <td style={{ padding: '1rem 1.5rem' }}>
-                                            <input type="text" value={item.unit} onChange={e => handleItemChange(index, 'unit', e.target.value)} className="glass-input" style={{ width: '100%', padding: '0.6rem', textAlign: 'center', background: 'var(--card-hover)', borderRadius: '6px', color: 'var(--text-main)', border: '1px solid var(--border-color)' }} />
+                                            <input type="text" value={item.unit} onChange={e => handleItemChange(index, 'unit', e.target.value)} className="glass-input w-full text-center text-main border border-border" style={{ padding: '0.6rem', background: 'var(--card-hover)', borderRadius: '6px' }} />
                                         </td>
-                                        <td style={{ padding: '1rem' }}>
+                                        <td className="p-4">
                                             {items.length > 1 && (
-                                                <button type="button" onClick={() => removeItem(index)} style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: '0.5rem' }}><Trash2 size={16} /></button>
+                                                <button type="button" onClick={() => removeItem(index)} className="bg-transparent border-none text-red-500 cursor-pointer" style={{ padding: '0.5rem' }}><Trash2 size={16} /></button>
                                             )}
                                         </td>
                                     </tr>
@@ -296,14 +304,29 @@ const InternalRequisitionFormPage = () => {
                         </table>
                     </div>
 
-                    {/* Remark */}
-                    <div style={{ padding: '1.5rem' }}>
+                    <div className="p-6">
                         <label className="block text-sm text-textMuted mb-1">หมายเหตุ</label>
                         <textarea name="remark" value={formData.remark} onChange={handleChange} rows="3" className="glass-input w-full px-3 py-2 rounded-lg border border-border bg-main text-textMain resize-none" placeholder="หมายเหตุเพิ่มเติม..." />
                     </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem', padding: '0 1.5rem 1.5rem 1.5rem' }}>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/dashboard/internal-items?tab=history')}
+                            className="glass-panel border border-border bg-transparent text-main rounded-lg cursor-pointer" style={{ padding: '0.8rem 1.5rem' }}
+                        >
+                            ยกเลิก
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isSaving}
+                            className="border-none text-white rounded-lg font-medium flex items-center gap-2" style={{ padding: '0.8rem 1.5rem', background: isSaving ? '#9ca3af' : '#3b82f6', cursor: isSaving ? 'not-allowed' : 'pointer' }}
+                        >
+                            <Save size={18} />
+                            {isSaving ? 'กำลังบันทึก...' : 'บันทึกใบสั่งซื้อ'}
+                        </button>
+                    </div>
                 </div>
-
-
             </form>
         </div>
     );

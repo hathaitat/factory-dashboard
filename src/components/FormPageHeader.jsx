@@ -21,48 +21,26 @@ const FormPageHeader = ({
     const navigate = useNavigate();
 
     return (
-        <div style={{ padding: '0 1rem 0 1rem' }}>
+        <div className="px-4">
             <button
                 type="button"
                 onClick={() => navigate(backUrl)}
-                style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '0.5rem', 
-                    background: 'none', 
-                    border: 'none', 
-                    color: 'var(--text-muted)', 
-                    cursor: 'pointer', 
-                    marginBottom: '1.5rem', 
-                    fontSize: '0.9rem' 
-                }}
+                className="flex items-center gap-2 bg-transparent border-none text-textMuted cursor-pointer mb-6 text-[0.9rem]"
             >
                 <ArrowLeft size={18} /> ย้อนกลับ
             </button>
 
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                marginBottom: '2rem' 
-            }}>
-                <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600', color: 'var(--text-main)' }}>
+            <div className="flex justify-between items-center mb-8">
+                <h1 className="m-0 text-[1.8rem] font-semibold text-textMain">
                     {title}
                 </h1>
                 
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div className="flex gap-4 items-center">
                     {showStatus && statusOptions.length > 0 && (
                         <select
                             value={status}
                             onChange={(e) => onStatusChange(e.target.value)}
-                            className="glass-input"
-                            style={{ 
-                                padding: '0.6rem 1rem', 
-                                background: 'var(--bg-main)', 
-                                borderRadius: '8px', 
-                                color: 'var(--text-main)', 
-                                border: '1px solid var(--border-color)' 
-                            }}
+                            className="glass-input py-[0.6rem] px-4 bg-main rounded-lg text-textMain border border-border"
                         >
                             {statusOptions.map(option => (
                                 <option key={option.value} value={option.value}>
@@ -78,20 +56,7 @@ const FormPageHeader = ({
                         type="button"
                         onClick={onSave}
                         disabled={isSaving}
-                        style={{ 
-                            padding: '0.6rem 1.5rem', 
-                            background: '#3b82f6', 
-                            color: 'white', 
-                            border: 'none', 
-                            borderRadius: '8px', 
-                            fontWeight: '600', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '0.5rem', 
-                            cursor: 'pointer', 
-                            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                            opacity: isSaving ? 0.7 : 1
-                        }}
+                        className={`py-[0.6rem] px-6 bg-blue-500 text-white border-none rounded-lg font-semibold flex items-center gap-2 cursor-pointer shadow-[0_4px_12px_rgba(59,130,246,0.3)] ${isSaving ? 'opacity-70' : 'opacity-100'}`}
                     >
                         <Save size={18} /> {isSaving ? 'กำลังบันทึก...' : saveText}
                     </button>

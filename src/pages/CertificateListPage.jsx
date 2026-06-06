@@ -6,6 +6,8 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
+import Pagination from '../components/Pagination';
+import { usePagination } from '../hooks/usePagination';
 
 const CertificateListPage = () => {
     const navigate = useNavigate();
@@ -85,6 +87,8 @@ const CertificateListPage = () => {
         }
         return { label: 'ปกติ', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' };
     };
+
+    const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems, totalPages, startItem, endItem } = usePagination(filteredCertificates, 50);
 
     return (
         <div style={{ padding: '0 1rem 2rem 1rem' }}>
@@ -183,8 +187,8 @@ const CertificateListPage = () => {
                                         กำลังโหลดข้อมูล...
                                     </td>
                                 </tr>
-                            ) : filteredCertificates.length > 0 ? (
-                                filteredCertificates.map((cert) => {
+                            ) : paginatedData.length > 0 ? (
+                                paginatedData.map((cert) => {
                                     const status = getExpiryStatus(cert.expiry_date);
                                     
                                     return (
@@ -222,13 +226,17 @@ const CertificateListPage = () => {
                                                     )}
                                                 </div>
                                             </td>
-                                        <td style={{ padding: '1.2rem' }}>
-                                            <div style={{ fontWeight: '600', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                {cert.name}
-                                                {status.isWarning && <AlertTriangle size={14} color="#f59e0b" />}
-                                            </div>
-                                            {cert.issue_date && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>ออกเมื่อ: {new Date(cert.issue_date).toLocaleDateString('th-TH')}</div>}
-                                        </td>
+                                         <td style={{ padding: '1.2rem' }}>
+                                             <div style={{ fontWeight: '600', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                 {cert.name}
+                                                 {status.isWarning && <AlertTriangle size={14} color="#f59e0b" />}
+                                             </div>
+                                             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '0.1rem', marginTop: '0.2rem' }}>
+                                                 {cert.issue_date && <div>ออกเมื่อ: {new Date(cert.issue_date).toLocaleDateString('th-TH')}</div>}
+                                                 {cert.created_by && <div>สร้างโดย: <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>{cert.created_by}</span></div>}
+                                                 {cert.updated_by && <div>แก้ไขล่าสุดโดย: <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>{cert.updated_by}</span></div>}
+                                             </div>
+                                         </td>
                                         <td style={{ padding: '1.2rem' }}>
                                             <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                                                 {cert.certificate_products?.length > 0 
@@ -278,6 +286,16 @@ const CertificateListPage = () => {
                         </tbody>
                     </table>
                 </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    totalPages={totalPages}
+                    startItem={startItem}
+                    endItem={endItem}
+                    onPageChange={setCurrentPage}
+                    onItemsPerPageChange={setItemsPerPage}
+                />
             </div>
         </div>
     );

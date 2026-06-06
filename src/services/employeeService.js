@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { sanitizeSearchTerm } from './sanitize';
 
 export const employeeService = {
     // Get all employees
@@ -14,6 +15,50 @@ export const employeeService = {
         } catch (error) {
             console.error('Error fetching employees:', error);
             return [];
+        }
+    },
+
+    // Server-Side Pagination
+    getEmployeesPaginated: async ({ page = 1, limit = 50, searchTerm = '' }) => {
+        try {
+            let query = supabase.from('employees').select('*', { count: 'exact' });
+
+            if (searchTerm) {
+                const safe = sanitizeSearchTerm(searchTerm);
+                if (safe) query = query.or(`full_name.ilike.%${safe}%,code.ilike.%${safe}%,nickname.ilike.%${safe}%`);
+            }
+
+            const from = (page - 1) * limit;
+            const to = from + limit - 1;
+
+            const { data, count, error } = await query
+                .order('code', { ascending: true })
+                .range(from, to);
+
+            if (error) throw error;
+            return { data, total: count };
+        } catch (error) {
+            console.error('Error fetching paginated employees:', error);
+            return { data: [], total: 0, error };
+        }
+    },
+
+    exportEmployees: async ({ searchTerm = '' }) => {
+        try {
+            let query = supabase.from('employees').select('*');
+
+            if (searchTerm) {
+                const safe = sanitizeSearchTerm(searchTerm);
+                if (safe) query = query.or(`full_name.ilike.%${safe}%,code.ilike.%${safe}%,nickname.ilike.%${safe}%`);
+            }
+
+            const { data, error } = await query.order('code', { ascending: true });
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error exporting employees:', error);
+            throw error;
         }
     },
 
@@ -52,7 +97,9 @@ export const employeeService = {
                 emergency_contact_name: employeeData.emergency_contact_name,
                 emergency_contact_phone: employeeData.emergency_contact_phone,
                 emergency_contact_relation: employeeData.emergency_contact_relation,
-                date_of_birth: employeeData.date_of_birth
+                date_of_birth: employeeData.date_of_birth,
+                created_by: employeeData.createdBy || employeeData.created_by || null,
+                updated_by: employeeData.updatedBy || employeeData.updated_by || null
             };
 
             const { data, error } = await supabase
@@ -87,7 +134,9 @@ export const employeeService = {
                 emergency_contact_name: employeeData.emergency_contact_name,
                 emergency_contact_phone: employeeData.emergency_contact_phone,
                 emergency_contact_relation: employeeData.emergency_contact_relation,
-                date_of_birth: employeeData.date_of_birth
+                date_of_birth: employeeData.date_of_birth,
+                updated_at: new Date().toISOString(),
+                updated_by: employeeData.updatedBy || employeeData.updated_by || null
             };
 
             // Remove undefined values so we don't accidentally null out fields

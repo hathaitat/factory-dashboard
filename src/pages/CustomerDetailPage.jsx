@@ -32,7 +32,7 @@ const CustomerDetailPage = () => {
     // Product Form State
     const [isAddingProduct, setIsAddingProduct] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
-    const [newProduct, setNewProduct] = useState({ name: '', unit: '', price: '' });
+    const [newProduct, setNewProduct] = useState({ name: '', unit: '', price: '', sku: '' });
     const [isSavingProduct, setIsSavingProduct] = useState(false);
 
     useEffect(() => {
@@ -121,15 +121,15 @@ const CustomerDetailPage = () => {
         setIsLoadingProductHistory(true);
         try {
             const items = await invoiceService.getInvoiceItemsByCustomer(id);
-            
+
             // Group by month
             const monthlyMap = {};
-            
+
             items.forEach(item => {
                 if (!item.date) return;
                 const date = new Date(item.date);
                 const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                
+
                 if (!monthlyMap[monthKey]) {
                     monthlyMap[monthKey] = {
                         month: monthKey,
@@ -138,7 +138,7 @@ const CustomerDetailPage = () => {
                         totalQuantity: 0
                     };
                 }
-                
+
                 // Group by product name AND unit price to accurately show price per unit
                 const prodKey = `${item.productName || 'Unknown Product'}_${item.unitPrice}`;
                 if (!monthlyMap[monthKey].products[prodKey]) {
@@ -150,22 +150,22 @@ const CustomerDetailPage = () => {
                         totalPrice: 0
                     };
                 }
-                
+
                 monthlyMap[monthKey].products[prodKey].quantity += item.quantity;
                 monthlyMap[monthKey].products[prodKey].totalPrice += item.totalPrice;
-                
+
                 monthlyMap[monthKey].totalAmount += item.totalPrice;
                 monthlyMap[monthKey].totalQuantity += item.quantity;
             });
-            
+
             // Convert products map to array and sort
             const sortedData = Object.values(monthlyMap).map(m => ({
                 ...m,
                 products: Object.values(m.products).sort((a, b) => b.totalPrice - a.totalPrice)
             })).sort((a, b) => b.month.localeCompare(a.month)); // Sort months descending
-            
+
             setProductHistoryData(sortedData);
-            
+
             if (sortedData.length > 0) {
                 setExpandedProductMonths({ [sortedData[0].month]: true });
             }
@@ -178,9 +178,9 @@ const CustomerDetailPage = () => {
 
     const exportProductHistoryToExcel = () => {
         if (!productHistoryData.length) return;
-        
+
         const wb = XLSX.utils.book_new();
-        
+
         // Prepare data for export
         const data = [];
         productHistoryData.forEach(month => {
@@ -218,7 +218,7 @@ const CustomerDetailPage = () => {
 
     const exportDocumentHistoryToExcel = () => {
         if (!historyData.length) return;
-        
+
         const data = [];
         historyData.forEach(month => {
             // Add POs
@@ -284,6 +284,7 @@ const CustomerDetailPage = () => {
             if (editingProduct) {
                 const updated = await productService.updateProduct(editingProduct.id, {
                     name: newProduct.name,
+                    sku: newProduct.sku || null,
                     unit: newProduct.unit,
                     price: parseFloat(newProduct.price) || 0
                 });
@@ -292,13 +293,14 @@ const CustomerDetailPage = () => {
                 const product = await productService.createProduct({
                     customerId: id,
                     name: newProduct.name,
+                    sku: newProduct.sku || null,
                     unit: newProduct.unit,
                     price: parseFloat(newProduct.price) || 0
                 });
                 setProducts([...products, product]);
             }
 
-            setNewProduct({ name: '', unit: '', price: '' });
+            setNewProduct({ name: '', unit: '', price: '', sku: '' });
             setIsAddingProduct(false);
             setEditingProduct(null);
         } catch (error) {
@@ -312,6 +314,7 @@ const CustomerDetailPage = () => {
         setEditingProduct(product);
         setNewProduct({
             name: product.name,
+            sku: product.sku || '',
             unit: product.unit || '',
             price: product.price || ''
         });
@@ -321,7 +324,7 @@ const CustomerDetailPage = () => {
     const handleCancelEdit = () => {
         setIsAddingProduct(false);
         setEditingProduct(null);
-        setNewProduct({ name: '', unit: '', price: '' });
+        setNewProduct({ name: '', unit: '', price: '', sku: '' });
     };
 
     const handleDeleteProduct = async (productId, productName) => {
@@ -336,45 +339,27 @@ const CustomerDetailPage = () => {
         }
     };
 
-    if (isLoading) return <div style={{ padding: '2rem', color: '#888' }}>กำลังโหลดข้อมูล...</div>;
+    if (isLoading) return <div className="p-8 text-gray-500">กำลังโหลดข้อมูล...</div>;
     if (!customer) return null;
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem', maxWidth: '1000px', margin: '0 auto' }}>
+        <div className="px-4 pb-8 max-w-5xl mx-auto">
             <button
                 onClick={() => navigate('/dashboard/customers')}
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    background: 'none',
-                    border: 'none',
-                    color: '#888',
-                    cursor: 'pointer',
-                    marginBottom: '1rem',
-                    padding: 0
-                }}
+                className="flex items-center gap-2 bg-transparent border-none text-gray-500 cursor-pointer mb-4 p-[0]"
             >
                 <ArrowLeft size={20} /> ย้อนกลับ
             </button>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '2rem' }}>
+            <div className="flex justify-between items-start mb-8">
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: '600' }}>{customer.name}</h1>
-                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', color: '#888' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontFamily: 'monospace' }}>
+                    <h1 className="m-[0] text-3xl font-semibold">{customer.name}</h1>
+                    <div className="flex gap-4 mt-2 text-gray-500">
+                        <span className="flex items-center gap-1.5 font-mono">
                             #{customer.code || customer.id.toString().padStart(4, '0')}
                         </span>
                         <span>•</span>
-                        <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            padding: '0.1rem 0.5rem',
-                            borderRadius: '12px',
-                            background: customer.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                            color: customer.status === 'Active' ? '#34d399' : '#f87171',
-                            fontSize: '0.85rem',
-                        }}>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-xl text-[0.85rem] ${customer.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
                             {customer.status === 'Active' ? 'ปกติ' : 'ระงับการใช้งาน'}
                         </span>
                     </div>
@@ -383,17 +368,7 @@ const CustomerDetailPage = () => {
                     {hasPermission('customers', 'edit') && (
                         <button
                             onClick={() => navigate(`/dashboard/customers/${id}/edit`)}
-                            style={{
-                                padding: '0.6rem 1rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                background: 'var(--card-hover)',
-                                color: 'var(--text-main)',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem'
-                            }}
+                            className="p-[0.6rem 1rem] rounded-lg border border-border bg-card-hover text-main cursor-pointer flex items-center gap-2"
                         >
                             <Edit size={18} /> แก้ไข
                         </button>
@@ -401,17 +376,7 @@ const CustomerDetailPage = () => {
                     {hasPermission('customers', 'delete') && (
                         <button
                             onClick={handleDeleteCustomer}
-                            style={{
-                                padding: '0.6rem 1rem',
-                                borderRadius: '8px',
-                                border: '1px solid rgba(239, 68, 68, 0.2)',
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                color: '#f87171',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem'
-                            }}
+                            className="px-4 py-2.5 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 cursor-pointer flex items-center gap-2"
                         >
                             <Trash2 size={18} /> ลบ
                         </button>
@@ -420,64 +385,22 @@ const CustomerDetailPage = () => {
             </div>
 
             {/* Tab Navigation */}
-            <div style={{ display: 'flex', gap: '0', marginBottom: '1.5rem', borderBottom: '2px solid var(--border-color)' }}>
+            <div className="flex gap-0 mb-6 border-b-2 border-border">
                 <button
                     onClick={() => setActiveTab('info')}
-                    style={{
-                        padding: '0.8rem 1.5rem',
-                        background: 'none',
-                        border: 'none',
-                        borderBottom: activeTab === 'info' ? '2px solid #3b82f6' : '2px solid transparent',
-                        marginBottom: '-2px',
-                        color: activeTab === 'info' ? '#3b82f6' : 'var(--text-muted)',
-                        fontWeight: activeTab === 'info' ? '600' : '400',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        fontSize: '1rem',
-                        transition: 'all 0.2s'
-                    }}
+                    className={`px-6 py-3 bg-transparent border-none border-b-2 -mb-0.5 cursor-pointer flex items-center gap-2 text-base transition-all duration-200 ${activeTab === 'info' ? 'border-blue-500 text-blue-500 font-semibold' : 'border-transparent text-muted font-normal'}`}
                 >
                     <Building size={18} /> ข้อมูลลูกค้า
                 </button>
                 <button
                     onClick={() => setActiveTab('history')}
-                    style={{
-                        padding: '0.8rem 1.5rem',
-                        background: 'none',
-                        border: 'none',
-                        borderBottom: activeTab === 'history' ? '2px solid #f59e0b' : '2px solid transparent',
-                        marginBottom: '-2px',
-                        color: activeTab === 'history' ? '#f59e0b' : 'var(--text-muted)',
-                        fontWeight: activeTab === 'history' ? '600' : '400',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        fontSize: '1rem',
-                        transition: 'all 0.2s'
-                    }}
+                    className={`px-6 py-3 bg-transparent border-none border-b-2 -mb-0.5 cursor-pointer flex items-center gap-2 text-base transition-all duration-200 ${activeTab === 'history' ? 'border-amber-500 text-amber-500 font-semibold' : 'border-transparent text-muted font-normal'}`}
                 >
                     <History size={18} /> ประวัติการซื้อ (เอกสาร)
                 </button>
                 <button
                     onClick={() => setActiveTab('product_history')}
-                    style={{
-                        padding: '0.8rem 1.5rem',
-                        background: 'none',
-                        border: 'none',
-                        borderBottom: activeTab === 'product_history' ? '2px solid #10b981' : '2px solid transparent',
-                        marginBottom: '-2px',
-                        color: activeTab === 'product_history' ? '#10b981' : 'var(--text-muted)',
-                        fontWeight: activeTab === 'product_history' ? '600' : '400',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        fontSize: '1rem',
-                        transition: 'all 0.2s'
-                    }}
+                    className={`px-6 py-3 bg-transparent border-none border-b-2 -mb-0.5 cursor-pointer flex items-center gap-2 text-base transition-all duration-200 ${activeTab === 'product_history' ? 'border-emerald-500 text-emerald-500 font-semibold' : 'border-transparent text-muted font-normal'}`}
                 >
                     <List size={18} /> ประวัติการซื้อ (สินค้า)
                 </button>
@@ -485,616 +408,497 @@ const CustomerDetailPage = () => {
 
             {/* Tab: Info */}
             {activeTab === 'info' && (
-            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    {/* General Info */}
-                    <div className="glass-panel p-6">
-                        <h3 style={{ marginTop: 0, marginBottom: '1.5rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Building size={20} /> ข้อมูลทั่วไป
-                        </h3>
-                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.85rem', color: '#888', marginBottom: '0.3rem' }}>เลขประจำตัวผู้เสียภาษี</label>
-                                <div>{customer.taxId || '-'}</div>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.85rem', color: '#888', marginBottom: '0.3rem' }}>เครดิต (วัน)</label>
-                                <div style={{ color: '#34d399', fontWeight: '500' }}>
-                                    {customer.creditTerm === 0 || customer.creditTerm === '0' ? 'สด' : (customer.creditTerm ? `${customer.creditTerm} วัน` : '-')}
+                <div className="grid-mobile-stack grid grid-cols-[2fr_1fr] gap-6">
+                    <div className="flex flex-col gap-6">
+                        {/* General Info */}
+                        <div className="glass-panel p-6">
+                            <h3 className="mt-[0] mb-6 text-violet-500 flex items-center gap-2">
+                                <Building size={20} /> ข้อมูลทั่วไป
+                            </h3>
+                            <div className="grid-mobile-stack grid grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm text-gray-500 mb-1">เลขประจำตัวผู้เสียภาษี</label>
+                                    <div>{customer.taxId || '-'}</div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-500 mb-1">เครดิต (วัน)</label>
+                                    <div className="text-emerald-500 font-medium">
+                                        {customer.creditTerm === 0 || customer.creditTerm === '0' ? 'สด' : (customer.creditTerm ? `${customer.creditTerm} วัน` : '-')}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Products List */}
-                    <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-                        <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)' }}>
-                            <h3 style={{ margin: 0, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <Package size={20} /> รายการสินค้า (Products)
-                            </h3>
-                            {hasPermission('customers', 'edit') && !isAddingProduct && (
-                                <button
-                                    onClick={() => {
-                                        setEditingProduct(null);
-                                        setNewProduct({ name: '', unit: '', price: '' });
-                                        setIsAddingProduct(true);
-                                    }}
-                                    style={{
-                                        padding: '0.4rem 0.8rem',
-                                        borderRadius: '6px',
-                                        border: 'none',
-                                        background: 'rgba(245, 158, 11, 0.2)',
-                                        color: '#f59e0b',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.3rem',
-                                        fontSize: '0.9rem'
-                                    }}
-                                >
-                                    <Plus size={16} /> เพิ่มสินค้า
-                                </button>
-                            )}
-                        </div>
-
-                        {isAddingProduct && (
-                            <div style={{ padding: '1rem', background: 'var(--card-hover)', borderBottom: '1px solid var(--border-color)' }}>
-                                <form onSubmit={handleSaveProduct} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-                                    <div style={{ flex: 2 }}>
-                                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#888', marginBottom: '0.3rem' }}>ชื่อสินค้า</label>
-                                        <input
-                                            type="text"
-                                            value={newProduct.name}
-                                            onChange={e => setNewProduct({ ...newProduct, name: e.target.value })}
-                                            required
-                                            className="glass-input"
-                                            placeholder="ระบุชื่อสินค้า"
-                                            style={{ width: '100%', padding: '0.6rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '4px', color: 'var(--text-main)' }}
-                                        />
-                                    </div>
-                                    <div className="flex-1">
-                                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#888', marginBottom: '0.3rem' }}>หน่วย</label>
-                                        <input
-                                            type="text"
-                                            value={newProduct.unit}
-                                            onChange={e => setNewProduct({ ...newProduct, unit: e.target.value })}
-                                            className="glass-input"
-                                            placeholder="เช่น ชิ้น"
-                                            style={{ width: '100%', padding: '0.6rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '4px', color: 'var(--text-main)' }}
-                                        />
-                                    </div>
-                                    <div className="flex-1">
-                                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#888', marginBottom: '0.3rem' }}>ราคา/หน่วย</label>
-                                        <input
-                                            type="number"
-                                            value={newProduct.price}
-                                            onChange={e => setNewProduct({ ...newProduct, price: e.target.value })}
-                                            className="glass-input"
-                                            placeholder="0.00"
-                                            style={{ width: '100%', padding: '0.6rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '4px', color: 'var(--text-main)' }}
-                                        />
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            type="submit"
-                                            disabled={!newProduct.name || isSavingProduct}
-                                            style={{
-                                                padding: '0.6rem 1rem',
-                                                borderRadius: '6px',
-                                                border: 'none',
-                                                background: '#f59e0b',
-                                                color: 'white',
-                                                cursor: 'pointer',
-                                                fontWeight: '500'
-                                            }}
-                                        >
-                                            {isSavingProduct ? '...' : (editingProduct ? 'บันทึก' : 'เพิ่ม')}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleCancelEdit}
-                                            style={{
-                                                padding: '0.6rem',
-                                                borderRadius: '6px',
-                                                border: '1px solid var(--border-color)',
-                                                background: 'transparent',
-                                                color: 'var(--text-muted)',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            <X size={18} />
-                                        </button>
-                                    </div>
-                                </form>
+                        {/* Products List */}
+                        <div className="glass-panel p-0 overflow-hidden">
+                            <div className="p-6 flex justify-between items-center border-b border-border">
+                                <h3 className="m-[0] text-amber-500 flex items-center gap-2">
+                                    <Package size={20} /> รายการสินค้า (Products)
+                                </h3>
+                                {hasPermission('customers', 'edit') && !isAddingProduct && (
+                                    <button
+                                        onClick={() => {
+                                            setEditingProduct(null);
+                                            setNewProduct({ name: '', unit: '', price: '', sku: '' });
+                                            setIsAddingProduct(true);
+                                        }}
+                                        className="px-3 py-1.5 rounded-md border-none bg-[rgba(245, 158, 11, 0.2)] text-amber-500 cursor-pointer flex items-center gap-1 text-[0.95rem]"
+                                    >
+                                        <Plus size={16} /> เพิ่มสินค้า
+                                    </button>
+                                )}
                             </div>
-                        )}
 
-                        <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                    <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                        <th style={{ padding: '0.8rem 1.5rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: '500', fontSize: '0.9rem' }}>สินค้า</th>
-                                        <th style={{ padding: '0.8rem 1.5rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: '500', fontSize: '0.9rem' }}>ราคา/หน่วย</th>
-                                        <th style={{ padding: '0.8rem 1.5rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: '500', fontSize: '0.9rem' }}>จัดการ</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {products.length > 0 ? (
-                                        products.map((product) => (
-                                            <tr key={product.id} style={{ borderBottom: '1px solid var(--border-color)', opacity: 0.9 }}>
-                                                <td style={{ padding: '0.8rem 1.5rem' }}>
-                                                    <div className="font-medium">{product.name}</div>
-                                                </td>
-                                                <td style={{ padding: '0.8rem 1.5rem' }}>
-                                                    {product.price > 0 ? `฿${Number(product.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
-                                                    <span style={{ color: '#666', fontSize: '0.85rem', marginLeft: '0.3rem' }}>
-                                                        {product.unit && `/ ${product.unit}`}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right' }}>
-                                                    <div className="table-actions">
-                                                    {hasPermission('customers', 'edit') && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => handleEditProduct(product)}
-                                                                style={{
-                                                                    padding: '0.4rem',
-                                                                    borderRadius: '4px',
-                                                                    border: 'none',
-                                                                    background: 'transparent',
-                                                                    color: '#3b82f6',
-                                                                    cursor: 'pointer',
-                                                                    opacity: 0.8
-                                                                }}
-                                                            >
-                                                                <Edit size={16} />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteProduct(product.id, product.name)}
-                                                                style={{
-                                                                    padding: '0.4rem',
-                                                                    borderRadius: '4px',
-                                                                    border: 'none',
-                                                                    background: 'transparent',
-                                                                    color: '#f87171',
-                                                                    cursor: 'pointer',
-                                                                    opacity: 0.8
-                                                                }}
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                    </div>
+                            {isAddingProduct && (
+                                <div className="p-4 bg-card-hover border-b border-border">
+                                    <form onSubmit={handleSaveProduct} className="flex gap-4 items-end">
+                                        <div className="flex-[2]">
+                                            <label className="block text-sm text-gray-500 mb-1">ชื่อสินค้า</label>
+                                            <input
+                                                type="text"
+                                                value={newProduct.name}
+                                                onChange={e => setNewProduct({ ...newProduct, name: e.target.value })}
+                                                required
+                                                placeholder="ระบุชื่อสินค้า"
+                                                className="glass-input w-full p-2.5 bg-main border border-border rounded text-main"
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="block text-sm text-gray-500 mb-1">รหัส SKU (ถ้ามี)</label>
+                                            <input
+                                                type="text"
+                                                value={newProduct.sku}
+                                                onChange={e => setNewProduct({ ...newProduct, sku: e.target.value })}
+
+                                                placeholder="SKU-001"
+                                                className="glass-input w-full p-2.5 bg-main border border-border rounded text-main"
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="block text-sm text-gray-500 mb-1">หน่วย</label>
+                                            <input
+                                                type="text"
+                                                value={newProduct.unit}
+                                                onChange={e => setNewProduct({ ...newProduct, unit: e.target.value })}
+
+                                                placeholder="เช่น ชิ้น"
+                                                className="glass-input w-full p-2.5 bg-main border border-border rounded text-main"
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="block text-sm text-gray-500 mb-1">ราคา/หน่วย</label>
+                                            <input
+                                                type="number"
+                                                value={newProduct.price}
+                                                onChange={e => setNewProduct({ ...newProduct, price: e.target.value })}
+
+                                                placeholder="0.00"
+                                                className="glass-input w-full p-2.5 bg-main border border-border rounded text-main"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="submit"
+                                                disabled={!newProduct.name || isSavingProduct}
+                                                className="p-[0.6rem 1rem] rounded-md border-none bg-[#f59e0b] text-white cursor-pointer font-medium"
+                                            >
+                                                {isSavingProduct ? '...' : (editingProduct ? 'บันทึก' : 'เพิ่ม')}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleCancelEdit}
+                                                className="p-2.5 rounded-md border border-border bg-transparent text-muted cursor-pointer"
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
+
+                            <div className="table-responsive-wrapper overflow-x-auto touch-pan-x">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b border-border">
+                                            <th className="px-6 py-3 text-left text-muted font-medium text-[0.95rem]">รหัส SKU</th>
+                                            <th className="px-6 py-3 text-left text-muted font-medium text-[0.95rem]">สินค้า</th>
+                                            <th className="px-6 py-3 text-left text-muted font-medium text-[0.95rem]">ราคา/หน่วย</th>
+                                            <th className="actions-column text-muted font-medium text-[0.95rem]">จัดการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {products.length > 0 ? (
+                                            products.map((product) => (
+                                                <tr key={product.id} className="border-b border-border opacity-90">
+                                                    <td className="px-6 py-3">
+                                                        <div className="font-medium text-blue-500">{product.sku || '-'}</div>
+                                                    </td>
+                                                    <td className="px-6 py-3">
+                                                        <div className="font-medium">{product.name}</div>
+                                                    </td>
+                                                    <td className="px-6 py-3">
+                                                        {product.price > 0 ? `฿${Number(product.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+                                                        <span className="text-gray-500 text-sm ml-1">
+                                                            {product.unit && `/ ${product.unit}`}
+                                                        </span>
+                                                    </td>
+                                                    <td className="actions-column">
+                                                        <div className="table-actions">
+                                                            {hasPermission('customers', 'edit') && (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => handleEditProduct(product)}
+                                                                        className="action-edit"
+                                                                        title="แก้ไข"
+                                                                    >
+                                                                        <Edit size={16} />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDeleteProduct(product.id, product.name)}
+                                                                        className="action-delete"
+                                                                        title="ลบ"
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="3" className="p-8 text-center text-gray-500 italic">
+                                                    ยังไม่มีรายการสินค้า
                                                 </td>
                                             </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="3" style={{ padding: '2rem', textAlign: 'center', color: '#666', fontStyle: 'italic' }}>
-                                                ยังไม่มีรายการสินค้า
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-</div>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                     </div>
 
+                    <div className="flex flex-col gap-6">
+                        {/* Contact Info */}
+                        <div className="glass-panel p-6">
+                            <h3 className="mt-[0] mb-6 text-blue-500 flex items-center gap-2">
+                                <User size={20} /> ข้อมูลการติดต่อ
+                            </h3>
+                            <div className="grid gap-4">
+                                <div>
+                                    <label className="block text-sm text-gray-500 mb-1">ผู้ติดต่อ</label>
+                                    <div className="font-medium">{customer.contactPerson || '-'}</div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Phone size={16} className="text-gray-500" />
+                                    <div>{customer.phone || '-'}</div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Mail size={16} className="text-gray-500" />
+                                    <div>{customer.email || '-'}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Address */}
+                        <div className="glass-panel p-6">
+                            <h3 className="mt-[0] mb-6 text-emerald-500 flex items-center gap-2">
+                                <MapPin size={20} /> ที่อยู่
+                            </h3>
+                            <div className="leading-relaxed">
+                                {customer.address || '-'}
+                            </div>
+                        </div>
+
+                        {/* History */}
+                        <div className="glass-panel p-6">
+                            <h3 className="mt-[0] mb-4 text-gray-500 flex items-center gap-2 text-base">
+                                <Calendar size={18} /> ประวัติ
+                            </h3>
+                            <div className="text-sm text-gray-500 grid gap-2">
+                                <div>สร้างเมื่อ: {new Date(customer.createdAt).toLocaleDateString('th-TH')}</div>
+                                {customer.createdBy && (
+                                    <div className="flex items-center gap-1.5">
+                                        <User size={14} /> สร้างโดย: <span className="text-main font-semibold">{customer.createdBy}</span>
+                                    </div>
+                                )}
+                                <div>อัปเดตล่าสุด: {new Date(customer.updatedAt).toLocaleDateString('th-TH')}</div>
+                                {customer.updatedBy && (
+                                    <div className="flex items-center gap-1.5">
+                                        <User size={14} /> แก้ไขล่าสุดโดย: <span className="text-main font-semibold">{customer.updatedBy}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    {/* Contact Info */}
-                    <div className="glass-panel p-6">
-                        <h3 style={{ marginTop: 0, marginBottom: '1.5rem', color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <User size={20} /> ข้อมูลการติดต่อ
-                        </h3>
-                        <div style={{ display: 'grid', gap: '1rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.85rem', color: '#888', marginBottom: '0.3rem' }}>ผู้ติดต่อ</label>
-                                <div className="font-medium">{customer.contactPerson || '-'}</div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <Phone size={16} style={{ color: '#888' }} />
-                                <div>{customer.phone || '-'}</div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <Mail size={16} style={{ color: '#888' }} />
-                                <div>{customer.email || '-'}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Address */}
-                    <div className="glass-panel p-6">
-                        <h3 style={{ marginTop: 0, marginBottom: '1.5rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <MapPin size={20} /> ที่อยู่
-                        </h3>
-                        <div style={{ lineHeight: '1.6' }}>
-                            {customer.address || '-'}
-                        </div>
-                    </div>
-
-                    {/* History */}
-                    <div className="glass-panel p-6">
-                        <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#666', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}>
-                            <Calendar size={18} /> ประวัติ
-                        </h3>
-                        <div style={{ fontSize: '0.85rem', color: '#888', display: 'grid', gap: '0.5rem' }}>
-                            <div>สร้างเมื่อ: {new Date(customer.createdAt).toLocaleDateString('th-TH')}</div>
-                            <div>อัปเดตล่าสุด: {new Date(customer.updatedAt).toLocaleDateString('th-TH')}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
             )}
 
             {/* Tab: History */}
             {activeTab === 'history' && (
-            <div>
-                {isLoadingHistory ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>กำลังโหลดประวัติการซื้อ...</div>
-                ) : historyData.length === 0 ? (
-                    <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        <History size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
-                        <div style={{ fontSize: '1.1rem' }}>ยังไม่มีประวัติการซื้อ</div>
-                    </div>
-                ) : (
-                    <>
-                        {/* Summary Cards */}
-                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                            <div className="glass-panel" style={{ padding: '1.5rem', textAlign: 'center', background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.05))', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
-                                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '500' }}>ยอดซื้อรวมทั้งหมด</div>
-                                <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#10b981' }}>
-                                    ฿{historyData.reduce((sum, m) => sum + m.totalInvAmount, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </div>
-                            </div>
-                            <div className="glass-panel" style={{ padding: '1.5rem', textAlign: 'center', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(37, 99, 235, 0.05))', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
-                                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '500' }}>จำนวน PO ทั้งหมด</div>
-                                <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#3b82f6' }}>
-                                    {historyData.reduce((sum, m) => sum + m.pos.length, 0)} <span style={{ fontSize: '1rem', fontWeight: '500', opacity: 0.8 }}>ฉบับ</span>
-                                </div>
-                            </div>
-                            <div className="glass-panel" style={{ padding: '1.5rem', textAlign: 'center', background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(217, 119, 6, 0.05))', border: '1px solid rgba(245, 158, 11, 0.1)' }}>
-                                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '500' }}>จำนวน INV ทั้งหมด</div>
-                                <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#f59e0b' }}>
-                                    {historyData.reduce((sum, m) => sum + m.invoices.length, 0)} <span style={{ fontSize: '1rem', fontWeight: '500', opacity: 0.8 }}>ฉบับ</span>
-                                </div>
-                            </div>
+                <div>
+                    {isLoadingHistory ? (
+                        <div className="p-[3rem] text-center text-muted">กำลังโหลดประวัติการซื้อ...</div>
+                    ) : historyData.length === 0 ? (
+                        <div className="glass-panel p-[3rem] text-center text-muted">
+                            <History size={48} className="mb-4" />
+                            <div className="text-lg">ยังไม่มีประวัติการซื้อ</div>
                         </div>
+                    ) : (
+                        <>
+                            {/* Summary Cards */}
+                            <div className="grid-mobile-stack grid gap-4 mb-6">
+                                <div className="glass-panel p-6 text-center bg-[linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.05))] border-[1px solid rgba(16, 185, 129, 0.1)]">
+                                    <div className="text-muted text-[0.95rem] mb-2 font-medium">ยอดซื้อรวมทั้งหมด</div>
+                                    <div className="text-[1.75rem] text-emerald-500">
+                                        ฿{historyData.reduce((sum, m) => sum + m.totalInvAmount, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </div>
+                                </div>
+                                <div className="glass-panel p-6 text-center bg-[linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(37, 99, 235, 0.05))] border-[1px solid rgba(59, 130, 246, 0.1)]">
+                                    <div className="text-muted text-[0.95rem] mb-2 font-medium">จำนวน PO ทั้งหมด</div>
+                                    <div className="text-[1.75rem] text-blue-500">
+                                        {historyData.reduce((sum, m) => sum + m.pos.length, 0)} <span className="text-base font-medium">ฉบับ</span>
+                                    </div>
+                                </div>
+                                <div className="glass-panel p-6 text-center bg-[linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(217, 119, 6, 0.05))] border-[1px solid rgba(245, 158, 11, 0.1)]">
+                                    <div className="text-muted text-[0.95rem] mb-2 font-medium">จำนวน INV ทั้งหมด</div>
+                                    <div className="text-[1.75rem] text-amber-500">
+                                        {historyData.reduce((sum, m) => sum + m.invoices.length, 0)} <span className="text-base font-medium">ฉบับ</span>
+                                    </div>
+                                </div>
+                            </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-                            <button
-                                onClick={exportDocumentHistoryToExcel}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                    padding: '0.5rem 1rem', borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    background: 'var(--card-bg)',
-                                    color: 'var(--text-main)', cursor: 'pointer',
-                                    fontSize: '0.9rem', fontWeight: '500'
-                                }}
-                            >
-                                <FileSpreadsheet size={16} color="#10b981" /> Export History (Excel)
-                            </button>
-                        </div>
+                            <div className="flex justify-end mb-4">
+                                <button
+                                    onClick={exportDocumentHistoryToExcel}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card text-main cursor-pointer text-[0.95rem] font-medium"
+                                >
+                                    <FileSpreadsheet size={16} color="#10b981" /> Export History (Excel)
+                                </button>
+                            </div>
 
-                        {/* Monthly breakdown */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {historyData.map(monthData => (
-                                <div key={monthData.month} className="glass-panel overflow-hidden">
-                                    {/* Month Header - Clickable */}
-                                    <button
-                                        onClick={() => toggleMonth(monthData.month)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '1rem 1.5rem',
-                                            background: 'none',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            color: 'var(--text-main)',
-                                            borderBottom: expandedMonths[monthData.month] ? '1px solid var(--border-color)' : 'none'
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                {expandedMonths[monthData.month] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                                                <span style={{ fontWeight: '600', fontSize: '1.05rem' }}>{formatMonthName(monthData.month)}</span>
+                            {/* Monthly breakdown */}
+                            <div className="flex flex-col gap-[0.75rem]">
+                                {historyData.map(monthData => (
+                                    <div key={monthData.month} className="glass-panel overflow-hidden">
+                                        {/* Month Header - Clickable */}
+                                        <button
+                                            onClick={() => toggleMonth(monthData.month)}
+                                            className={`w-full px-6 py-4 bg-transparent border-none cursor-pointer flex justify-between items-center text-main ${expandedMonths[monthData.month] ? 'border-b border-border' : 'border-b-0'}`}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-2">
+                                                    {expandedMonths[monthData.month] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                                    <span className="font-semibold text-[1.05rem]">{formatMonthName(monthData.month)}</span>
+                                                </div>
+                                                <div className="flex gap-3">
+                                                    <span className="text-sm px-2 py-1 rounded-xl bg-[rgba(59, 130, 246, 0.1)] text-blue-500">
+                                                        PO: {monthData.pos.length}
+                                                    </span>
+                                                    <span className="text-sm px-2 py-1 rounded-xl bg-[rgba(245, 158, 11, 0.1)] text-amber-500">
+                                                        INV: {monthData.invoices.length}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                                <span style={{ fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-                                                    PO: {monthData.pos.length}
-                                                </span>
-                                                <span style={{ fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-                                                    INV: {monthData.invoices.length}
-                                                </span>
+                                            <div className="text-right">
+                                                <div className="font-semibold text-emerald-500 text-lg">
+                                                    ฿{monthData.totalInvAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div style={{ fontWeight: '600', color: '#10b981', fontSize: '1.1rem' }}>
-                                                ฿{monthData.totalInvAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </div>
-                                        </div>
-                                    </button>
+                                        </button>
 
-                                    {/* Expanded Content */}
-                                    {expandedMonths[monthData.month] && (
-                                        <div style={{ padding: '1rem 1.5rem' }}>
-                                            {/* PO List */}
-                                            {monthData.pos.length > 0 && (
-                                                <div style={{ marginBottom: monthData.invoices.length > 0 ? '1.5rem' : 0 }}>
-                                                    <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#3b82f6', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                        <ShoppingCart size={14} /> ใบสั่งซื้อ (PO)
-                                                    </div>
-                                                    {monthData.pos.map(po => (
-                                                        <div
-                                                            key={po.id}
-                                                            onClick={() => window.open(`/dashboard/purchase-orders/${po.id}/edit`, '_blank')}
-                                                            style={{
-                                                                display: 'flex',
-                                                                justifyContent: 'space-between',
-                                                                alignItems: 'center',
-                                                                padding: '0.6rem 0.8rem',
-                                                                borderRadius: '6px',
-                                                                marginBottom: '0.3rem',
-                                                                background: 'var(--bg-main)',
-                                                                cursor: 'pointer',
-                                                                transition: 'background 0.15s'
-                                                            }}
-                                                            onMouseOver={e => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.05)'}
-                                                            onMouseOut={e => e.currentTarget.style.background = 'var(--bg-main)'}
-                                                        >
-                                                            <div>
-                                                                <span style={{ fontWeight: '500', color: '#3b82f6', fontSize: '0.9rem' }}>{po.po_number}</span>
-                                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '0.75rem' }}>
-                                                                    {new Date(po.issue_date).toLocaleDateString('th-TH')}
-                                                                </span>
-                                                                <span style={{
-                                                                    marginLeft: '0.5rem',
-                                                                    fontSize: '0.75rem',
-                                                                    padding: '0.1rem 0.4rem',
-                                                                    borderRadius: '8px',
-                                                                    background: po.status === 'Completed' ? 'rgba(16,185,129,0.1)' : po.status === 'In Progress' ? 'rgba(59,130,246,0.1)' : 'rgba(156,163,175,0.1)',
-                                                                    color: po.status === 'Completed' ? '#10b981' : po.status === 'In Progress' ? '#3b82f6' : '#9ca3af'
-                                                                }}>
-                                                                    {po.status}
+                                        {/* Expanded Content */}
+                                        {expandedMonths[monthData.month] && (
+                                            <div className="p-[1rem 1.5rem]">
+                                                {/* PO List */}
+                                                {monthData.pos.length > 0 && (
+                                                    <div className={`${monthData.invoices.length > 0 ? 'mb-6' : 'mb-0'}`}>
+                                                        <div className="text-sm font-semibold text-blue-500 mb-2 flex items-center gap-1.5">
+                                                            <ShoppingCart size={14} /> ใบสั่งซื้อ (PO)
+                                                        </div>
+                                                        {monthData.pos.map(po => (
+                                                            <div
+                                                                key={po.id}
+                                                                onClick={() => window.open(`/dashboard/purchase-orders/${po.id}/edit`, '_blank')}
+                                                                className="flex justify-between items-center p-[0.6rem 0.8rem] rounded-md mb-1 bg-main cursor-pointer"
+                                                                onMouseOver={e => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.05)'}
+                                                                onMouseOut={e => e.currentTarget.style.background = 'var(--bg-main)'}
+                                                            >
+                                                                <div>
+                                                                    <span className="font-medium text-blue-500 text-[0.95rem]">{po.po_number}</span>
+                                                                    <span className="text-muted text-sm ml-[0.75rem]">
+                                                                        {new Date(po.issue_date).toLocaleDateString('th-TH')}
+                                                                    </span>
+                                                                    <span className={`ml-2 text-[0.75rem] px-1.5 py-0.5 rounded-lg ${po.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-500' : po.status === 'In Progress' ? 'bg-blue-500/10 text-blue-500' : 'bg-gray-400/10 text-gray-400'}`}>
+                                                                        {po.status}
+                                                                    </span>
+                                                                </div>
+                                                                <span className="font-medium text-[0.95rem]">
+                                                                    ฿{Number(po.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                                 </span>
                                                             </div>
-                                                            <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>
-                                                                ฿{Number(po.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            {/* Invoice List */}
-                                            {monthData.invoices.length > 0 && (
-                                                <div>
-                                                    <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#f59e0b', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                        <FileText size={14} /> ใบกำกับภาษี (INV)
+                                                        ))}
                                                     </div>
-                                                    {monthData.invoices.map(inv => (
-                                                        <div
-                                                            key={inv.id}
-                                                            onClick={() => window.open(`/dashboard/invoices/${inv.id}/edit`, '_blank')}
-                                                            style={{
-                                                                display: 'flex',
-                                                                justifyContent: 'space-between',
-                                                                alignItems: 'center',
-                                                                padding: '0.6rem 0.8rem',
-                                                                borderRadius: '6px',
-                                                                marginBottom: '0.3rem',
-                                                                background: 'var(--bg-main)',
-                                                                cursor: 'pointer',
-                                                                transition: 'background 0.15s'
-                                                            }}
-                                                            onMouseOver={e => e.currentTarget.style.background = 'rgba(245, 158, 11, 0.05)'}
-                                                            onMouseOut={e => e.currentTarget.style.background = 'var(--bg-main)'}
-                                                        >
-                                                            <div>
-                                                                <span style={{ fontWeight: '500', color: '#f59e0b', fontSize: '0.9rem' }}>{inv.invoiceNo}</span>
-                                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '0.75rem' }}>
-                                                                    {new Date(inv.date).toLocaleDateString('th-TH')}
-                                                                </span>
-                                                                <span style={{
-                                                                    marginLeft: '0.5rem',
-                                                                    fontSize: '0.75rem',
-                                                                    padding: '0.1rem 0.4rem',
-                                                                    borderRadius: '8px',
-                                                                    background: inv.status === 'Paid' ? 'rgba(16,185,129,0.1)' : inv.status === 'Pending' ? 'rgba(245,158,11,0.1)' : 'rgba(156,163,175,0.1)',
-                                                                    color: inv.status === 'Paid' ? '#10b981' : inv.status === 'Pending' ? '#f59e0b' : '#9ca3af'
-                                                                }}>
-                                                                    {inv.status}
+                                                )}
+
+                                                {/* Invoice List */}
+                                                {monthData.invoices.length > 0 && (
+                                                    <div>
+                                                        <div className="text-sm font-semibold text-amber-500 mb-2 flex items-center gap-1.5">
+                                                            <FileText size={14} /> ใบกำกับภาษี (INV)
+                                                        </div>
+                                                        {monthData.invoices.map(inv => (
+                                                            <div
+                                                                key={inv.id}
+                                                                onClick={() => window.open(`/dashboard/invoices/${inv.id}/edit`, '_blank')}
+                                                                className="flex justify-between items-center p-[0.6rem 0.8rem] rounded-md mb-1 bg-main cursor-pointer"
+                                                                onMouseOver={e => e.currentTarget.style.background = 'rgba(245, 158, 11, 0.05)'}
+                                                                onMouseOut={e => e.currentTarget.style.background = 'var(--bg-main)'}
+                                                            >
+                                                                <div>
+                                                                    <span className="font-medium text-amber-500 text-[0.95rem]">{inv.invoiceNo}</span>
+                                                                    <span className="text-muted text-sm ml-[0.75rem]">
+                                                                        {new Date(inv.date).toLocaleDateString('th-TH')}
+                                                                    </span>
+                                                                    <span className={`ml-2 text-[0.75rem] px-1.5 py-0.5 rounded-lg ${inv.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-500' : inv.status === 'Pending' ? 'bg-amber-500/10 text-amber-500' : 'bg-gray-400/10 text-gray-400'}`}>
+                                                                        {inv.status}
+                                                                    </span>
+                                                                </div>
+                                                                <span className="font-medium text-[0.95rem]">
+                                                                    ฿{Number(inv.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                                 </span>
                                                             </div>
-                                                            <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>
-                                                                ฿{Number(inv.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </>
-                )}
-            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
             )}
 
             {/* Tab: Product History */}
             {activeTab === 'product_history' && (
-            <div>
-                {isLoadingProductHistory ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>กำลังโหลดประวัติการซื้อสินค้า...</div>
-                ) : productHistoryData.length === 0 ? (
-                    <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        <List size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
-                        <div style={{ fontSize: '1.1rem' }}>ยังไม่มีประวัติการซื้อสินค้าจากใบกำกับภาษี</div>
-                    </div>
-                ) : (
-                    <>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginBottom: '1.5rem' }}>
-                            <button
-                                onClick={exportProductHistoryToExcel}
-                                style={{
-                                    padding: '0.6rem 1.2rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid #10b981',
-                                    background: 'rgba(16, 185, 129, 0.05)',
-                                    color: '#10b981',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    fontWeight: '500'
-                                }}
-                            >
-                                <FileSpreadsheet size={18} /> Export Excel
-                            </button>
-                            <button
-                                onClick={() => window.open(`/dashboard/customers/${id}/print-product-history`, '_blank')}
-                                style={{
-                                    padding: '0.6rem 1.2rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid #3b82f6',
-                                    background: 'rgba(59, 130, 246, 0.05)',
-                                    color: '#3b82f6',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    fontWeight: '500'
-                                }}
-                            >
-                                <Printer size={18} /> พิมพ์รายงานทั้งหมด
-                            </button>
+                <div>
+                    {isLoadingProductHistory ? (
+                        <div className="p-[3rem] text-center text-muted">กำลังโหลดประวัติการซื้อสินค้า...</div>
+                    ) : productHistoryData.length === 0 ? (
+                        <div className="glass-panel p-[3rem] text-center text-muted">
+                            <List size={48} className="mb-4" />
+                            <div className="text-lg">ยังไม่มีประวัติการซื้อสินค้าจากใบกำกับภาษี</div>
                         </div>
+                    ) : (
+                        <>
+                            <div className="flex justify-end gap-4 mb-6">
+                                <button
+                                    onClick={exportProductHistoryToExcel}
+                                    className="p-[0.6rem 1.2rem] rounded-lg border-[1px solid #10b981] bg-[rgba(16, 185, 129, 0.05)] text-emerald-500 cursor-pointer flex items-center gap-2 font-medium"
+                                >
+                                    <FileSpreadsheet size={18} /> Export Excel
+                                </button>
+                                <button
+                                    onClick={() => window.open(`/dashboard/customers/${id}/print-product-history`, '_blank')}
+                                    className="p-[0.6rem 1.2rem] rounded-lg border-[1px solid #3b82f6] bg-[rgba(59, 130, 246, 0.05)] text-blue-500 cursor-pointer flex items-center gap-2 font-medium"
+                                >
+                                    <Printer size={18} /> พิมพ์รายงานทั้งหมด
+                                </button>
+                            </div>
 
-                        {/* Monthly product breakdown */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {productHistoryData.map(monthData => (
-                                <div key={monthData.month} className="glass-panel overflow-hidden">
-                                    {/* Month Header - Clickable */}
-                                    <div
-                                        onClick={() => toggleProductMonth(monthData.month)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '1rem 1.5rem',
-                                            background: 'none',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            color: 'var(--text-main)',
-                                            borderBottom: expandedProductMonths[monthData.month] ? '1px solid var(--border-color)' : 'none'
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                {expandedProductMonths[monthData.month] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                                                <span style={{ fontWeight: '600', fontSize: '1.05rem' }}>{formatMonthName(monthData.month)}</span>
+                            {/* Monthly product breakdown */}
+                            <div className="flex flex-col gap-[0.75rem]">
+                                {productHistoryData.map(monthData => (
+                                    <div key={monthData.month} className="glass-panel overflow-hidden">
+                                        {/* Month Header - Clickable */}
+                                        <div
+                                            onClick={() => toggleProductMonth(monthData.month)}
+                                            className={`w-full px-6 py-4 bg-transparent border-none cursor-pointer flex justify-between items-center text-main ${expandedProductMonths[monthData.month] ? 'border-b border-border' : 'border-b-0'}`}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-2">
+                                                    {expandedProductMonths[monthData.month] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                                    <span className="font-semibold text-[1.05rem]">{formatMonthName(monthData.month)}</span>
+                                                </div>
+                                                <div className="flex gap-[0.75rem] items-center">
+                                                    <span className="text-sm px-2 py-1 rounded-xl bg-[rgba(16, 185, 129, 0.1)] text-emerald-500">
+                                                        {monthData.products.length} รายการสินค้า
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '0.85rem', padding: '0.2rem 0.6rem', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                                                    {monthData.products.length} รายการสินค้า
-                                                </span>
+                                            <div className="flex items-center gap-[0.75rem]">
+                                                <div className="font-semibold text-emerald-500 text-lg mr-2">
+                                                    ฿{monthData.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </div>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        exportMonthlyProductToExcel(monthData);
+                                                    }}
+                                                    title="Export Excel เดือนนี้"
+                                                    className="p-1.5 rounded-md border-[1px solid rgba(16, 185, 129, 0.2)] bg-[rgba(16, 185, 129, 0.05)] text-[var(--success)] cursor-pointer flex items-center"
+                                                >
+                                                    <FileSpreadsheet size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        window.open(`/dashboard/customers/${id}/print-product-history?month=${monthData.month}`, '_blank');
+                                                    }}
+                                                    title="พิมพ์รายงานเดือนนี้"
+                                                    className="p-1.5 rounded-md border-[1px solid rgba(59, 130, 246, 0.2)] bg-[rgba(59, 130, 246, 0.05)] text-blue-500 cursor-pointer flex items-center"
+                                                >
+                                                    <Printer size={14} />
+                                                </button>
                                             </div>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <div style={{ fontWeight: '600', color: '#10b981', fontSize: '1.1rem', marginRight: '0.5rem' }}>
-                                                ฿{monthData.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </div>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    exportMonthlyProductToExcel(monthData);
-                                                }}
-                                                title="Export Excel เดือนนี้"
-                                                style={{
-                                                    padding: '0.4rem',
-                                                    borderRadius: '6px',
-                                                    border: '1px solid rgba(16, 185, 129, 0.2)',
-                                                    background: 'rgba(16, 185, 129, 0.05)',
-                                                    color: 'var(--success)',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center'
-                                                }}
-                                            >
-                                                <FileSpreadsheet size={14} />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    window.open(`/dashboard/customers/${id}/print-product-history?month=${monthData.month}`, '_blank');
-                                                }}
-                                                title="พิมพ์รายงานเดือนนี้"
-                                                style={{
-                                                    padding: '0.4rem',
-                                                    borderRadius: '6px',
-                                                    border: '1px solid rgba(59, 130, 246, 0.2)',
-                                                    background: 'rgba(59, 130, 246, 0.05)',
-                                                    color: '#3b82f6',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center'
-                                                }}
-                                            >
-                                                <Printer size={14} />
-                                            </button>
-                                        </div>
-                                    </div>
 
-                                    {/* Expanded Content: Product List Table */}
-                                    {expandedProductMonths[monthData.month] && (
-                                        <div style={{ padding: '0' }}>
-                                            <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                                                    <thead>
-                                                        <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-main)' }}>
-                                                            <th style={{ padding: '0.8rem 1.5rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อสินค้า</th>
-                                                            <th style={{ padding: '0.8rem 1.5rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: '500' }}>จำนวนที่ซื้อรวม</th>
-                                                            <th style={{ padding: '0.8rem 1.5rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: '500' }}>ราคา/หน่วย</th>
-                                                            <th style={{ padding: '0.8rem 1.5rem', textAlign: 'right', color: 'var(--text-muted)', fontWeight: '500' }}>มูลค่ารวม</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {monthData.products.map((prod, idx) => (
-                                                            <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                                                <td style={{ padding: '0.8rem 1.5rem', fontWeight: '500', color: 'var(--text-main)' }}>
-                                                                    {prod.name}
-                                                                </td>
-                                                                <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right' }}>
-                                                                    <span style={{ fontWeight: '600', color: '#3b82f6' }}>{prod.quantity.toLocaleString()}</span>
-                                                                    <span style={{ color: 'var(--text-muted)', marginLeft: '0.3rem', fontSize: '0.85rem' }}>{prod.unit}</span>
-                                                                </td>
-                                                                <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right', color: 'var(--text-main)' }}>
-                                                                    ฿{prod.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                                </td>
-                                                                <td style={{ padding: '0.8rem 1.5rem', textAlign: 'right', fontWeight: '600', color: '#10b981' }}>
-                                                                    ฿{prod.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                                </td>
+                                        {/* Expanded Content: Product List Table */}
+                                        {expandedProductMonths[monthData.month] && (
+                                            <div className="p-0">
+                                                <div className="table-responsive-wrapper overflow-x-auto touch-pan-x">
+                                                    <table className="w-full text-[0.95rem]">
+                                                        <thead>
+                                                            <tr className="border-b border-border bg-main">
+                                                                <th className="px-6 py-3 text-left text-muted font-medium">ชื่อสินค้า</th>
+                                                                <th className="px-6 py-3 text-right text-muted font-medium">จำนวนที่ซื้อรวม</th>
+                                                                <th className="px-6 py-3 text-right text-muted font-medium">ราคา/หน่วย</th>
+                                                                <th className="px-6 py-3 text-right text-muted font-medium">มูลค่ารวม</th>
                                                             </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
+                                                        </thead>
+                                                        <tbody>
+                                                            {monthData.products.map((prod, idx) => (
+                                                                <tr key={idx} className="border-b border-border">
+                                                                    <td className="px-6 py-3 font-medium text-main">
+                                                                        {prod.name}
+                                                                    </td>
+                                                                    <td className="px-6 py-3 text-right">
+                                                                        <span className="font-semibold text-blue-500">{prod.quantity.toLocaleString()}</span>
+                                                                        <span className="text-muted ml-1 text-sm">{prod.unit}</span>
+                                                                    </td>
+                                                                    <td className="px-6 py-3 text-right text-main">
+                                                                        ฿{prod.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                    </td>
+                                                                    <td className="px-6 py-3 text-right font-semibold text-emerald-500">
+                                                                        ฿{prod.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </>
-                )}
-            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
             )}
         </div>
     );

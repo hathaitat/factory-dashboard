@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Plus, Search, Edit2, Trash2, AlertTriangle, Paperclip, Wrench, Sparkles, ShieldCheck, X, Save, Filter, History, Eye } from 'lucide-react';
+import { Package, Plus, Search, Edit2, Trash2, AlertTriangle, Paperclip, Wrench, Sparkles, ShieldCheck, X, Save, Filter, History, Eye, User } from 'lucide-react';
 import { internalItemService } from '../services/internalItemService';
+import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
 import PageHeader from '../components/PageHeader';
+import Pagination from '../components/Pagination';
+import { usePagination } from '../hooks/usePagination';
+import { useAuth } from '../contexts/AuthContext';
 
 const ICON_MAP = { Paperclip, Wrench, Package, Sparkles, ShieldCheck };
 
 const InternalItemListPage = () => {
+    const { user } = useAuth();
     const { showAlert, showError, showConfirm } = useDialog();
     const { hasPermission } = usePermissions();
     const navigate = useNavigate();
@@ -54,8 +59,10 @@ const InternalItemListPage = () => {
         return true;
     });
 
-    const lowStockCount = items.filter(i => i.status === 'active' && i.min_stock > 0 && i.current_stock <= i.min_stock).length;
+    const lowStockCount = items.filter(i => i.status === 'active' && (i.current_stock < 0 || (i.min_stock > 0 && i.current_stock <= i.min_stock))).length;
     const totalValue = items.filter(i => i.status === 'active').reduce((sum, i) => sum + (i.current_stock * i.unit_price), 0);
+
+    const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems, totalPages, startItem, endItem } = usePagination(filtered, 50);
 
     // Item CRUD
     const openItemModal = (item = null) => {
@@ -73,11 +80,18 @@ const InternalItemListPage = () => {
         if (!itemForm.name.trim()) { showError('กรุณากรอกชื่อสินค้า'); return; }
         setIsSaving(true);
         try {
+            const currentUser = user;
+            const userName = currentUser?.fullName || currentUser?.username || 'Unknown';
+            const payload = { ...itemForm };
+
             if (editingItem) {
-                await internalItemService.updateItem(editingItem.id, itemForm);
+                payload.updated_by = userName;
+                await internalItemService.updateItem(editingItem.id, payload);
                 showAlert('อัปเดตสินค้าสำเร็จ');
             } else {
-                await internalItemService.createItem(itemForm);
+                payload.created_by = userName;
+                payload.updated_by = userName;
+                await internalItemService.createItem(payload);
                 showAlert('เพิ่มสินค้าสำเร็จ');
             }
             setShowItemModal(false);
@@ -237,8 +251,8 @@ const InternalItemListPage = () => {
                                         <Package size={40} className="mx-auto mb-2 opacity-30" />
                                         <div>ไม่พบรายการสินค้า</div>
                                     </td></tr>
-                                ) : filtered.map(item => {
-                                    const isLow = item.status === 'active' && item.min_stock > 0 && item.current_stock <= item.min_stock;
+                                ) : paginatedData.map(item => {
+                                    const isLow = item.status === 'active' && (item.current_stock < 0 || (item.min_stock > 0 && item.current_stock <= item.min_stock));
                                     const cat = categories.find(c => c.id === item.category_id);
                                     const CatIcon = cat ? getCatIcon(cat.icon) : Package;
                                     return (
@@ -286,6 +300,16 @@ const InternalItemListPage = () => {
                             </tbody>
                         </table>
                     </div>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalItems={totalItems}
+                        itemsPerPage={itemsPerPage}
+                        totalPages={totalPages}
+                        startItem={startItem}
+                        endItem={endItem}
+                        onPageChange={setCurrentPage}
+                        onItemsPerPageChange={setItemsPerPage}
+                    />
                 </div>
 
                 {/* Item Modal */}
@@ -339,6 +363,26 @@ const InternalItemListPage = () => {
                                         <option value="inactive">ไม่ใช้งาน</option>
                                     </select>
                                 </div>
+                                {editingItem && (
+                                    <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                        {editingItem.created_at && (
+                                            <div>สร้างเมื่อ: {new Date(editingItem.created_at).toLocaleDateString('th-TH')}</div>
+                                        )}
+                                        {editingItem.created_by && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <User size={14} /> สร้างโดย: <span className="text-main font-semibold">{editingItem.created_by}</span>
+                                            </div>
+                                        )}
+                                        {editingItem.updated_at && (
+                                            <div>อัปเดตล่าสุด: {new Date(editingItem.updated_at).toLocaleDateString('th-TH')}</div>
+                                        )}
+                                        {editingItem.updated_by && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <User size={14} /> แก้ไขล่าสุดโดย: <span className="text-main font-semibold">{editingItem.updated_by}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div className="flex justify-end gap-2 mt-5">
                                 <button onClick={() => setShowItemModal(false)} className="px-4 py-2 rounded-lg border border-border bg-transparent text-textMuted cursor-pointer hover:bg-white/5">ยกเลิก</button>

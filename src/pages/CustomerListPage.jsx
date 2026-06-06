@@ -8,56 +8,50 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
+import Pagination from '../components/Pagination';
+import { useServerPagination } from '../hooks/useServerPagination';
 
 const CustomerListPage = () => {
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
     const { showConfirm, showAlert, showError } = useDialog();
 
-    const [customers, setCustomers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('');
 
-    useEffect(() => {
-        loadCustomers();
-    }, []);
-
-    const loadCustomers = async () => {
-        setIsLoading(true);
-        try {
-            const data = await customerService.getCustomers();
-            setCustomers(data || []);
-        } catch (error) {
-            console.error('Failed to load customers:', error);
-            showError(error.message || 'ไม่สามารถโหลดข้อมูลลูกค้าได้');
-            setCustomers([]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const {
+        data: paginatedData,
+        totalItems,
+        totalPages,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        isLoading,
+        updateFilters,
+        startItem,
+        endItem,
+        refresh
+    } = useServerPagination(customerService.getCustomersPaginated, { searchTerm: '', status: '' }, 50);
 
     const handleDelete = async (id) => {
         const confirmed = await showConfirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลลูกค้านี้?');
         if (confirmed) {
             await customerService.deleteCustomer(id);
-            loadCustomers();
+            refresh();
         }
     };
 
     const exportToExcel = async () => {
         try {
-            // Calculate filtered data
-            const filteredData = customers.filter(customer => {
-                const matchSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    customer.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
-                const matchStatus = !statusFilter || customer.status === statusFilter;
-                return matchSearch && matchStatus;
+            // Fetch all customers matching the current filter (bypass pagination)
+            const allFilteredCustomers = await customerService.exportCustomers({ 
+                searchTerm, 
+                status: statusFilter 
             });
 
             // 1. Prepare Customer Data
-            const customerData = filteredData.map(customer => ({
+            const customerData = allFilteredCustomers.map(customer => ({
                 'รหัสลูกค้า': customer.code || '',
                 'ชื่อบริษัท': customer.name || '',
                 'เลขประจำตัวผู้เสียภาษี': customer.taxId || '',
@@ -71,7 +65,7 @@ const CustomerListPage = () => {
 
             // 2. Prepare Product Data
             const products = await productService.getAllProducts();
-            const customerMap = filteredData.reduce((acc, cust) => {
+            const customerMap = allFilteredCustomers.reduce((acc, cust) => {
                 acc[cust.id] = cust;
                 return acc;
             }, {});
@@ -109,18 +103,21 @@ const CustomerListPage = () => {
     };
 
     const hasActiveFilters = !!statusFilter;
-    const clearFilters = () => { setStatusFilter(''); };
+    const clearFilters = () => { 
+        setStatusFilter('');
+        updateFilters({ status: '' });
+    };
 
-    const filteredCustomers = customers.filter(customer => {
-        const matchSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            customer.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchStatus = !statusFilter || customer.status === statusFilter;
-        return matchSearch && matchStatus;
-    });
+    // Use effect to handle debounced search and filter updates
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            updateFilters({ searchTerm, status: statusFilter });
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm, statusFilter, updateFilters]);
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem' }}>
+        <div className="px-4 pb-8">
             <PageHeader
                 title="ข้อมูลลูกค้า"
                 subtitle="จัดการฐานข้อมูลลูกค้าของคุณ"
@@ -128,37 +125,14 @@ const CustomerListPage = () => {
             >
                 <button
                     onClick={exportToExcel}
-                    className="glass-panel"
-                    style={{
-                        padding: '0.8rem 1.5rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        background: 'rgba(16, 185, 129, 0.05)',
-                        border: '1px solid rgba(16, 185, 129, 0.1)',
-                        color: 'var(--success)',
-                        cursor: 'pointer',
-                        borderRadius: '8px',
-                        fontWeight: '500'
-                    }}
+                    className="glass-panel px-6 py-3 flex items-center gap-2 bg-success/5 border border-success/10 text-success cursor-pointer rounded-lg font-medium"
                 >
                     <FileSpreadsheet size={20} /> Export Excel
                 </button>
                 {hasPermission('customers', 'create') && (
                     <button
                         onClick={() => navigate('/dashboard/customers/new')}
-                        style={{
-                            padding: '0.8rem 1.5rem',
-                            borderRadius: '8px',
-                            border: 'none',
-                            background: '#3b82f6',
-                            color: 'white',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            fontWeight: '500'
-                        }}
+                        className="px-6 py-3 rounded-lg border-none bg-blue-500 text-white cursor-pointer flex items-center gap-2 font-medium"
                     >
                         <Plus size={20} />
                         เพิ่มลูกค้า
@@ -166,24 +140,16 @@ const CustomerListPage = () => {
                 )}
             </PageHeader>
 
-            <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+            <div className="glass-panel p-6 mb-8">
                 <div className="flex items-center gap-4">
-                    <div style={{ position: 'relative', flex: 1 }}>
-                        <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <div className="relative flex-1">
+                        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-textMuted" />
                         <input
                             type="text"
                             placeholder="ค้นหาลูกค้า..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="glass-input"
-                            style={{
-                                width: '100%',
-                                padding: '0.8rem 1rem 0.8rem 2.8rem',
-                                background: 'var(--card-hover)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '8px',
-                                color: 'var(--text-main)'
-                            }}
+                            className="glass-input w-full py-3 pr-4 pl-11 bg-card-hover border border-border rounded-lg text-textMain"
                         />
                     </div>
                 </div>
@@ -201,29 +167,29 @@ const CustomerListPage = () => {
                 hasActiveFilters={hasActiveFilters}
             />
 
-            <div className="glass-panel" style={{ padding: '0' }}>
-                <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <div className="glass-panel p-0">
+                <div className="table-responsive-wrapper overflow-x-auto overflow-y-hidden">
+                    <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
-                                <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>รหัส</th>
-                                <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อบริษัท</th>
-                                <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>ผู้ติดต่อ</th>
-                                <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>เครดิต (วัน)</th>
-                                <th style={{ padding: '1.2rem', color: 'var(--text-muted)', fontWeight: '500' }}>สถานะ</th>
+                            <tr className="border-b border-border">
+                                <th className="actions-column text-textMuted font-medium">จัดการ</th>
+                                <th className="p-5 text-textMuted font-medium">รหัส</th>
+                                <th className="p-5 text-textMuted font-medium">ชื่อบริษัท</th>
+                                <th className="p-5 text-textMuted font-medium">ผู้ติดต่อ</th>
+                                <th className="p-5 text-textMuted font-medium">เครดิต (วัน)</th>
+                                <th className="p-5 text-textMuted font-medium">สถานะ</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    <td colSpan="6" className="p-8 text-center text-textMuted">
                                         กำลังโหลดข้อมูล...
                                     </td>
                                 </tr>
-                            ) : filteredCustomers.length > 0 ? (
-                                filteredCustomers.map((customer) => (
-                                    <tr key={customer.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            ) : paginatedData.length > 0 ? (
+                                paginatedData.map((customer) => (
+                                    <tr key={customer.id} className="border-b border-border">
                                         <td className="actions-column">
                                             <div className="table-actions">
                                                 <button
@@ -253,29 +219,32 @@ const CustomerListPage = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.2rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                        <td className="p-5 text-textMuted font-mono">
                                             {customer.code || '-'}
                                         </td>
-                                        <td style={{ padding: '1.2rem' }}>
-                                            <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>{customer.name}</div>
-                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{customer.email}</div>
+                                        <td className="p-5">
+                                            <div 
+                                                onClick={() => navigate(`/dashboard/customers/${customer.id}`)}
+                                                className="font-semibold text-blue-500 cursor-pointer hover:underline"
+                                                title="คลิกเพื่อดูรายละเอียด"
+                                            >
+                                                {customer.name}
+                                            </div>
+                                            <div className="text-[0.85rem] text-textMuted">{customer.email}</div>
                                         </td>
-                                        <td style={{ padding: '1.2rem' }}>
+                                        <td className="p-5">
                                             <div>{customer.contactPerson}</div>
-                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{customer.phone}</div>
+                                            <div className="text-[0.85rem] text-textMuted">{customer.phone}</div>
                                         </td>
-                                        <td style={{ padding: '1.2rem' }}>
+                                        <td className="p-5">
                                             {customer.creditTerm === 0 || customer.creditTerm === '0' ? 'เงินสด' : (customer.creditTerm ? `${customer.creditTerm} วัน` : '-')}
                                         </td>
-                                        <td style={{ padding: '1.2rem' }}>
-                                            <span style={{
-                                                padding: '0.3rem 0.8rem',
-                                                borderRadius: '20px',
-                                                fontSize: '0.85rem',
-                                                background: customer.status === 'Active' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(107, 114, 128, 0.2)',
-                                                color: customer.status === 'Active' ? '#34d399' : '#9ca3af',
-                                                border: `1px solid ${customer.status === 'Active' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(107, 114, 128, 0.3)'}`
-                                            }}>
+                                        <td className="p-5">
+                                            <span className={`px-3 py-1 rounded-full text-[0.85rem] border ${
+                                                customer.status === 'Active' 
+                                                    ? 'bg-success/20 text-success border-success/30' 
+                                                    : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                                            }`}>
                                                 {customer.status === 'Active' ? 'ปกติ' : 'ระงับ'}
                                             </span>
                                         </td>
@@ -283,7 +252,7 @@ const CustomerListPage = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    <td colSpan="6" className="p-12 text-center text-textMuted">
                                         ไม่พบข้อมูลลูกค้า ลองค้นหาใหม่หรือเพิ่มลูกค้า
                                     </td>
                                 </tr>
@@ -291,6 +260,16 @@ const CustomerListPage = () => {
                         </tbody>
                     </table>
 </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    totalPages={totalPages}
+                    startItem={startItem}
+                    endItem={endItem}
+                    onPageChange={setCurrentPage}
+                    onItemsPerPageChange={setItemsPerPage}
+                />
             </div>
         </div >
     );

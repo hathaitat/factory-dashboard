@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Trash2, ShoppingCart, PackagePlus } from 'lucide-react';
+import { Plus, Trash2, ShoppingCart, PackagePlus, Save } from 'lucide-react';
 import { internalRequisitionService } from '../services/internalRequisitionService';
 import { internalItemService } from '../services/internalItemService';
 import { useDialog } from '../contexts/DialogContext';
@@ -112,6 +112,9 @@ const InternalRequisitionFormPage = () => {
         const newItems = [...items];
         const item = newItems[index];
         item[field] = value;
+        if (field === 'quantity' || field === 'unit_price') {
+            item.amount = (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
+        }
         setItems(newItems);
     };
 
@@ -178,6 +181,8 @@ const InternalRequisitionFormPage = () => {
                 unit_price: parseFloat(i.unit_price) || 0,
                 amount: parseFloat(i.amount) || 0
             }));
+
+            requisitionData.total_amount = itemsData.reduce((sum, i) => sum + i.amount, 0);
 
             if (isEdit) {
                 await internalRequisitionService.updateRequisition(id, requisitionData, itemsData);
@@ -264,8 +269,10 @@ const InternalRequisitionFormPage = () => {
                                 <tr className="border-b border-border text-left">
                                     <th className="text-textMuted font-medium text-center" style={{ padding: '1rem 1.5rem', width: '50px' }}>#</th>
                                     <th className="text-textMuted font-medium" style={{ padding: '1rem 1.5rem' }}>รายละเอียดสินค้า</th>
-                                    <th className="text-textMuted font-medium text-right" style={{ padding: '1rem 1.5rem', width: '150px' }}>จำนวน</th>
-                                    <th className="text-textMuted font-medium text-center" style={{ padding: '1rem 1.5rem', width: '120px' }}>หน่วย</th>
+                                    <th className="text-textMuted font-medium text-right" style={{ padding: '1rem 1.5rem', width: '120px' }}>จำนวน</th>
+                                    <th className="text-textMuted font-medium text-center" style={{ padding: '1rem 1.5rem', width: '100px' }}>หน่วย</th>
+                                    <th className="text-textMuted font-medium text-right" style={{ padding: '1rem 1.5rem', width: '120px' }}>ราคา/หน่วย</th>
+                                    <th className="text-textMuted font-medium text-right" style={{ padding: '1rem 1.5rem', width: '120px' }}>ยอดรวม</th>
                                     <th className="p-4" style={{ width: '50px' }}></th>
                                 </tr>
                             </thead>
@@ -293,6 +300,12 @@ const InternalRequisitionFormPage = () => {
                                         <td style={{ padding: '1rem 1.5rem' }}>
                                             <input type="text" value={item.unit} onChange={e => handleItemChange(index, 'unit', e.target.value)} className="glass-input w-full text-center text-main border border-border" style={{ padding: '0.6rem', background: 'var(--card-hover)', borderRadius: '6px' }} />
                                         </td>
+                                        <td style={{ padding: '1rem 1.5rem' }}>
+                                            <input type="number" min="0" value={item.unit_price} onChange={e => handleItemChange(index, 'unit_price', e.target.value)} className="glass-input w-full text-right text-main border border-border" style={{ padding: '0.6rem', background: 'var(--card-hover)', borderRadius: '6px' }} />
+                                        </td>
+                                        <td style={{ padding: '1rem 1.5rem' }} className="text-right font-medium text-primary">
+                                            ฿{(parseFloat(item.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </td>
                                         <td className="p-4">
                                             {items.length > 1 && (
                                                 <button type="button" onClick={() => removeItem(index)} className="bg-transparent border-none text-red-500 cursor-pointer" style={{ padding: '0.5rem' }}><Trash2 size={16} /></button>
@@ -301,6 +314,15 @@ const InternalRequisitionFormPage = () => {
                                     </tr>
                                 ))}
                             </tbody>
+                            <tfoot>
+                                <tr className="bg-white/5 border-t border-border">
+                                    <td colSpan="5" className="text-right font-bold text-textMuted" style={{ padding: '1rem 1.5rem' }}>มูลค่ารวมทั้งสิ้น</td>
+                                    <td className="text-right font-bold text-primary" style={{ padding: '1rem 1.5rem' }}>
+                                        ฿{items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
 

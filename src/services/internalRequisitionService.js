@@ -183,7 +183,7 @@ export const internalRequisitionService = {
         }
     },
 
-    approveAndDeductStock: async (id, approvedBy) => {
+    approveAndDeductStock: async (id, approvedBy, approvedItemIds = null) => {
         try {
             // 1. Get requisition data with items
             const req = await internalRequisitionService.getRequisitionById(id);
@@ -192,8 +192,17 @@ export const internalRequisitionService = {
                 throw new Error('รายการนี้ถูกอนุมัติหรือตัดสต๊อกไปแล้ว');
             }
 
+            const itemsToProcess = approvedItemIds ? req.items.filter(item => approvedItemIds.includes(item.id)) : req.items;
+            
+            if (itemsToProcess.length === 0) {
+                throw new Error('กรุณาเลือกอย่างน้อย 1 รายการเพื่ออนุมัติ');
+            }
+
+            let newTotalAmount = 0;
+
             // 2. Loop through each item and deduct stock
-            for (const item of (req.items || [])) {
+            for (const item of itemsToProcess) {
+                newTotalAmount += item.amount || 0;
                 if (item.item_id) {
                     await internalItemService.adjustStockWithLog(
                         item.item_id,
@@ -209,11 +218,20 @@ export const internalRequisitionService = {
                 }
             }
 
-            // 3. Update requisition status
+            // 2.5 Delete unapproved items if any
+            if (approvedItemIds && approvedItemIds.length < req.items.length) {
+                const unapprovedItemIds = req.items.filter(item => !approvedItemIds.includes(item.id)).map(i => i.id);
+                if (unapprovedItemIds.length > 0) {
+                    await supabase.from('internal_requisition_items').delete().in('id', unapprovedItemIds);
+                }
+            }
+
+            // 3. Update requisition status and total_amount
             const { data, error } = await supabase
                 .from('internal_requisitions')
                 .update({
                     status: 'Completed', // เปลี่ยนเป็นเสร็จสมบูรณ์ทันที
+                    total_amount: newTotalAmount,
                     approved_by: approvedBy,
                     updated_at: new Date().toISOString(),
                     updated_by: approvedBy || null

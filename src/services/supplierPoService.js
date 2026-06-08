@@ -1,9 +1,42 @@
 import { supabase } from './supabaseClient';
 import { sanitizeSearchTerm } from './sanitize';
+import { warehouseService } from './warehouseService';
 
 const normalizeStr = (str) => (str || '').trim().toLowerCase();
 
 export const supplierPoService = {
+    _syncItemsToSupplierProducts: async (supplierId, items) => {
+        if (!supplierId || !items || items.length === 0) return;
+        try {
+            const { data: existingProducts } = await supabase
+                .from('supplier_products')
+                .select('name')
+                .eq('supplier_id', supplierId);
+                
+            const existingNames = new Set((existingProducts || []).map(p => normalizeStr(p.name)));
+            const productsToAdd = [];
+
+            for (const item of items) {
+                const itemName = normalizeStr(item.description);
+                if (itemName && !existingNames.has(itemName)) {
+                    productsToAdd.push({
+                        supplier_id: supplierId,
+                        name: item.description,
+                        unit: item.unit || 'PCS',
+                        price: Number(item.unit_price) || 0
+                    });
+                    existingNames.add(itemName);
+                }
+            }
+
+            if (productsToAdd.length > 0) {
+                await supabase.from('supplier_products').insert(productsToAdd);
+            }
+        } catch (error) {
+            console.error('Error syncing items to supplier products:', error);
+        }
+    },
+
     // Get all supplier POs
     getSupplierPos: async () => {
         try {
@@ -176,7 +209,7 @@ export const supplierPoService = {
     // Create supplier PO
     createSupplierPo: async (poData) => {
         try {
-            const { items, ...poDetails } = poData;
+            const { items, sync_products, ...poDetails } = poData;
 
             // Ensure we have a PO number
             if (!poDetails.po_number) {
@@ -216,7 +249,7 @@ export const supplierPoService = {
 
             if (items && items.length > 0) {
                 const itemsToInsert = items.map((item, index) => {
-                    const { raw_material_qty, ...itemData } = item;
+                    const { raw_material_qty, sku, ...itemData } = item;
                     return {
                         ...itemData,
                         po_id: poResult.id,
@@ -229,6 +262,11 @@ export const supplierPoService = {
                     .insert(itemsToInsert);
 
                 if (itemsError) throw itemsError;
+
+                // Sync new items to supplier's product list
+                if (sync_products) {
+                    await supplierPoService._syncItemsToSupplierProducts(poDetails.supplier_id, items);
+                }
 
                 // Automation: Add items to warehouse inventory if created as Completed
                 if (poDetails.status === 'Completed') {
@@ -271,7 +309,8 @@ export const supplierPoService = {
                                     source_type: 'po',
                                     source_id: poResult.id,
                                     reference_no: poDetails.po_number || poResult.id,
-                                    remark: `รับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || poResult.id}`
+                                    remark: `รับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || poResult.id}`,
+                                    performed_by: poDetails.updated_by || poDetails.created_by_name || 'System'
                                 }]);
                             } else {
                                 const { data: newItem } = await supabase
@@ -297,7 +336,8 @@ export const supplierPoService = {
                                         source_type: 'po',
                                         source_id: poResult.id,
                                         reference_no: poDetails.po_number || poResult.id,
-                                        remark: `เพิ่มรายการใหม่และรับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || poResult.id}`
+                                        remark: `เพิ่มรายการใหม่และรับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || poResult.id}`,
+                                        performed_by: poDetails.updated_by || poDetails.created_by_name || 'System'
                                     }]);
                                 }
                             }
@@ -316,7 +356,7 @@ export const supplierPoService = {
     // Update supplier PO
     updateSupplierPo: async (id, poData) => {
         try {
-            const { items, ...poDetails } = poData;
+            const { items, sync_products, ...poDetails } = poData;
             poDetails.updated_at = new Date().toISOString();
 
             // Get the old PO to check previous status and previous items for inventory diff calculation
@@ -349,7 +389,7 @@ export const supplierPoService = {
                 // Insert new items
                 if (items.length > 0) {
                     const itemsToInsert = items.map((item, index) => {
-                        const { raw_material_qty, ...itemData } = item;
+                        const { raw_material_qty, sku, ...itemData } = item;
                         return {
                             ...itemData,
                             po_id: id,
@@ -363,6 +403,11 @@ export const supplierPoService = {
 
                     if (itemsError) throw itemsError;
                     
+                    // Sync new items to supplier's product list
+                    if (sync_products) {
+                        await supplierPoService._syncItemsToSupplierProducts(poDetails.supplier_id, items);
+                    }
+
                     // Automation: Add NEWLY received items to warehouse inventory
                     if (poDetails.status === 'Completed' || poDetails.status === 'Partial') {
                         let targetWarehouseId = poDetails.delivery_warehouse_id || poResult.delivery_warehouse_id;
@@ -382,6 +427,11 @@ export const supplierPoService = {
                                 .select('*')
                                 .eq('warehouse_id', targetWarehouseId);
                             
+                            const { data: supplierProducts } = await supabase
+                                .from('supplier_products')
+                                .select('id, sku')
+                                .eq('supplier_id', poDetails.supplier_id);
+
                             for (const item of items) {
                                 const newRcvQty = item.received_quantity !== undefined ? Number(item.received_quantity) : 0;
                                 
@@ -392,8 +442,18 @@ export const supplierPoService = {
                                 const diffRcvQty = newRcvQty - oldRcvQty;
                                 
                                 if (diffRcvQty <= 0) continue; // Skip if no new goods received
-                                
-                                const existingItem = (currentInventory || []).find(inv => normalizeStr(inv.product_name) === normalizeStr(item.description));
+
+                                const supplierProduct = supplierProducts?.find(p => p.id === item.supplier_product_id);
+                                const itemSku = item.sku || (supplierProduct ? supplierProduct.sku : null);
+                                const matchColumn = itemSku ? 'sku' : 'product_name';
+                                const matchValue = itemSku || item.description;
+
+                                const existingItems = (currentInventory || []).filter(inv => inv[matchColumn] === matchValue);
+                                let existingItem = null;
+                                if (existingItems.length > 0) {
+                                    existingItem = existingItems.find(inv => normalizeStr(inv.product_name) === normalizeStr(item.description));
+                                    if (!existingItem) existingItem = existingItems[0];
+                                }
 
                                 if (existingItem) {
                                     const newQty = Number(existingItem.quantity) + diffRcvQty;
@@ -402,22 +462,24 @@ export const supplierPoService = {
                                         .update({ quantity: newQty, last_updated: new Date().toISOString() })
                                         .eq('id', existingItem.id);
                                     
-                                    await supabase.from('inventory_logs').insert([{
+                                    await warehouseService.logMovement({
                                         inventory_id: existingItem.id,
-                                        type: 'IN',
-                                        qty: diffRcvQty,
-                                        old_quantity: existingItem.quantity,
-                                        balance: newQty,
+                                        action: 'IN',
+                                        quantity_change: diffRcvQty,
+                                        previous_quantity: existingItem.quantity,
+                                        new_quantity: newQty,
                                         source_type: 'po',
                                         source_id: id,
                                         reference_no: poDetails.po_number || id,
-                                        remark: `รับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || id} (เพิ่มเติม)`
-                                    }]);
+                                        remark: `รับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || id} (เพิ่มเติม)`,
+                                        performed_by: poDetails.updated_by || poDetails.created_by_name || 'System'
+                                    });
                                 } else {
                                     const { data: newItem } = await supabase
                                         .from('warehouse_inventory')
                                         .insert([{
                                             warehouse_id: targetWarehouseId,
+                                            sku: itemSku,
                                             product_type: 'material',
                                             product_name: item.description || 'Unknown Item',
                                             quantity: diffRcvQty,
@@ -428,17 +490,18 @@ export const supplierPoService = {
                                         .single();
                                     
                                     if (newItem) {
-                                        await supabase.from('inventory_logs').insert([{
+                                        await warehouseService.logMovement({
                                             inventory_id: newItem.id,
-                                            type: 'IN',
-                                            qty: diffRcvQty,
-                                            old_quantity: 0,
-                                            balance: diffRcvQty,
+                                            action: 'IN',
+                                            quantity_change: diffRcvQty,
+                                            previous_quantity: 0,
+                                            new_quantity: diffRcvQty,
                                             source_type: 'po',
                                             source_id: id,
                                             reference_no: poDetails.po_number || id,
-                                            remark: `เพิ่มรายการใหม่และรับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || id}`
-                                        }]);
+                                            remark: `เพิ่มรายการใหม่และรับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || id} (เพิ่มเติม)`,
+                                            performed_by: poDetails.updated_by || poDetails.created_by_name || 'System'
+                                        });
                                     }
                                 }
                             }

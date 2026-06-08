@@ -9,7 +9,7 @@ import { supplierPoService } from '../services/supplierPoService';
 import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader from '../components/PageHeader';
-import { Plus, Minus, Save, X } from 'lucide-react';
+import { Plus, Save, X, Trash2 } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -37,7 +37,6 @@ const InventoryHistoryPage = () => {
     const [bomRules, setBomRules] = useState([]);
     const [supplierProducts, setSupplierProducts] = useState([]);
     const [showBomModal, setShowBomModal] = useState(false);
-    const [editingBomRule, setEditingBomRule] = useState(null);
     const [newBomRule, setNewBomRule] = useState({ supplier_product_id: '', raw_material_qty: '', finished_product_qty: '' });
 
     useEffect(() => {
@@ -325,7 +324,7 @@ const InventoryHistoryPage = () => {
                                         </td>
                                         {hasPermission('warehouses', 'edit') && (
                                             <td className="p-4 text-center">
-                                                <button onClick={() => handleDeleteBomRule(rule.id)} className="bg-transparent border-none text-red-500 cursor-pointer">ลบ</button>
+                                                <button onClick={() => handleDeleteBomRule(rule.id)} className="bg-transparent border-none text-red-500 cursor-pointer p-1.5" title="ลบ"><Trash2 size={16} /></button>
                                             </td>
                                         )}
                                     </tr>

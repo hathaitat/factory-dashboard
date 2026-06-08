@@ -280,13 +280,20 @@ export const internalItemService = {
             if (newStock < 0) throw new Error('สต๊อกไม่เพียงพอ');
 
             // Update stock
+            const updatePayload = { 
+                current_stock: newStock, 
+                updated_at: new Date().toISOString(),
+                updated_by: performedBy || null
+            };
+
+            // Update master unit_price if it's an IN transaction with a valid cost
+            if (type === 'IN' && unitCost && parseFloat(unitCost) > 0) {
+                updatePayload.unit_price = parseFloat(unitCost);
+            }
+
             const { error: updateError } = await supabase
                 .from('internal_items')
-                .update({ 
-                    current_stock: newStock, 
-                    updated_at: new Date().toISOString(),
-                    updated_by: performedBy || null
-                })
+                .update(updatePayload)
                 .eq('id', itemId);
             if (updateError) throw updateError;
 

@@ -236,7 +236,7 @@ const InternalItemListPage = () => {
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr className="border-b border-border">
-                                    <th className="px-6 py-4 text-center text-textMuted font-medium w-[100px]">จัดการ</th>
+                                    <th className="px-6 py-4 text-center text-textMuted font-medium w-[120px] actions-column">จัดการ</th>
                                     <th className="px-6 py-4 text-left text-textMuted font-medium">สินค้า</th>
                                     <th className="px-6 py-4 text-left text-textMuted font-medium">หมวดหมู่</th>
                                     <th className="px-6 py-4 text-right text-textMuted font-medium">สต๊อก</th>
@@ -257,16 +257,16 @@ const InternalItemListPage = () => {
                                     const CatIcon = cat ? getCatIcon(cat.icon) : Package;
                                     return (
                                         <tr key={item.id} className="border-b border-border hover:bg-white/5 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="table-actions flex items-center justify-center gap-1">
+                                            <td className="actions-column">
+                                                <div className="table-actions">
                                                     {hasPermission('internal_items', 'view') && (
-                                                        <button onClick={() => navigate(`/dashboard/internal-items/${item.id}/history`)} className="action-view p-1.5 rounded bg-transparent border-none cursor-pointer text-primary hover:bg-primary/10" title="ดูประวัติ"><Eye size={15} /></button>
+                                                        <button onClick={() => navigate(`/dashboard/internal-items/${item.id}/history`)} className="action-view" title="ดูประวัติ"><Eye size={16} /></button>
                                                     )}
                                                     {hasPermission('internal_items', 'edit') && (
-                                                        <button onClick={() => openItemModal(item)} className="action-edit p-1.5 rounded bg-transparent border-none cursor-pointer text-[#3b82f6] hover:bg-[#3b82f6]/10"><Edit2 size={15} /></button>
+                                                        <button onClick={() => openItemModal(item)} className="action-edit" title="แก้ไข"><Edit2 size={16} /></button>
                                                     )}
                                                     {hasPermission('internal_items', 'delete') && (
-                                                        <button onClick={() => deleteItem(item)} className="action-delete p-1.5 rounded bg-transparent border-none cursor-pointer text-[#ef4444] hover:bg-[#ef4444]/10"><Trash2 size={15} /></button>
+                                                        <button onClick={() => deleteItem(item)} className="action-delete" title="ลบ"><Trash2 size={16} /></button>
                                                     )}
                                                 </div>
                                             </td>

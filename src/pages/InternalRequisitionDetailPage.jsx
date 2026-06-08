@@ -17,6 +17,7 @@ const InternalRequisitionDetailPage = () => {
     const currentUser = user;
     const [requisition, setRequisition] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedItems, setSelectedItems] = useState([]);
 
     // Stock Receive Modal
     const [showReceiveModal, setShowReceiveModal] = useState(false);
@@ -31,6 +32,9 @@ const InternalRequisitionDetailPage = () => {
             const data = await internalRequisitionService.getRequisitionById(id);
             if (data) {
                 setRequisition(data);
+                if (data.status === 'Draft' && data.items) {
+                    setSelectedItems(data.items.map(item => item.id));
+                }
             } else {
                 showError('ไม่พบข้อมูลใบสั่งซื้อ');
                 navigate('/dashboard/internal-items?tab=history');
@@ -62,12 +66,23 @@ const InternalRequisitionDetailPage = () => {
 
     // Handle Approval & Stock Deduction
     const handleApproveAndDeduct = async () => {
-        const ok = await showConfirm(`ยืนยันการอนุมัติและตัดสต๊อกสินค้าทั้งหมดในใบสั่งซื้อนี้?\n\nระบบจะหักสต๊อกและบันทึกประวัติการเบิกใช้อัตโนมัติ`);
+        if (selectedItems.length === 0) {
+            showError('กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการเพื่ออนุมัติ');
+            return;
+        }
+
+        const unselectedCount = requisition.items.length - selectedItems.length;
+        let confirmMsg = `ยืนยันการอนุมัติและตัดสต๊อกสินค้าที่เลือกจำนวน ${selectedItems.length} รายการ?\n\nระบบจะหักสต๊อกและบันทึกประวัติการเบิกใช้อัตโนมัติ`;
+        if (unselectedCount > 0) {
+            confirmMsg += `\n\n⚠️ คำเตือน: สินค้าที่ไม่ได้เลือกอีก ${unselectedCount} รายการ จะถูกลบออกจากใบเบิกนี้!`;
+        }
+
+        const ok = await showConfirm(confirmMsg);
         if (!ok) return;
 
         setIsLoading(true); // Reuse loading state for the whole page during action
         try {
-            await internalRequisitionService.approveAndDeductStock(id, currentUser?.fullName || 'system');
+            await internalRequisitionService.approveAndDeductStock(id, currentUser?.fullName || 'system', selectedItems);
             showAlert(`อนุมัติและตัดสต๊อกเรียบร้อยแล้ว`);
             loadData();
         } catch (err) {
@@ -75,6 +90,22 @@ const InternalRequisitionDetailPage = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedItems(requisition.items.map(item => item.id));
+        } else {
+            setSelectedItems([]);
+        }
+    };
+
+    const handleSelectItem = (itemId) => {
+        setSelectedItems(prev => 
+            prev.includes(itemId) 
+                ? prev.filter(id => id !== itemId) 
+                : [...prev, itemId]
+        );
     };
 
     const getStatusColor = (status) => {
@@ -135,6 +166,16 @@ const InternalRequisitionDetailPage = () => {
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead>
                                     <tr className="border-b border-border text-xs text-textMuted uppercase tracking-wider">
+                                        {requisition.status === 'Draft' && hasPermission('internal_items', 'edit') && (
+                                            <th className="px-6 py-3 text-left font-medium w-[40px]">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={selectedItems.length === requisition.items?.length && requisition.items?.length > 0} 
+                                                    onChange={handleSelectAll} 
+                                                    className="w-4 h-4 cursor-pointer"
+                                                />
+                                            </th>
+                                        )}
                                         <th className="px-6 py-3 text-left font-medium">ลำดับ</th>
                                         <th className="px-6 py-3 text-left font-medium">ชื่อสินค้า</th>
                                         <th className="px-6 py-3 text-right font-medium">จำนวน</th>
@@ -143,7 +184,17 @@ const InternalRequisitionDetailPage = () => {
                                 </thead>
                                 <tbody>
                                     {requisition.items?.map((item, idx) => (
-                                        <tr key={item.id} className="border-b border-border hover:bg-white/5 transition-colors">
+                                        <tr key={item.id} className={`border-b border-border hover:bg-white/5 transition-colors ${requisition.status === 'Draft' && hasPermission('internal_items', 'edit') && !selectedItems.includes(item.id) ? 'opacity-50' : ''}`}>
+                                            {requisition.status === 'Draft' && hasPermission('internal_items', 'edit') && (
+                                                <td className="px-6 py-4">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={selectedItems.includes(item.id)}
+                                                        onChange={() => handleSelectItem(item.id)}
+                                                        className="w-4 h-4 cursor-pointer"
+                                                    />
+                                                </td>
+                                            )}
                                             <td className="px-6 py-4 text-textMuted text-sm">{idx + 1}</td>
                                             <td className="px-6 py-4 font-medium text-textMain">{item.item_name}</td>
                                             <td className="px-6 py-4 text-right text-textMain font-semibold">{(item.quantity || 0).toLocaleString()}</td>

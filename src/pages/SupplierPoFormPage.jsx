@@ -238,10 +238,12 @@ const SupplierPoFormPage = () => {
             item.description = value;
             if (selectedProduct) {
                 item.supplier_product_id = selectedProduct.id;
+                item.sku = selectedProduct.sku || '';
                 item.unit = selectedProduct.unit || 'PCS';
                 item.unit_price = selectedProduct.price || 0;
             } else {
                 item.supplier_product_id = '';
+                item.sku = '';
             }
         } else {
             item[field] = value;
@@ -349,6 +351,20 @@ const SupplierPoFormPage = () => {
             return;
         }
 
+        // Check for new products
+        const existingProductNames = new Set(supplierProducts.map(p => (p.name || '').trim().toLowerCase()));
+        const newProducts = validItems.filter(item => {
+            const desc = (item.description || '').trim().toLowerCase();
+            return desc && !existingProductNames.has(desc);
+        });
+
+        let syncProducts = false;
+        if (newProducts.length > 0) {
+            const newNames = Array.from(new Set(newProducts.map(i => i.description.trim()))).join(', ');
+            const confirmMsg = `พบรายการสินค้าใหม่ที่ไม่เคยสั่งกับผู้ขายรายนี้:\n${newNames}\n\nต้องการเพิ่มเข้าในรายการสินค้าของผู้ขายรายนี้ด้วยหรือไม่?`;
+            syncProducts = await showConfirm(confirmMsg);
+        }
+
         setIsSaving(true);
         try {
             // Auto-detect status if receiving goods
@@ -377,6 +393,7 @@ const SupplierPoFormPage = () => {
                 created_by_name: isEdit ? (formData.created_by_name || operatorName) : operatorName,
                 updated_by: operatorName,
                 status: finalStatus,
+                sync_products: syncProducts,
                 items: validItems.map(item => {
                     const { id, previous_received, received_this_round, raw_material_qty, ...rest } = item;
                     return {
@@ -624,8 +641,8 @@ const SupplierPoFormPage = () => {
                             <tbody>
                                 {items.map((item, index) => (
                                     <tr key={item.id} className="border-b border-border">
-                                        <td className="px-6 py-3.5 text-center text-textMuted">{index + 1}</td>
-                                        <td className="px-6 py-3.5">
+                                        <td className="px-6 py-3.5 text-center text-textMuted" style={{ verticalAlign: 'top' }}>{index + 1}</td>
+                                        <td className="px-6 py-3.5" style={{ verticalAlign: 'top' }}>
                                             <div className="relative flex items-center">
                                                 <input
                                                     type="text"
@@ -710,7 +727,7 @@ const SupplierPoFormPage = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-3.5">
+                                        <td className="px-6 py-3.5" style={{ verticalAlign: 'top' }}>
                                             <input
                                                 type="number"
                                                 min="0.01"
@@ -724,7 +741,7 @@ const SupplierPoFormPage = () => {
                                             />
                                         </td>
                                         {(formData.status === 'Completed' || formData.status === 'Partial' || isReceiveMode) && (
-                                            <td className="px-6 py-3.5">
+                                            <td className="px-6 py-3.5" style={{ verticalAlign: 'top' }}>
                                                 <input
                                                     type="number"
                                                     min="0"
@@ -747,7 +764,7 @@ const SupplierPoFormPage = () => {
                                                 )}
                                             </td>
                                         )}
-                                        <td className="px-6 py-3.5">
+                                        <td className="px-6 py-3.5" style={{ verticalAlign: 'top' }}>
                                             <input
                                                 type="text"
                                                 value={item.unit}
@@ -756,7 +773,7 @@ const SupplierPoFormPage = () => {
                                                 className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
                                             />
                                         </td>
-                                        <td className="px-6 py-3.5">
+                                        <td className="px-6 py-3.5" style={{ verticalAlign: 'top' }}>
                                             <input
                                                 type="number"
                                                 min="0"
@@ -766,13 +783,13 @@ const SupplierPoFormPage = () => {
                                                 className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border text-right"
                                             />
                                         </td>
-                                        <td className="px-6 py-3.5 text-right font-medium">
+                                        <td className="px-6 py-3.5 text-right font-medium" style={{ verticalAlign: 'top' }}>
                                             <div className="mb-1 text-[0.9rem] text-textMuted">
                                                 {item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}
                                             </div>
                                             ฿{(parseFloat(item.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="p-4 text-center" style={{ verticalAlign: 'top' }}>
                                             <button
                                                 type="button"
                                                 onClick={() => removeItem(index)}

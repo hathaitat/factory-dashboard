@@ -6,7 +6,6 @@ import {
     Plus, Minus, Save, X, DollarSign
 } from 'lucide-react';
 import { internalItemService } from '../services/internalItemService';
-import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';

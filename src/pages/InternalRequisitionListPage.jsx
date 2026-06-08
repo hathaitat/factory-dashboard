@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Plus, Search, Eye, Trash2, Calendar, Clock } from 'lucide-react';
+import { ShoppingCart, Plus, Search, Eye, Edit, Trash2, Calendar, Clock } from 'lucide-react';
 import { internalRequisitionService } from '../services/internalRequisitionService';
 import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -121,24 +121,37 @@ const InternalRequisitionListPage = ({ embedded = false }) => {
                     <table className="w-full border-collapse">
                         <thead>
                             <tr className="border-b border-border">
+                                <th className="px-6 py-4 text-center text-textMuted font-medium w-[120px] actions-column">จัดการ</th>
                                 <th className="px-6 py-4 text-left text-textMuted font-medium">เลขที่ / วันที่</th>
                                 <th className="px-6 py-4 text-center text-textMuted font-medium">ประเภท</th>
                                 <th className="px-6 py-4 text-left text-textMuted font-medium">ผู้ขอเบิก</th>
+                                <th className="px-6 py-4 text-center text-textMuted font-medium">จำนวนชิ้น</th>
                                 <th className="px-6 py-4 text-right text-textMuted font-medium">ยอดรวม</th>
                                 <th className="px-6 py-4 text-center text-textMuted font-medium">สถานะ</th>
-                                <th className="px-6 py-4 text-center text-textMuted font-medium w-[100px]">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filtered.length === 0 ? (
-                                <tr><td colSpan="6" className="px-6 py-12 text-center text-textMuted">
+                                <tr><td colSpan="7" className="px-6 py-12 text-center text-textMuted">
                                     <Clock size={40} className="mx-auto mb-2 opacity-30" />
                                     <div>ไม่พบประวัติรายการ</div>
                                 </td></tr>
                             ) : paginatedData.map(req => {
                                 const colors = getStatusColor(req.status);
+                                const totalQuantity = req.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
                                 return (
                                     <tr key={req.id} className="border-b border-border hover:bg-white/5 transition-colors">
+                                        <td className="actions-column">
+                                            <div className="table-actions">
+                                                <button onClick={() => navigate(`/dashboard/internal-requisitions/${req.id}`)} className="action-view" title="ดูรายละเอียด"><Eye size={16} /></button>
+                                                {req.status === 'Draft' && hasPermission('internal_items', 'edit') && (
+                                                    <button onClick={() => navigate(`/dashboard/internal-requisitions/${req.id}/edit`)} className="action-edit" title="แก้ไข"><Edit size={16} /></button>
+                                                )}
+                                                {req.status === 'Draft' && hasPermission('internal_items', 'delete') && (
+                                                    <button onClick={() => deleteRequisition(req)} className="action-delete" title="ลบ"><Trash2 size={16} /></button>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4">
                                             <div className="font-medium text-textMain">{req.requisition_number}</div>
                                             <div className="text-sm text-textMuted mt-0.5 flex items-center gap-1">
@@ -158,6 +171,9 @@ const InternalRequisitionListPage = ({ embedded = false }) => {
                                                 {req.requested_by}
                                             </div>
                                         </td>
+                                        <td className="px-6 py-4 text-center font-medium text-textMain">
+                                            {totalQuantity.toLocaleString()} ชิ้น
+                                        </td>
                                         <td className="px-6 py-4 text-right font-medium text-textMain">
                                             ฿{req.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
@@ -165,14 +181,6 @@ const InternalRequisitionListPage = ({ embedded = false }) => {
                                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${colors}`}>
                                                 {req.status}
                                             </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="table-actions flex items-center justify-center gap-1">
-                                                <button onClick={() => navigate(`/dashboard/internal-requisitions/${req.id}`)} className="action-view p-1.5 rounded bg-transparent border-none cursor-pointer text-primary hover:bg-primary/10" title="ดูรายละเอียด"><Eye size={16} /></button>
-                                                {req.status === 'Draft' && hasPermission('internal_items', 'delete') && (
-                                                    <button onClick={() => deleteRequisition(req)} className="action-delete p-1.5 rounded bg-transparent border-none cursor-pointer text-[#ef4444] hover:bg-[#ef4444]/10" title="ลบ"><Trash2 size={16} /></button>
-                                                )}
-                                            </div>
                                         </td>
                                     </tr>
                                 );

@@ -16,6 +16,7 @@ export const supplierProductService = {
                 id: product.id,
                 supplierId: product.supplier_id,
                 name: product.name,
+                sku: product.sku,
                 unit: product.unit,
                 price: Number(product.price),
                 createdAt: product.created_at
@@ -51,6 +52,7 @@ export const supplierProductService = {
             const dbData = {
                 supplier_id: productData.supplierId,
                 name: productData.name,
+                sku: productData.sku || null,
                 unit: productData.unit,
                 price: productData.price
             };
@@ -67,6 +69,7 @@ export const supplierProductService = {
                 id: data.id,
                 supplierId: data.supplier_id,
                 name: data.name,
+                sku: data.sku,
                 unit: data.unit,
                 price: Number(data.price),
                 createdAt: data.created_at
@@ -82,6 +85,7 @@ export const supplierProductService = {
         try {
             const dbData = {
                 name: productData.name,
+                sku: productData.sku || null,
                 unit: productData.unit,
                 price: productData.price
             };
@@ -99,6 +103,7 @@ export const supplierProductService = {
                 id: data.id,
                 supplierId: data.supplier_id,
                 name: data.name,
+                sku: data.sku,
                 unit: data.unit,
                 price: Number(data.price),
                 createdAt: data.created_at

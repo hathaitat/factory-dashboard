@@ -3,8 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Edit, Trash2, MapPin, Phone, Mail, User,
-    Building, Calendar, Package, Plus, X, History,
-    ShoppingCart, ChevronDown, ChevronUp, CreditCard, FileText, TrendingUp
+    Building, Calendar, Package, Plus, X, History, FileText, TrendingUp
 } from 'lucide-react';
 import { supplierService } from '../services/supplierService';
 import { supplierProductService } from '../services/supplierProductService';
@@ -29,7 +28,7 @@ const SupplierDetailPage = () => {
     // Product Form State
     const [isAddingProduct, setIsAddingProduct] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
-    const [newProduct, setNewProduct] = useState({ name: '', unit: '', price: '' });
+    const [newProduct, setNewProduct] = useState({ name: '', sku: '', unit: '', price: '' });
     const [isSavingProduct, setIsSavingProduct] = useState(false);
 
     useEffect(() => {
@@ -74,6 +73,7 @@ const SupplierDetailPage = () => {
             if (editingProduct) {
                 const updated = await supplierProductService.updateProduct(editingProduct.id, {
                     name: newProduct.name,
+                    sku: newProduct.sku,
                     unit: newProduct.unit,
                     price: parseFloat(newProduct.price) || 0
                 });
@@ -83,6 +83,7 @@ const SupplierDetailPage = () => {
                 const product = await supplierProductService.createProduct({
                     supplierId: id,
                     name: newProduct.name,
+                    sku: newProduct.sku,
                     unit: newProduct.unit,
                     price: parseFloat(newProduct.price) || 0
                 });
@@ -90,7 +91,7 @@ const SupplierDetailPage = () => {
                 showAlert('เพิ่มสินค้าใหม่สำเร็จ');
             }
 
-            setNewProduct({ name: '', unit: '', price: '' });
+            setNewProduct({ name: '', sku: '', unit: '', price: '' });
             setIsAddingProduct(false);
             setEditingProduct(null);
         } catch (error) {
@@ -104,6 +105,7 @@ const SupplierDetailPage = () => {
         setEditingProduct(product);
         setNewProduct({
             name: product.name,
+            sku: product.sku || '',
             unit: product.unit || '',
             price: product.price || ''
         });
@@ -113,7 +115,7 @@ const SupplierDetailPage = () => {
     const handleCancelEdit = () => {
         setIsAddingProduct(false);
         setEditingProduct(null);
-        setNewProduct({ name: '', unit: '', price: '' });
+        setNewProduct({ name: '', sku: '', unit: '', price: '' });
     };
 
     const handleDeleteProduct = async (productId, productName) => {
@@ -340,7 +342,7 @@ const SupplierDetailPage = () => {
 
                         {isAddingProduct && (
                             <div className="p-8 border-b border-border" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
-                                <form onSubmit={handleSaveProduct} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '1.5rem', alignItems: 'end' }}>
+                                <form onSubmit={handleSaveProduct} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: '1.5rem', alignItems: 'end' }}>
                                     <div>
                                         <label className="text-sm text-textMuted mb-2" style={{ display: 'block' }}>ชื่อสินค้า</label>
                                         <input
@@ -349,6 +351,16 @@ const SupplierDetailPage = () => {
                                             onChange={e => setNewProduct({ ...newProduct, name: e.target.value })}
                                             placeholder="ระบุชื่อสินค้าหรือบริการ..."
                                             required
+                                            className="glass-input w-full p-3"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm text-textMuted mb-2" style={{ display: 'block' }}>SKU (รหัสสินค้า)</label>
+                                        <input
+                                            type="text"
+                                            value={newProduct.sku}
+                                            onChange={e => setNewProduct({ ...newProduct, sku: e.target.value })}
+                                            placeholder="รหัสอ้างอิงกลาง..."
                                             className="glass-input w-full p-3"
                                         />
                                     </div>
@@ -390,6 +402,7 @@ const SupplierDetailPage = () => {
                                 <thead>
                                     <tr className="border-b border-border" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
                                         <th className="text-left text-textMuted font-medium" style={{ padding: '1.2rem 2rem' }}>ชื่อสินค้า / รายการ</th>
+                                        <th className="text-left text-textMuted font-medium" style={{ padding: '1.2rem 2rem' }}>SKU</th>
                                         <th className="text-left text-textMuted font-medium" style={{ padding: '1.2rem 2rem' }}>หน่วยเรียก</th>
                                         <th className="text-right text-textMuted font-medium" style={{ padding: '1.2rem 2rem' }}>ราคาล่าสุด</th>
                                         <th className="actions-column text-textMuted font-medium">จัดการ</th>
@@ -400,6 +413,7 @@ const SupplierDetailPage = () => {
                                         products.map(p => (
                                             <tr key={p.id} className="table-row-hover border-b border-border">
                                                 <td className="font-medium" style={{ padding: '1.2rem 2rem' }}>{p.name}</td>
+                                                <td style={{ padding: '1.2rem 2rem', color: 'var(--info)' }}>{p.sku || '-'}</td>
                                                 <td style={{ padding: '1.2rem 2rem' }}>{p.unit || '-'}</td>
                                                 <td className="text-right font-semibold" style={{ padding: '1.2rem 2rem', color: 'var(--secondary)' }}>
                                                     {p.price > 0 ? `฿${p.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '-'}

@@ -564,14 +564,26 @@ export const warehouseService = {
                 const matchValue = item.sku || item.productName;
 
                 // Find inventory item
-                let { data: invItem, error: fetchError } = await supabase
+                let { data: invItems, error: fetchError } = await supabase
                     .from('warehouse_inventory')
                     .select('*')
                     .eq('warehouse_id', warehouseId)
-                    .eq(matchColumn, matchValue)
-                    .single();
+                    .eq(matchColumn, matchValue);
 
-                if (fetchError && fetchError.code === 'PGRST116') {
+                let invItem = null;
+                if (invItems && invItems.length > 0) {
+                    const norm = str => (str || '').toString().trim().toLowerCase();
+                    invItem = invItems.find(i => norm(i.product_name) === norm(item.productName));
+                    if (!invItem) {
+                        invItem = invItems[0]; // Fallback to same SKU but different name
+                    }
+                }
+
+                if (fetchError && fetchError.code !== 'PGRST116') {
+                    throw fetchError;
+                }
+
+                if (!invItem) {
                     // Item not found, auto-create it as per requirement 3.2
                     const newInv = {
                         warehouse_id: warehouseId,
@@ -593,8 +605,6 @@ export const warehouseService = {
                     if (createError) throw createError;
                     invItem = created;
                     warnings.push(`สร้างสินค้ารหัส ${item.sku || item.productName} อัตโนมัติในคลังกระจายสินค้า เนื่องจากไม่พบในระบบ`);
-                } else if (fetchError) {
-                    throw fetchError;
                 }
 
                 // Deduct stock
@@ -644,20 +654,30 @@ export const warehouseService = {
                 const matchValue = item.sku || item.productName;
 
                 // Find inventory item
-                const { data: invItem, error: fetchError } = await supabase
+                const { data: invItems, error: fetchError } = await supabase
                     .from('warehouse_inventory')
                     .select('*')
                     .eq('warehouse_id', warehouseId)
-                    .eq(matchColumn, matchValue)
-                    .single();
+                    .eq(matchColumn, matchValue);
 
-                if (fetchError && fetchError.code === 'PGRST116') {
+                let invItem = null;
+                if (invItems && invItems.length > 0) {
+                    const norm = str => (str || '').toString().trim().toLowerCase();
+                    invItem = invItems.find(i => norm(i.product_name) === norm(item.productName));
+                    if (!invItem) {
+                        invItem = invItems[0]; // Fallback to same SKU but different name
+                    }
+                }
+
+                if (fetchError && fetchError.code !== 'PGRST116') {
+                    throw fetchError;
+                }
+
+                if (!invItem) {
                     // If not found during return, we probably don't need to return it, or we could create it.
                     // Let's create it just in case, though it's weird to return something that never existed.
                     console.warn(`Product ${matchValue} not found during stock return. Skipping.`);
                     continue;
-                } else if (fetchError) {
-                    throw fetchError;
                 }
 
                 // Return stock

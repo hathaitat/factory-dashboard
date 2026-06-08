@@ -28,6 +28,7 @@ const TabLoader = () => (
 
 const TABS = [
     { id: 'overview', label: 'ภาพรวม', icon: LayoutDashboard, module: 'overview', action: 'view' },
+    { id: 'calendar', label: 'ปฏิทินงาน', icon: CalendarIcon, module: 'purchase_orders', action: 'view' },
     { id: 'po', label: 'ใบสั่งซื้อ', icon: ShoppingCart, module: 'purchase_orders', action: 'view' },
     { id: 'quotation', label: 'ใบเสนอราคา', icon: FileText, module: 'quotations', action: 'view' },
     { id: 'invoice', label: 'ใบกำกับภาษี', icon: FileText, module: 'invoices', action: 'view' },
@@ -38,7 +39,6 @@ const TABS = [
     { id: 'warehouse', label: 'คลังสินค้า', icon: Package, module: 'warehouses', action: 'view' },
     { id: 'employee', label: 'พนักงาน', icon: Clock, module: 'employees', action: 'view' },
     { id: 'internal', label: 'ของใช้ในโรงงาน', icon: ShoppingCart, module: 'internal_items', action: 'view' },
-    { id: 'calendar', label: 'ปฏิทินงาน', icon: CalendarIcon, module: 'purchase_orders', action: 'view' },
 ];
 
 const OverviewPage = () => {

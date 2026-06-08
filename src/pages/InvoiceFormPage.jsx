@@ -664,7 +664,7 @@ const InvoiceFormPage = () => {
                             <tbody>
                                 {items.map((item, index) => (
                                     <tr key={index} className="border-b border-border">
-                                        <td style={{ padding: '0.8rem 1.5rem', position: 'relative' }}>
+                                        <td style={{ padding: '0.8rem 1rem', verticalAlign: 'top', position: 'relative' }}>
                                             <input
                                                 type="text"
                                                 value={item.sku}
@@ -709,7 +709,7 @@ const InvoiceFormPage = () => {
                                                 </div>
                                             )}
                                         </td>
-                                        <td style={{ padding: '0.8rem 1.5rem' }}>
+                                        <td style={{ padding: '0.8rem 1rem', verticalAlign: 'top' }}>
                                             <input
                                                 type="text"
                                                 required
@@ -719,7 +719,7 @@ const InvoiceFormPage = () => {
                                                 className="glass-input w-full text-main border border-border" style={{ padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px' }}
                                             />
                                         </td>
-                                        <td style={{ padding: '0.8rem 1.5rem' }}>
+                                        <td style={{ padding: '0.8rem 1rem', verticalAlign: 'top' }}>
                                             <input
                                                 type="number"
                                                 required
@@ -736,7 +736,7 @@ const InvoiceFormPage = () => {
                                                 </div>
                                             )}
                                         </td>
-                                        <td style={{ padding: '0.8rem 1.5rem' }}>
+                                        <td style={{ padding: '0.8rem 1rem', verticalAlign: 'top' }}>
                                             <input
                                                 type="text"
                                                 required
@@ -746,7 +746,7 @@ const InvoiceFormPage = () => {
                                                 className="glass-input w-full text-main border border-border" style={{ padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px' }}
                                             />
                                         </td>
-                                        <td style={{ padding: '0.8rem 1.5rem' }}>
+                                        <td style={{ padding: '0.8rem 1rem', verticalAlign: 'top' }}>
                                             <input
                                                 type="number"
                                                 value={item.pricePerUnit}
@@ -754,13 +754,13 @@ const InvoiceFormPage = () => {
                                                 className="glass-input w-full text-main border border-border" style={{ padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px' }}
                                             />
                                         </td>
-                                        <td className="text-right font-medium" style={{ padding: '0.8rem 1.5rem' }}>
-                                            <div className="text-sm text-textMuted" style={{ marginBottom: '0.2rem' }}>
+                                        <td className="text-right font-medium" style={{ padding: '0.8rem 1rem', verticalAlign: 'top' }}>
+                                            <div className="text-sm text-textMuted" style={{ marginBottom: '0.2rem', marginTop: '0.3rem' }}>
                                                 {item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}
                                             </div>
                                             ฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
-                                        <td className="p-3">
+                                        <td className="p-3" style={{ verticalAlign: 'top', paddingTop: '0.9rem' }}>
                                             <button
                                                 type="button"
                                                 onClick={() => handleRemoveItem(index)}

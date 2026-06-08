@@ -13,6 +13,7 @@ const CustomerForm = ({ initialData, onSubmit, title }) => {
         status: 'Active',
         contactPerson: '',
         branch: '',
+        creditTerm: 0,
         poNote: '',
         invoiceNote: '',
         billingNoteNote: '',
@@ -39,30 +40,42 @@ const CustomerForm = ({ initialData, onSubmit, title }) => {
     };
 
     return (
-        <div className="glass-panel" style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h2 style={{ margin: 0 }}>{title}</h2>
-                <button onClick={() => navigate('/dashboard/customers')} className="btn-secondary" style={{ background: 'transparent', border: '1px solid var(--border-color)', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                    <X size={20} />
-                </button>
+        <div className="glass-panel p-8 max-w-[800px] mx-auto">
+            <div className="flex justify-between items-center mb-8">
+                <h2 className="m-0">{title}</h2>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="submit"
+                        form="customer-form"
+                        className="btn-primary px-4 py-2 flex items-center gap-2 font-medium"
+                    >
+                        <Save size={18} />
+                        บันทึกข้อมูล
+                    </button>
+                    <button 
+                        onClick={() => navigate('/dashboard/customers')} 
+                        className="btn-secondary flex items-center p-2 rounded-lg border border-border text-textMuted bg-transparent hover:bg-card-hover transition-colors"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.5rem' }}>
+            <form id="customer-form" onSubmit={handleSubmit} className="grid gap-6">
                 {formData.id && (
                     <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>System ID (UUID)</label>
+                        <label className="block mb-2 text-textMuted">System ID (UUID)</label>
                         <input
                             type="text"
                             value={formData.id}
                             readOnly
                             disabled
-                            className="glass-input"
-                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-muted)', cursor: 'not-allowed' }}
+                            className="glass-input w-full p-3 bg-card-hover border border-border rounded-lg text-textMuted cursor-not-allowed"
                         />
                     </div>
                 )}
                 <div className="form-group">
-                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>รหัสลูกค้า <span style={{ color: '#ef4444' }}>*</span></label>
+                    <label className="block mb-2 text-textMuted">รหัสลูกค้า <span className="text-error">*</span></label>
                     <input
                         type="text"
                         name="code"
@@ -70,214 +83,201 @@ const CustomerForm = ({ initialData, onSubmit, title }) => {
                         onChange={handleChange}
                         required
                         placeholder="ระบุรหัสลูกค้า"
-                        className="glass-input"
-                        style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                        className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain"
                     />
                 </div>
 
                 <div className="form-group">
-                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ชื่อบริษัท <span style={{ color: '#ef4444' }}>*</span></label>
+                    <label className="block mb-2 text-textMuted">ชื่อบริษัท <span className="text-error">*</span></label>
                     <input
                         type="text"
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
                         required
-                        className="glass-input"
-                        style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                        className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain"
                     />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>เลขประจำตัวผู้เสียภาษี</label>
+                        <label className="block mb-2 text-textMuted">เลขประจำตัวผู้เสียภาษี</label>
                         <input
                             type="text"
                             name="taxId"
                             value={formData.taxId || ''}
                             onChange={handleChange}
-                            className="glass-input"
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain"
                             placeholder="13 หลัก"
-                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
                         />
                     </div>
                     <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>สาขา</label>
+                        <label className="block mb-2 text-textMuted">สาขา</label>
                         <input
                             type="text"
                             name="branch"
                             value={formData.branch || ''}
                             onChange={handleChange}
-                            className="glass-input"
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain"
                             placeholder="เช่น สำนักงานใหญ่ หรือ 00000"
-                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
                         />
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ชื่อผู้ติดต่อ</label>
+                        <label className="block mb-2 text-textMuted">ชื่อผู้ติดต่อ</label>
                         <input
                             type="text"
                             name="contactPerson"
                             value={formData.contactPerson}
                             onChange={handleChange}
-                            className="glass-input"
-                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain"
                         />
                     </div>
                     <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>เบอร์โทรศัพท์</label>
+                        <label className="block mb-2 text-textMuted">เบอร์โทรศัพท์</label>
                         <input
                             type="tel"
                             name="phone"
                             value={formData.phone}
                             onChange={handleChange}
-                            className="glass-input"
-                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain"
                         />
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>เบอร์แฟกซ์</label>
+                        <label className="block mb-2 text-textMuted">เบอร์แฟกซ์</label>
                         <input
                             type="tel"
                             name="fax"
                             value={formData.fax || ''}
                             onChange={handleChange}
-                            className="glass-input"
-                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain"
                         />
                     </div>
                     <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>อีเมล</label>
+                        <label className="block mb-2 text-textMuted">อีเมล</label>
                         <input
                             type="email"
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            className="glass-input"
-                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain"
                         />
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>
-                            เครดิต (วัน) <span style={{ fontSize: '0.85rem', color: '#6b7280', fontWeight: 'normal', marginLeft: '4px' }}>(ใส่ 0 = เครดิตสด)</span>
+                        <label className="block mb-2 text-textMuted">
+                            เครดิต (วัน) <span className="text-error">*</span> <span className="text-sm text-textMuted font-normal ml-1">(ใส่ 0 = เครดิตสด)</span>
                         </label>
                         <input
                             type="number"
                             name="creditTerm"
                             value={formData.creditTerm !== undefined && formData.creditTerm !== null ? formData.creditTerm : ''}
                             onChange={handleChange}
-                            className="glass-input"
+                            required
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain"
                             placeholder="จำนวนวัน"
-                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
                         />
                     </div>
                     <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>สถานะ</label>
+                        <label className="block mb-2 text-textMuted">สถานะ</label>
                         <select
                             name="status"
                             value={formData.status}
                             onChange={handleChange}
-                            className="glass-input"
-                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain"
                         >
-                            <option value="Active" style={{ color: 'black' }}>ปกติ</option>
-                            <option value="Inactive" style={{ color: 'black' }}>ระงับ</option>
+                            <option value="Active" className="text-textMain bg-card">ปกติ</option>
+                            <option value="Inactive" className="text-textMain bg-card">ระงับ</option>
                         </select>
                     </div>
                 </div>
 
                 <div className="form-group">
-                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ที่อยู่</label>
+                    <label className="block mb-2 text-textMuted">ที่อยู่ <span className="text-error">*</span></label>
                     <textarea
                         name="address"
                         value={formData.address}
                         onChange={handleChange}
+                        required
                         rows="2"
-                        className="glass-input"
-                        style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', resize: 'vertical' }}
+                        className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain resize-y"
                     />
                 </div>
 
-                <div style={{ borderTop: '1px solid var(--border-color)', margin: '1rem 0' }}></div>
+                <div className="border-t border-border my-4"></div>
 
-                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h3 className="m-0 mb-2 text-lg text-primary flex items-center gap-2">
                     <FileText size={20} /> หมายเหตุสำหรับเอกสาร (จะแสดงเมื่อสร้างเอกสารนั้นๆ)
                 </h3>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>หมายเหตุใบสั่งซื้อ (PO)</label>
+                        <label className="block mb-2 text-textMuted">หมายเหตุใบสั่งซื้อ (PO)</label>
                         <textarea
                             name="poNote"
                             value={formData.poNote || ''}
                             onChange={handleChange}
                             rows="2"
                             placeholder="ระบุหมายเหตุที่จะให้เตือนเมื่อสร้าง PO..."
-                            className="glass-input"
-                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', resize: 'vertical' }}
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain resize-y"
                         />
                     </div>
                     <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>หมายเหตุใบกำกับภาษี (Invoice)</label>
+                        <label className="block mb-2 text-textMuted">หมายเหตุใบกำกับภาษี (Invoice)</label>
                         <textarea
                             name="invoiceNote"
                             value={formData.invoiceNote || ''}
                             onChange={handleChange}
                             rows="2"
                             placeholder="ระบุหมายเหตุที่จะให้เตือนเมื่อสร้าง Invoice..."
-                            className="glass-input"
-                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', resize: 'vertical' }}
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain resize-y"
                         />
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>หมายเหตุใบวางบิล</label>
+                        <label className="block mb-2 text-textMuted">หมายเหตุใบวางบิล</label>
                         <textarea
                             name="billingNoteNote"
                             value={formData.billingNoteNote || ''}
                             onChange={handleChange}
                             rows="2"
                             placeholder="ระบุหมายเหตุที่จะให้เตือนเมื่อสร้างใบวางบิล..."
-                            className="glass-input"
-                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', resize: 'vertical' }}
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain resize-y"
                         />
                     </div>
                     <div className="form-group">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>หมายเหตุใบเสร็จรับเงิน</label>
+                        <label className="block mb-2 text-textMuted">หมายเหตุใบเสร็จรับเงิน</label>
                         <textarea
                             name="receiptNote"
                             value={formData.receiptNote || ''}
                             onChange={handleChange}
                             rows="2"
                             placeholder="ระบุหมายเหตุที่จะให้เตือนเมื่อออกใบเสร็จ..."
-                            className="glass-input"
-                            style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', resize: 'vertical' }}
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain resize-y"
                         />
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                <div className="flex justify-end gap-4 mt-4">
                     <button
                         type="button"
                         onClick={() => navigate('/dashboard/customers')}
-                        style={{ padding: '0.8rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
+                        className="px-6 py-3 rounded-lg border border-border bg-transparent text-textMuted hover:bg-card-hover transition-colors cursor-pointer"
                     >
                         ยกเลิก
                     </button>
                     <button
                         type="submit"
-                        style={{ padding: '0.8rem 1.5rem', borderRadius: '8px', border: 'none', background: '#3b82f6', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        className="btn-primary px-6 py-3 rounded-lg flex items-center gap-2 cursor-pointer font-medium"
                     >
                         <Save size={18} />
                         บันทึกข้อมูล

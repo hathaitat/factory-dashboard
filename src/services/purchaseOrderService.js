@@ -1,5 +1,30 @@
 import { supabase } from './supabaseClient';
 import { getLocalDateString } from '../utils/dateUtils';
+import { sanitizeSearchTerm } from './sanitize';
+
+const _mapPurchaseOrder = (po) => {
+    // Total PO quantity & Amount
+    const totalPOQuantity = po.purchase_order_items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0;
+    const totalPOAmount = po.purchase_order_items?.reduce((sum, item) => sum + Number(item.amount || 0), 0) || 0;
+
+    // Total delivered quantity from non-cancelled invoices
+    let totalDeliveredQuantity = 0;
+    if (po.invoices && po.invoices.length > 0) {
+        const validInvoices = po.invoices.filter(inv => inv.status !== 'Cancelled');
+        validInvoices.forEach(inv => {
+            if (inv.invoice_items) {
+                totalDeliveredQuantity += inv.invoice_items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+            }
+        });
+    }
+
+    return {
+        ...po,
+        total_po_quantity: totalPOQuantity,
+        total_po_amount: totalPOAmount,
+        total_delivered_quantity: totalDeliveredQuantity
+    };
+};
 
 export const purchaseOrderService = {
     // Get all purchase orders
@@ -29,29 +54,129 @@ export const purchaseOrderService = {
         if (error) throw error;
 
         // Calculate totals for each PO
-        return data.map(po => {
-            // Total PO quantity & Amount
-            const totalPOQuantity = po.purchase_order_items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0;
-            const totalPOAmount = po.purchase_order_items?.reduce((sum, item) => sum + Number(item.amount || 0), 0) || 0;
+        return data.map(_mapPurchaseOrder);
+    },
 
-            // Total delivered quantity from non-cancelled invoices
-            let totalDeliveredQuantity = 0;
-            if (po.invoices && po.invoices.length > 0) {
-                const validInvoices = po.invoices.filter(inv => inv.status !== 'Cancelled');
-                validInvoices.forEach(inv => {
-                    if (inv.invoice_items) {
-                        totalDeliveredQuantity += inv.invoice_items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-                    }
-                });
+    // Server-Side Pagination for Purchase Orders
+    async getPurchaseOrdersPaginated({ page = 1, limit = 50, searchTerm = '', dateFrom = '', dateTo = '', status = '' }) {
+        try {
+            let query = supabase
+                .from('purchase_orders')
+                .select(`
+                    *,
+                    customers (
+                        name,
+                        code
+                    ),
+                    purchase_order_items (
+                        quantity,
+                        amount
+                    ),
+                    invoices (
+                        id,
+                        status,
+                        invoice_items(
+                            quantity
+                        )
+                    )
+                `, { count: 'exact' });
+
+            if (searchTerm) {
+                const safe = sanitizeSearchTerm(searchTerm);
+                if (safe) query = query.or(`po_number.ilike.%${safe}%`);
             }
+            if (status) query = query.eq('status', status);
+            if (dateFrom) query = query.gte('issue_date', dateFrom);
+            if (dateTo) query = query.lte('issue_date', dateTo);
+
+            const from = (page - 1) * limit;
+            const to = from + limit - 1;
+
+            const { data, count, error } = await query
+                .order('issue_date', { ascending: false })
+                .order('created_at', { ascending: false })
+                .range(from, to);
+
+            if (error) throw error;
+
+            const processedData = data.map(_mapPurchaseOrder);
+
+            return { data: processedData, total: count };
+        } catch (error) {
+            console.error('Error fetching paginated POs:', error);
+            return { data: [], total: 0, error };
+        }
+    },
+
+    async exportPurchaseOrders({ searchTerm = '', dateFrom = '', dateTo = '', status = '' }) {
+        try {
+            let query = supabase
+                .from('purchase_orders')
+                .select(`
+                    *,
+                    customers (
+                        name,
+                        code,
+                        address,
+                        tax_id
+                    ),
+                    purchase_order_items (*),
+                    invoices (
+                        id,
+                        status,
+                        invoice_items(
+                            quantity
+                        )
+                    )
+                `);
+
+            if (searchTerm) {
+                const safe = sanitizeSearchTerm(searchTerm);
+                if (safe) query = query.or(`po_number.ilike.%${safe}%`);
+            }
+            if (status) query = query.eq('status', status);
+            if (dateFrom) query = query.gte('issue_date', dateFrom);
+            if (dateTo) query = query.lte('issue_date', dateTo);
+
+            const { data, error } = await query
+                .order('issue_date', { ascending: false })
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            return data.map(_mapPurchaseOrder);
+        } catch (error) {
+            console.error('Error exporting POs:', error);
+            throw error;
+        }
+    },
+
+    async getPurchaseOrderStats() {
+        try {
+            const today = getLocalDateString();
+            
+            // We can do a single query to get all statuses, or multiple simple count queries.
+            // Multiple is safer and leverages the database count.
+            const [{ count: waiting }, { count: progressing }, { count: completed }, { count: overdue }] = await Promise.all([
+                supabase.from('purchase_orders').select('*', { count: 'exact', head: true }).eq('status', 'Waiting'),
+                supabase.from('purchase_orders').select('*', { count: 'exact', head: true }).eq('status', 'Progressing'),
+                supabase.from('purchase_orders').select('*', { count: 'exact', head: true }).eq('status', 'Completed'),
+                supabase.from('purchase_orders').select('*', { count: 'exact', head: true })
+                    .neq('status', 'Completed')
+                    .neq('status', 'Cancelled')
+                    .lt('due_date', today) // overdue
+            ]);
 
             return {
-                ...po,
-                total_po_quantity: totalPOQuantity,
-                total_po_amount: totalPOAmount,
-                total_delivered_quantity: totalDeliveredQuantity
+                waiting: waiting || 0,
+                progressing: progressing || 0,
+                completed: completed || 0,
+                overdue: overdue || 0
             };
-        });
+        } catch (error) {
+            console.error('Error fetching PO stats:', error);
+            return { waiting: 0, progressing: 0, completed: 0, overdue: 0 };
+        }
     },
 
     // Get single purchase order by ID
@@ -73,7 +198,7 @@ export const purchaseOrderService = {
 
         if (error) throw error;
         // Sort items
-    // Get single purchase order by ID
+        // Get single purchase order by ID
         if (data && data.purchase_order_items) {
             data.purchase_order_items.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
         }
@@ -103,7 +228,7 @@ export const purchaseOrderService = {
                 .from('invoice_items')
                 .select('product_name, quantity')
                 .in('invoice_id', invoiceIds);
-            
+
             if (invItemsError) throw invItemsError;
 
             if (invItems) {
@@ -191,8 +316,8 @@ export const purchaseOrderService = {
     // Update existing purchase order
     async updatePurchaseOrder(id, poData, items) {
         // Whitelist allowed fields to prevent overwriting protected columns
-        const { po_number, issue_date, due_date, customer_id, status, notes, file_url, discount, vat_rate, subtotal, vat_amount, grand_total } = poData;
-        const cleanPoData = { po_number, issue_date, due_date, customer_id, status, notes, file_url, discount, vat_rate, subtotal, vat_amount, grand_total };
+        const { po_number, issue_date, due_date, customer_id, status, notes, file_url, discount, vat_rate, subtotal, vat_amount, grand_total, updated_by } = poData;
+        const cleanPoData = { po_number, issue_date, due_date, customer_id, status, notes, file_url, discount, vat_rate, subtotal, vat_amount, grand_total, updated_by };
 
         const { data: po, error: poError } = await supabase
             .from('purchase_orders')

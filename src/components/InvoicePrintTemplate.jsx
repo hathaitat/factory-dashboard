@@ -52,8 +52,8 @@ const InvoicePrintTemplate = () => {
         window.print();
     };
 
-    if (isLoading) return <div style={{ padding: '2rem' }}>กำลังโหลด...</div>;
-    if (!invoice || !company) return <div style={{ padding: '2rem' }}>ไม่พบข้อมูล</div>;
+    if (isLoading) return <div className="p-8">กำลังโหลด...</div>;
+    if (!invoice || !company) return <div className="p-8">ไม่พบข้อมูล</div>;
 
     // Pagination logic
     const MAX_ITEMS_P1 = 12; // Fewer items on P1 due to header/customer info
@@ -80,11 +80,40 @@ const InvoicePrintTemplate = () => {
 
     return (
         <div className="print-container">
-            <div className="no-print" style={{ padding: '1rem', display: 'flex', gap: '1rem', background: '#111', borderBottom: '1px solid #333', flexWrap: 'wrap' }}>
-                <button onClick={() => navigate('/dashboard/invoices')} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: '1px solid #444', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' }}>
+            <div className="no-print" style={{ 
+                padding: '0.8rem 1.5rem', 
+                display: 'flex', 
+                alignItems: 'center',
+                gap: '1rem',
+                background: '#111', 
+                color: 'white', 
+                position: 'sticky', 
+                top: 0, 
+                zIndex: 100,
+                borderBottom: '1px solid #333'
+            }}>
+                <button 
+                    onClick={() => navigate('/dashboard/invoices')} 
+                    style={{ 
+                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white', 
+                        padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
+                        fontSize: '0.9rem'
+                    }}
+                >
                     <ArrowLeft size={18} /> ย้อนกลับ
                 </button>
-                <button onClick={handlePrint} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#3b82f6', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' }}>
+                
+                <button 
+                    onClick={handlePrint} 
+                    style={{ 
+                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                        background: '#3b82f6', border: 'none', color: 'white', 
+                        padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
+                        fontWeight: '600', fontSize: '0.95rem',
+                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                    }}
+                >
                     <Printer size={18} /> พิมพ์ใบกำกับภาษี
                 </button>
 
@@ -93,7 +122,12 @@ const InvoicePrintTemplate = () => {
                     <button
                         key={cert.id}
                         onClick={() => window.open(cert.file_url, '_blank')}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#10b981', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' }}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                            background: '#10b981', border: 'none', color: 'white', 
+                            padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
+                            fontSize: '0.95rem'
+                        }}
                     >
                         <Printer size={18} /> ปริ้นท์ Cer: {cert.name}
                     </button>
@@ -118,13 +152,26 @@ const InvoicePrintTemplate = () => {
                         {/* Page Header - Full on every page */}
                         <div className="header-section">
                             <div className="company-info-print">
-                                <div className="company-name-th">{company.name}</div>
-                                <div className="company-address-th">{company.address}</div>
-                                <div className="company-contact">
-                                    {company.phone && `TEL: ${company.phone}`} {company.fax && `FAX: ${company.fax}`}
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '8px' }}>
+                                        {company.logoUrl && (
+                                            <img src={company.logoUrl} alt="Company Logo" style={{ height: '90px', maxWidth: '250px', objectFit: 'contain' }} />
+                                        )}
+                                        <div>
+                                            <div className="company-name-th">{company.name}</div>
+                                            {company.nameEn && <div className="company-name-en" style={{ marginTop: '4px' }}>{company.nameEn}</div>}
+                                        </div>
+                                    </div>
+                                    <div className="company-address-th" style={{ lineHeight: '1.6' }}>{company.address}</div>
+                                    <div className="company-contact" style={{ lineHeight: '1.6' }}>
+                                        {[
+                                            company.phone && `TEL: ${company.phone}`,
+                                            company.fax && `FAX: ${company.fax}`,
+                                            company.email && `E-mail: ${company.email}`,
+                                            company.taxId && `เลขประจำตัวผู้เสียภาษี: ${company.taxId}`
+                                        ].filter(Boolean).join(' | ')}
+                                    </div>
                                 </div>
-                                <div className="company-email">E-mail: {company.email}</div>
-                                <div className="company-taxid">เลขประจำตัวผู้เสียภาษี: {company.taxId}</div>
                             </div>
                             <div className="title-section">
                                 <div className="doc-title">ใบกำกับสินค้า / ใบกำกับภาษี</div>
@@ -140,7 +187,7 @@ const InvoicePrintTemplate = () => {
                                     <span className="value">{invoice.customer?.code}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="value-bold">{invoice.customer?.name}</span>
+                                    <span className="value-bold">{invoice.customer?.name} {invoice.customer?.branch && `(สาขา ${invoice.customer.branch})`}</span>
                                 </div>
                                 <div className="info-row">
                                     <span className="label">เลขประจำตัวผู้เสียภาษี</span>
@@ -203,11 +250,11 @@ const InvoicePrintTemplate = () => {
                                     const globalIndex = pageIdx === 0 ? index : MAX_ITEMS_P1 + (pageIdx - 1) * MAX_ITEMS_PN + index;
                                     return (
                                         <tr key={item.id}>
-                                            <td style={{ textAlign: 'center' }}>{globalIndex + 1}</td>
+                                            <td className="text-center">{globalIndex + 1}</td>
                                             <td>{item.productName}</td>
-                                            <td style={{ textAlign: 'right' }}>{item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}</td>
-                                            <td style={{ textAlign: 'right' }}>{item.pricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            <td style={{ textAlign: 'right' }}>{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td className="text-right">{item.quantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}</td>
+                                            <td className="text-right">{item.pricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td className="text-right">{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         </tr>
                                     );
                                 })}
@@ -286,7 +333,7 @@ const InvoicePrintTemplate = () => {
                                     </div>
                                 </div>
                                 <div className="signature-box">
-                                    <div className="sig-line">ในนาม บริษัท มัลติพลายส์ ออโต้ เวิร์ค จำกัด</div>
+                                    <div className="sig-line">ในนาม {company.name}</div>
                                     <div style={{ height: '40px' }}></div>
                                     <div className="sig-input">
                                         <span>ผู้รับมอบอำนาจ__________________________________________</span>

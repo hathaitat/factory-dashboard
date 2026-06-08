@@ -19,69 +19,30 @@ const PageHeader = ({ title, subtitle, helpContent, children }) => {
     };
 
     return (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+        <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
+            <div className="flex items-center gap-3">
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>{title}</h1>
+                    <h1 className="m-0 text-[1.8rem] font-semibold">{title}</h1>
                     {subtitle && (
-                        <p style={{ margin: '0.5rem 0 0 0', color: 'var(--text-muted)' }}>{subtitle}</p>
+                        <p className="mt-2 text-textMuted m-0">{subtitle}</p>
                     )}
                 </div>
                 {helpContent && (
-                    <div style={{ position: 'relative' }}>
+                    <div className="relative">
                         <button
                             onClick={handleHelpClick}
                             onMouseEnter={() => setIsHovered(true)}
                             onMouseLeave={() => setIsHovered(false)}
-                            className="help-button-prominent"
-                            style={{
-                                width: '42px', height: '42px',
-                                borderRadius: '50%',
-                                border: '2px solid #3b82f6',
-                                background: 'rgba(59, 130, 246, 0.1)',
-                                color: '#3b82f6',
-                                cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                flexShrink: 0,
-                                position: 'relative',
-                                boxShadow: '0 0 15px rgba(59, 130, 246, 0.3)'
-                            }}
+                            className="help-button-prominent w-[42px] h-[42px] rounded-full border-2 border-blue-500 bg-blue-500/10 text-blue-500 cursor-pointer flex items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shrink-0 relative shadow-[0_0_15px_rgba(59,130,246,0.3)]"
                         >
                             <HelpCircle size={24} />
                             <span className="help-pulse"></span>
                         </button>
 
                         {/* Custom Tooltip */}
-                        <div style={{
-                            position: 'absolute',
-                            left: '50%',
-                            bottom: '-45px',
-                            transform: `translateX(-50%) translateY(${isHovered ? '0' : '10px'})`,
-                            opacity: isHovered ? 1 : 0,
-                            visibility: isHovered ? 'visible' : 'hidden',
-                            background: '#1e293b',
-                            color: '#fff',
-                            padding: '0.6rem 1rem',
-                            borderRadius: '8px',
-                            fontSize: '0.85rem',
-                            whiteSpace: 'nowrap',
-                            boxShadow: '0 10px 20px rgba(0,0,0,0.2)',
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                            zIndex: 100,
-                            pointerEvents: 'none',
-                            fontWeight: '500'
-                        }}>
+                        <div className={`absolute left-1/2 bottom-[-45px] -translate-x-1/2 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-[100] pointer-events-none bg-[#1e293b] text-white py-[0.6rem] px-4 rounded-lg text-[0.85rem] whitespace-nowrap shadow-[0_10px_20px_rgba(0,0,0,0.2)] font-medium ${isHovered ? 'translate-y-0 opacity-100 visible' : 'translate-y-[10px] opacity-0 invisible'}`}>
                             ดูวิธีใช้งานส่วนนี้ (Help Guide)
-                            <div style={{
-                                position: 'absolute',
-                                top: '-6px',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                borderLeft: '6px solid transparent',
-                                borderRight: '6px solid transparent',
-                                borderBottom: '6px solid #1e293b'
-                            }}></div>
+                            <div className="absolute top-[-6px] left-1/2 -translate-x-1/2 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-[#1e293b]"></div>
                         </div>
 
                         <style>{`
@@ -108,7 +69,7 @@ const PageHeader = ({ title, subtitle, helpContent, children }) => {
                 )}
             </div>
             {children && (
-                <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+                <div className="flex gap-3 flex-wrap">
                     {children}
                 </div>
             )}

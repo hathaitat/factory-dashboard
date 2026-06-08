@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, X, Upload } from 'lucide-react';
+import { Save, X, User } from 'lucide-react';
 import { certificateService } from '../services/certificateService';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
+import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader from '../components/PageHeader';
+import LastUpdated from '../components/LastUpdated';
+import { useAuth } from '../contexts/AuthContext';
 
 const CertificateFormPage = () => {
+    const { user } = useAuth();
     const { id } = useParams();
     const isEditMode = !!id;
     const navigate = useNavigate();
@@ -26,7 +30,9 @@ const CertificateFormPage = () => {
         status: 'Active',
         file: null,       // File object when uploading a new file
         file_url: '',     // Existing URL
-        file_path: ''     // Existing Path
+        file_path: '',     // Existing Path
+        createdBy: '',
+        updatedBy: ''
     });
 
     const [selectedProducts, setSelectedProducts] = useState([]);
@@ -52,7 +58,10 @@ const CertificateFormPage = () => {
                             status: certData.status || 'Active',
                             file: null,
                             file_url: certData.file_url || '',
-                            file_path: certData.file_path || ''
+                            file_path: certData.file_path || '',
+                            createdBy: certData.created_by || '',
+                            updatedBy: certData.updated_by || '',
+                            updatedAt: certData.updated_at || ''
                         });
                         setSelectedProducts(certData.certificate_products?.map(p => p.product_id) || []);
                         setSelectedCustomers(certData.certificate_customers?.map(c => c.customer_id) || []);
@@ -70,7 +79,7 @@ const CertificateFormPage = () => {
 
     const handleProductChange = (e) => {
         const value = e.target.value; // Product IDs are UUIDs, do NOT parse as Int
-        setSelectedProducts(prev => 
+        setSelectedProducts(prev =>
             e.target.checked ? [...prev, value] : prev.filter(p => p !== value)
         );
     };
@@ -95,7 +104,7 @@ const CertificateFormPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!formData.name) {
             return showError('กรุณากรอกชื่อ Certificate');
         }
@@ -126,13 +135,17 @@ const CertificateFormPage = () => {
                 }
             }
 
+            const currentUser = user;
+            const operatorName = currentUser?.fullName || currentUser?.username || 'Unknown';
             const certDataForDb = {
                 name: formData.name,
                 issue_date: formData.issue_date || null,
                 expiry_date: formData.expiry_date || null,
                 status: formData.status,
                 file_url: uploadedFileUrl,
-                file_path: uploadedFilePath
+                file_path: uploadedFilePath,
+                createdBy: isEditMode ? (formData.createdBy || operatorName) : operatorName,
+                updatedBy: operatorName
             };
 
             if (isEditMode) {
@@ -152,60 +165,74 @@ const CertificateFormPage = () => {
         }
     };
 
-    if (pageLoading) return <div style={{ padding: '2rem', textAlign: 'center' }}>กำลังโหลด...</div>;
+    if (pageLoading) return <div className="p-8 text-center text-textMuted">กำลังโหลด...</div>;
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem' }}>
+        <div className="px-4 pb-8">
             <PageHeader
                 title={isEditMode ? "แก้ไข Certificate" : "เพิ่ม Certificate ใหม่"}
                 subtitle="เพิ่มหรือแก้ไขข้อมูลเอกสารรับรองสำหรับลูกค้าและสินค้า"
                 onBack={() => navigate('/dashboard/certificates')}
-            />
+            >
+                <button
+                    type="button"
+                    onClick={() => navigate('/dashboard/certificates')}
+                    className="btn-secondary py-[0.6rem] px-6 rounded-lg flex items-center gap-2"
+                >
+                    <X size={18} />
+                    ยกเลิก
+                </button>
+                <button
+                    type="submit"
+                    form="certificate-form"
+                    disabled={isLoading}
+                    className={`btn-primary py-[0.6rem] px-6 rounded-lg flex items-center gap-2 ${isLoading ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                    <Save size={18} />
+                    {isLoading ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                </button>
+            </PageHeader>
 
-            <div className="glass-panel" style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-                <form onSubmit={handleSubmit}>
-                    
+            <div className="glass-panel p-8 max-w-[800px] mx-auto">
+                <form id="certificate-form" onSubmit={handleSubmit}>
+
                     {/* Basic Info */}
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>ชื่อเอกสาร Certificate <span style={{color:'red'}}>*</span></label>
+                    <div className="mb-6">
+                        <label className="block mb-2 font-medium text-textMain">ชื่อเอกสาร Certificate <span className="text-red-500">*</span></label>
                         <input
                             type="text"
-                            className="glass-input"
+                            className="glass-input w-full p-[0.8rem] rounded-lg border border-border bg-card-hover text-textMain"
                             value={formData.name}
-                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             required
-                            style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-hover)', color: 'var(--text-main)' }}
                         />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                    <div className="grid grid-cols-3 gap-6 mb-6 grid-mobile-stack">
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>วันที่ออกเอกสาร (Issue Date)</label>
+                            <label className="block mb-2 font-medium text-textMain">วันที่ออกเอกสาร (Issue Date)</label>
                             <input
                                 type="date"
-                                className="glass-input"
+                                className="glass-input w-full p-[0.8rem] rounded-lg border border-border bg-card-hover text-textMain"
                                 value={formData.issue_date}
-                                onChange={(e) => setFormData({...formData, issue_date: e.target.value})}
-                                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-hover)', color: 'var(--text-main)' }}
+                                onChange={(e) => setFormData({ ...formData, issue_date: e.target.value })}
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>วันหมดอายุ (Expiry Date)</label>
+                            <label className="block mb-2 font-medium text-textMain">วันหมดอายุ (Expiry Date)</label>
                             <input
                                 type="date"
-                                className="glass-input"
+                                className="glass-input w-full p-[0.8rem] rounded-lg border border-border bg-card-hover text-textMain"
                                 value={formData.expiry_date}
-                                onChange={(e) => setFormData({...formData, expiry_date: e.target.value})}
-                                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-hover)', color: 'var(--text-main)' }}
+                                onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>สถานะ (Status)</label>
+                            <label className="block mb-2 font-medium text-textMain">สถานะ (Status)</label>
                             <select
                                 value={formData.status}
                                 onChange={e => setFormData({ ...formData, status: e.target.value })}
-                                className="glass-input"
-                                style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-hover)', color: 'var(--text-main)' }}
+                                className="glass-input w-full p-[0.8rem] rounded-lg border border-border bg-card-hover text-textMain"
                             >
                                 <option value="Active">ใช้งาน (Active)</option>
                                 <option value="Expired">หมดอายุ (Expired)</option>
@@ -214,20 +241,19 @@ const CertificateFormPage = () => {
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>
-                            อัปโหลดไฟล์ Certificate {isEditMode && formData.file_url ? `(มีไฟล์อยู่แล้ว สามารถอัปโหลดใหม่เพื่อเปลี่ยน)` : <span style={{color:'red'}}>*</span>}
+                    <div className="mb-6">
+                        <label className="block mb-2 font-medium text-textMain">
+                            อัปโหลดไฟล์ Certificate {isEditMode && formData.file_url ? `(มีไฟล์อยู่แล้ว สามารถอัปโหลดใหม่เพื่อเปลี่ยน)` : <span className="text-red-500">*</span>}
                         </label>
                         <input
                             type="file"
                             accept=".pdf,image/*"
                             onChange={handleFileChange}
-                            className="glass-input"
-                            style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--card-hover)', color: 'var(--text-main)' }}
+                            className="glass-input w-full p-[0.8rem] rounded-lg border border-border bg-card-hover text-textMain"
                         />
                         {isEditMode && formData.file_url && !formData.file && (
-                            <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                                <a href={formData.file_url} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6', textDecoration: 'underline' }}>
+                            <div className="mt-2 text-[0.9rem] text-textMuted">
+                                <a href={formData.file_url} target="_blank" rel="noopener noreferrer" className="text-secondary underline hover:opacity-80">
                                     คลิกเพื่อดูไฟล์ปัจจุบัน
                                 </a>
                             </div>
@@ -235,15 +261,15 @@ const CertificateFormPage = () => {
                     </div>
 
                     {/* Relations */}
-                    <hr style={{ margin: '2rem 0', borderColor: 'var(--border-color)', opacity: 0.5 }} />
+                    <hr className="my-8 border-border opacity-50" />
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                    <div className="grid grid-cols-2 gap-8 grid-mobile-stack">
                         {/* Select Customers (Moved to Left) */}
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>เลือกลูกค้า (Customers) <span style={{color:'var(--text-muted)', fontSize:'0.9rem', fontWeight:'normal'}}>(เลือกก่อน)</span></label>
-                            <div style={{ maxHeight: '200px', overflowY: 'auto', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--card-bg)' }}>
-                                {customers.length === 0 ? <div style={{color:'var(--text-muted)'}}>ไม่มีข้อมูลลูกค้า</div> : customers.map(c => (
-                                    <div key={`c-${c.id}`} style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <label className="block mb-2 font-medium text-textMain">เลือกลูกค้า (Customers) <span className="text-textMuted text-[0.9rem] font-normal">(เลือกก่อน)</span></label>
+                            <div className="max-h-[200px] overflow-y-auto p-4 border border-border rounded-lg bg-card">
+                                {customers.length === 0 ? <div className="text-textMuted">ไม่มีข้อมูลลูกค้า</div> : customers.map(c => (
+                                    <div key={`c-${c.id}`} className="mb-2 flex items-center gap-2">
                                         <input
                                             type="checkbox"
                                             id={`cust-${c.id}`}
@@ -251,7 +277,7 @@ const CertificateFormPage = () => {
                                             checked={selectedCustomers.includes(c.id)}
                                             onChange={handleCustomerChange}
                                         />
-                                        <label htmlFor={`cust-${c.id}`} style={{ color: 'var(--text-main)', cursor: 'pointer' }}>{c.name}</label>
+                                        <label htmlFor={`cust-${c.id}`} className="text-textMain cursor-pointer">{c.name}</label>
                                     </div>
                                 ))}
                             </div>
@@ -259,16 +285,16 @@ const CertificateFormPage = () => {
 
                         {/* Select Products (Filtered by selected customers) */}
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-main)' }}>เลือกสินค้าที่เกี่ยวข้อง (Products)</label>
-                            <div style={{ maxHeight: '200px', overflowY: 'auto', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--card-bg)' }}>
+                            <label className="block mb-2 font-medium text-textMain">เลือกสินค้าที่เกี่ยวข้อง (Products)</label>
+                            <div className="max-h-[200px] overflow-y-auto p-4 border border-border rounded-lg bg-card">
                                 {selectedCustomers.length === 0 ? (
-                                    <div style={{color:'var(--text-muted)'}}>กรุณาเลือกลูกค้าก่อน</div>
+                                    <div className="text-textMuted">กรุณาเลือกลูกค้าก่อน</div>
                                 ) : (
                                     products.filter(p => selectedCustomers.includes(p.customerId)).length === 0 ? (
-                                        <div style={{color:'var(--text-muted)'}}>ไม่มีสินค้าสำหรับลูกค้าที่เลือก</div>
+                                        <div className="text-textMuted">ไม่มีสินค้าสำหรับลูกค้าที่เลือก</div>
                                     ) : (
                                         products.filter(p => selectedCustomers.includes(p.customerId)).map(p => (
-                                            <div key={`p-${p.id}`} style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <div key={`p-${p.id}`} className="mb-2 flex items-center gap-2">
                                                 <input
                                                     type="checkbox"
                                                     id={`prod-${p.id}`}
@@ -276,7 +302,7 @@ const CertificateFormPage = () => {
                                                     checked={selectedProducts.includes(p.id)}
                                                     onChange={handleProductChange}
                                                 />
-                                                <label htmlFor={`prod-${p.id}`} style={{ color: 'var(--text-main)', cursor: 'pointer' }}>{p.name}</label>
+                                                <label htmlFor={`prod-${p.id}`} className="text-textMain cursor-pointer">{p.name}</label>
                                             </div>
                                         ))
                                     )
@@ -286,22 +312,11 @@ const CertificateFormPage = () => {
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
+                    <div className="flex justify-end gap-4 mt-8">
                         <button
                             type="button"
                             onClick={() => navigate('/dashboard/certificates')}
-                            className="glass-panel"
-                            style={{
-                                padding: '0.8rem 1.5rem',
-                                border: '1px solid var(--border-color)',
-                                background: 'transparent',
-                                color: 'var(--text-main)',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem'
-                            }}
+                            className="btn-secondary py-[0.8rem] px-6 rounded-lg flex items-center gap-2"
                         >
                             <X size={20} />
                             ยกเลิก
@@ -309,24 +324,22 @@ const CertificateFormPage = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            style={{
-                                padding: '0.8rem 1.5rem',
-                                border: 'none',
-                                background: isLoading ? '#9ca3af' : '#3b82f6',
-                                color: 'white',
-                                borderRadius: '8px',
-                                cursor: isLoading ? 'not-allowed' : 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                fontWeight: '500'
-                            }}
+                            className={`btn-primary py-[0.8rem] px-6 rounded-lg flex items-center gap-2 ${isLoading ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                             <Save size={20} />
                             {isLoading ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
                         </button>
                     </div>
-
+                    {isEditMode && (
+                        <div className="glass-panel p-[1.2rem] text-textMuted text-[0.8rem] flex flex-col gap-1 mt-6">
+                            {formData.createdBy && (
+                                <div className="flex items-center gap-2">
+                                    <User size={14} /> สร้างโดย: <span className="text-textMain font-semibold">{formData.createdBy}</span>
+                                </div>
+                            )}
+                            <LastUpdated updatedBy={formData.updatedBy} updatedAt={formData.updatedAt} />
+                        </div>
+                    )}
                 </form>
             </div>
         </div>

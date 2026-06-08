@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "echo \"UAT testing is managed manually. Please check UAT_TEST_SCRIPT.md for instructions.\" && exit 0",
     "supa:login": "supabase login",
     "supa:link": "supabase link --project-ref ahhosopeejidjzsfxpts",
     "migrate": "supabase db push"
@@ -30,11 +31,15 @@
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.5.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "playwright": "^1.60.0",
+    "postcss": "^8.5.14",
     "supabase": "^2.76.8",
+    "tailwindcss": "^3.4.19",
     "vite": "^5.4.11"
   }
 }

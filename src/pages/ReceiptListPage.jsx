@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import XLSX from 'xlsx-js-style';
-import { Search, Printer, Eye, FileSpreadsheet } from 'lucide-react';
+import { Search, Printer, Eye, FileSpreadsheet, TrendingUp, CheckCircle, Clock, XCircle, Calendar, DollarSign } from 'lucide-react';
 import { billingNoteService } from '../services/billingNoteService';
 import { companyService } from '../services/companyService';
 import { settingService } from '../services/settingService';
@@ -10,37 +10,58 @@ import { useDialog } from '../contexts/DialogContext';
 import { getLocalDateString } from '../utils/dateUtils';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
+import Pagination from '../components/Pagination';
+import { useServerPagination } from '../hooks/useServerPagination';
 
 const ReceiptListPage = () => {
     const navigate = useNavigate();
     const { showAlert, showError } = useDialog();
-    const [billingNotes, setBillingNotes] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
     const [formats, setFormats] = useState(null);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [dateFilterType, setDateFilterType] = useState('date');
     const [statusFilter, setStatusFilter] = useState('');
+    const [kpis, setKpis] = useState({ revenueThisMonth: 0, totalPaidCount: 0, totalRevenue: 0 });
+
+    const {
+        data: paginatedData,
+        totalItems,
+        totalPages,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        isLoading,
+        updateFilters,
+        startItem,
+        endItem,
+        refresh
+    } = useServerPagination(billingNoteService.getBillingNotesPaginated, { searchTerm: '', dateFrom: '', dateTo: '', status: '' }, 50);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            updateFilters({ searchTerm, dateFrom, dateTo, status: statusFilter });
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm, dateFrom, dateTo, statusFilter, updateFilters]);
 
     useEffect(() => {
         loadData();
     }, []);
 
     const loadData = async () => {
-        setIsLoading(true);
         try {
-            const [data, formatsSettings] = await Promise.all([
-                billingNoteService.getBillingNotes(),
+            const [stats, formatsSettings] = await Promise.all([
+                billingNoteService.getReceiptStats(),
                 settingService.getSetting('document_formats')
             ]);
-            setBillingNotes(data || []);
+            
             setFormats(formatsSettings || { billing_note_prefix: 'BN', receipt_prefix: 'RE' });
+            setKpis(stats);
         } catch (error) {
             console.error("Error loading receipt data:", error);
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -62,10 +83,23 @@ const ReceiptListPage = () => {
         setIsExporting(true);
         try {
             const company = await companyService.getCompanyInfo();
-            const bnIds = filteredNotes.map(bn => bn.id);
-            const fullBNs = await Promise.all(
-                bnIds.map(id => billingNoteService.getBillingNoteById(id))
-            );
+            const exportData = await billingNoteService.exportBillingNotes({
+                searchTerm,
+                dateFrom,
+                dateTo,
+                status: statusFilter
+            });
+            const bnIds = exportData.map(bn => bn.id);
+            const fullBNs = [];
+
+            const batchSize = 5;
+            for (let i = 0; i < bnIds.length; i += batchSize) {
+                const batchIds = bnIds.slice(i, i + batchSize);
+                const batchResults = await Promise.all(
+                    batchIds.map(id => billingNoteService.getBillingNoteById(id))
+                );
+                fullBNs.push(...batchResults);
+            }
 
             // Style helpers
             const border = (sides = 'all') => {
@@ -247,75 +281,63 @@ const ReceiptListPage = () => {
         }
     };
 
-    const hasActiveFilters = dateFrom || dateTo;
-    const clearFilters = () => { setDateFrom(''); setDateTo(''); setDateFilterType('date'); };
-
-    const filteredNotes = billingNotes.filter(bn => {
-        const receiptNo = getReceiptNumber(bn.billingNoteNo, bn.date).toLowerCase();
-        const bnNo = bn.billingNoteNo.toLowerCase();
-        const search = searchTerm.toLowerCase();
-        const matchSearch = receiptNo.includes(search) || bnNo.includes(search) || bn.customerName.toLowerCase().includes(search);
-        
-        const targetDate = bn.date;
-        const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
-        const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
-        return matchSearch && matchDateFrom && matchDateTo;
-    });
-
-    // Grouping by Month/Year
-    const getMonthYear = (dateString) => {
-        const date = new Date(dateString);
-        const monthNames = [
-            "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-        ];
-        return `${monthNames[date.getMonth()]} ${date.getFullYear() + 543}`;
+    const hasActiveFilters = !!(dateFrom || dateTo || statusFilter);
+    const clearFilters = () => { 
+        setDateFrom(''); 
+        setDateTo(''); 
+        setDateFilterType('date'); 
+        setStatusFilter('');
+        updateFilters({ dateFrom: '', dateTo: '', status: '' });
     };
 
-    const groupedNotes = filteredNotes.reduce((acc, bn) => {
-        const group = getMonthYear(bn.date);
-        if (!acc[group]) acc[group] = [];
-        acc[group].push(bn);
-        return acc;
-    }, {});
-
-    const monthYearGroups = Object.keys(groupedNotes).sort((a, b) => {
-        const dateA = Math.max(...groupedNotes[a].map(bn => new Date(bn.date).getTime()));
-        const dateB = Math.max(...groupedNotes[b].map(bn => new Date(bn.date).getTime()));
-        return dateB - dateA;
-    });
-
     return (
-        <div style={{ padding: '0 1rem' }}>
+        <div className="px-4">
             <PageHeader
                 title="รายการใบเสร็จรับเงิน (Receipts)"
                 helpContent={HELP_CONTENT.receipts}
             >
-                <button
-                    onClick={exportToExcel}
-                    disabled={isExporting}
-                    className="glass-panel"
-                    style={{
-                        padding: '0.6rem 1rem',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        background: 'rgba(16, 185, 129, 0.05)',
-                        border: '1px solid rgba(16, 185, 129, 0.1)',
-                        color: 'var(--success)', 
-                        cursor: isExporting ? 'not-allowed' : 'pointer', 
-                        borderRadius: '8px',
-                        opacity: isExporting ? 0.6 : 1
-                    }}
-                >
-                    <FileSpreadsheet size={18} /> {isExporting ? 'กำลังสร้างไฟล์...' : 'Export Excel'}
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={exportToExcel}
+                        disabled={isExporting}
+                        className="glass-panel px-4 py-2.5 text-emerald-500 rounded-lg font-medium text-sm flex items-center gap-2 bg-white border border-slate-200" style={{ cursor: isExporting ? 'not-allowed' : 'pointer', opacity: isExporting ? 0.6 : 1 }}
+                    >
+                        <FileSpreadsheet size={18} /> {isExporting ? 'กำลังสร้างไฟล์...' : 'Export All'}
+                    </button>
+                </div>
             </PageHeader>
 
-            <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
-                <Search size={20} style={{ color: 'var(--text-muted)' }} />
+            {/* KPI Cards */}
+            <div className="grid-mobile-stack mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="glass-panel flex items-center gap-4 border border-emerald-500/10 bg-emerald-500/[0.02]" style={{ padding: '1.25rem' }}>
+                    <div className="p-2.5 rounded-xl text-emerald-500 bg-emerald-500/10"><TrendingUp size={20} /></div>
+                    <div>
+                        <div className="text-xs text-textMuted">รายรับเดือนนี้</div>
+                        <div className="text-xl font-bold text-emerald-500">฿{kpis.revenueThisMonth.toLocaleString()}</div>
+                    </div>
+                </div>
+                <div className="glass-panel flex items-center gap-4 border border-blue-500/10 bg-blue-500/[0.02]" style={{ padding: '1.25rem' }}>
+                    <div className="p-2.5 rounded-xl text-blue-500 bg-blue-500/10"><CheckCircle size={20} /></div>
+                    <div>
+                        <div className="text-xs text-textMuted">จำนวนบิลที่ชำระแล้ว</div>
+                        <div className="text-xl font-bold text-blue-500">{kpis.totalPaidCount} ใบ</div>
+                    </div>
+                </div>
+                <div className="glass-panel flex items-center gap-4 border border-emerald-500/10 bg-emerald-500/[0.02]" style={{ padding: '1.25rem' }}>
+                    <div className="p-2.5 rounded-xl text-emerald-500 bg-emerald-500/10"><DollarSign size={20} /></div>
+                    <div>
+                        <div className="text-xs text-textMuted">รายรับสะสมทั้งหมด</div>
+                        <div className="text-xl font-bold text-emerald-500">฿{kpis.totalRevenue.toLocaleString()}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="glass-panel p-4 mb-6 border border-border flex items-center gap-4 bg-cardBg">
+                <Search size={20} className="text-textMuted" />
                 <input
                     type="text"
                     placeholder="ค้นตามเลขที่ใบเสร็จ, เลขที่ใบวางบิล หรือชื่อลูกค้า..."
-                    style={{ background: 'none', border: 'none', color: 'var(--text-main)', fontSize: '1rem', width: '100%', outline: 'none' }}
+                    className="bg-transparent border-none text-main text-base w-full outline-none"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -338,93 +360,102 @@ const ReceiptListPage = () => {
                 hasActiveFilters={!!hasActiveFilters}
             />
 
-            <div className="glass-panel" style={{ padding: '0', overflowX: 'auto' }}>
-                <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="glass-panel overflow-x-auto p-0">
+                <div className="table-responsive-wrapper overflow-x-auto touch-pan-x">
+<table className="w-full border-collapse">
                     <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                            <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ใบเสร็จ</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>อ้างอิงใบวางบิล</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อลูกค้า</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวนเงินสุทธิ</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะบิล</th>
+                        <tr className="border-b border-border text-left">
+                            <th className="actions-column text-textMuted font-medium">จัดการ</th>
+                            <th className="px-6 py-5 text-textMuted font-medium">เลขที่ใบเสร็จ</th>
+                            <th className="px-6 py-5 text-textMuted font-medium">อ้างอิงใบวางบิล</th>
+                            <th className="px-6 py-5 text-textMuted font-medium">ชื่อลูกค้า</th>
+                            <th className="px-6 py-5 text-textMuted font-medium text-right">จำนวนเงินสุทธิ</th>
+                            <th className="px-6 py-5 text-textMuted font-medium text-center">สถานะบิล</th>
                         </tr>
                     </thead>
                     <tbody>
                         {isLoading ? (
                             <tr>
-                                <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                    <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+                                <td colSpan="6" className="p-12 text-center text-textMuted">
+                                    <div className="loading-spinner mx-auto mb-4"></div>
                                     กำลังโหลดข้อมูล...
                                 </td>
                             </tr>
-                        ) : filteredNotes.length > 0 ? (
-                            monthYearGroups.map((group) => (
-                                <React.Fragment key={group}>
-                                    <tr style={{ background: 'var(--bg-main)' }}>
-                                        <td colSpan="6" style={{ padding: '0.8rem 1.5rem', fontWeight: '600', color: 'var(--text-main)', borderBottom: '1px solid var(--border-color)', borderTop: 'none' }}>
-                                            เดือน {group}
-                                        </td>
-                                    </tr>
-                                    {groupedNotes[group].map((bn) => (
-                                        <tr key={bn.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s', background: 'var(--card-bg)' }}>
-                                            <td className="actions-column">
-                                                <div className="table-actions">
-                                                    <button
-                                                        className="action-view"
-                                                        onClick={() => window.open(`/dashboard/receipts/${bn.id}`, '_blank')}
-                                                        title="View Details"
-                                                    >
-                                                        <Eye size={18} />
-                                                    </button>
-                                                    <button
-                                                        className="action-edit"
-                                                        onClick={() => window.open(`/dashboard/billing-notes/${bn.id}/print-receipt`, '_blank')}
-                                                        title="Print Receipt"
-                                                    >
-                                                        <Printer size={18} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem', fontWeight: '600', color: 'var(--primary)', fontSize: '1.1rem', fontFamily: 'monospace' }}>
-                                                <Link to={`/dashboard/receipts/${bn.id}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>
-                                                    {getReceiptNumber(bn.billingNoteNo, bn.date)}
-                                                </Link>
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>{bn.billingNoteNo}</td>
-                                            <td style={{ padding: '1.2rem 1.5rem' }}>{bn.customerName}</td>
-                                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
-                                                ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
-                                                <span style={{
-                                                    padding: '0.3rem 0.8rem',
-                                                    borderRadius: '20px',
-                                                    fontSize: '0.85rem',
-                                                    fontWeight: '500',
-                                                    whiteSpace: 'nowrap',
-                                                    background: bn.status === 'Draft' ? 'var(--card-hover)' : 
-                                                               bn.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(248, 113, 113, 0.1)',
-                                                    color: bn.status === 'Draft' ? 'var(--text-muted)' : 
-                                                           bn.status === 'Paid' ? 'var(--success)' : 'var(--error)'
-                                                }}>
-                                                    {bn.status === 'Draft' ? 'Draft' : 
-                                                     bn.status === 'Paid' ? 'Paid' : 'Cancelled'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </React.Fragment>
+                        ) : paginatedData.length > 0 ? (
+                            paginatedData.map((bn) => (
+                                <tr key={bn.id} className="border-b border-border bg-cardBg" style={{ transition: 'background 0.2s' }}>
+                                    <td className="actions-column">
+                                        <div className="table-actions">
+                                            <Link
+                                                className="action-view"
+                                                to={`/dashboard/receipts/${bn.id}`}
+                                                target="_blank"
+                                                title="View Details"
+                                            >
+                                                <Eye size={18} />
+                                            </Link>
+                                            <Link
+                                                className="action-edit"
+                                                to={`/dashboard/billing-notes/${bn.id}/print-receipt`}
+                                                target="_blank"
+                                                title="Print Receipt"
+                                            >
+                                                <Printer size={18} />
+                                            </Link>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-5 font-semibold text-primary text-lg font-mono">
+                                        <Link to={`/dashboard/receipts/${bn.id}`} className="text-primary no-underline">
+                                            {getReceiptNumber(bn.billingNoteNo, bn.date)}
+                                        </Link>
+                                    </td>
+                                    <td className="px-6 py-5 text-sm text-textMuted">{bn.billingNoteNo}</td>
+                                    <td className="px-6 py-5">
+                                        {bn.customer_id ? (
+                                            <Link 
+                                                to={`/dashboard/customers/${bn.customer_id}`} 
+                                                className="text-blue-500 no-underline"
+                                                onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                                                onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+                                            >
+                                                {bn.customerName}
+                                            </Link>
+                                        ) : (
+                                            bn.customerName
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-5 text-right font-semibold text-emerald-500">
+                                        ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </td>
+                                    <td className="px-6 py-5 text-center">
+                                        <span className="rounded-full text-xs font-semibold px-3 py-1.5 whitespace-nowrap inline-flex gap-1" style={{ alignItems: 'center', background: bn.status === 'Draft' ? '#f3f4f6' : bn.status === 'Paid' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)', color: bn.status === 'Draft' ? '#6b7280' : bn.status === 'Paid' ? '#059669' : '#dc2626', border: bn.status === 'Draft' ? '1px solid #e5e7eb' : bn.status === 'Paid' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)' }}>
+                                            {bn.status === 'Draft' && <Clock size={14} />}
+                                            {bn.status === 'Paid' && <CheckCircle size={14} />}
+                                            {bn.status === 'Cancelled' && <XCircle size={14} />}
+                                            {bn.status === 'Draft' ? 'ฉบับร่าง' : 
+                                             bn.status === 'Paid' ? 'ชำระเงินแล้ว' : 'ยกเลิก'}
+                                        </span>
+                                    </td>
+                                </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>ไม่พบรายการใบเสร็จ</td>
+                                <td colSpan="6" className="p-12 text-center text-textMuted">ไม่พบรายการใบเสร็จ</td>
                             </tr>
                         )}
-                    </tbody>
-                </table>
-</div>
+                        </tbody>
+                    </table>
+                </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    totalPages={totalPages}
+                    startItem={startItem}
+                    endItem={endItem}
+                    onPageChange={setCurrentPage}
+                    onItemsPerPageChange={setItemsPerPage}
+                />
             </div>
         </div>
     );

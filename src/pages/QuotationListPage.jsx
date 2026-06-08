@@ -1,35 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit, Trash2, Printer, FileSpreadsheet, Eye } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Plus, Search, Edit, Trash2, Printer, FileSpreadsheet, Eye, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, FileText, Calendar } from 'lucide-react';
 import { quotationService } from '../services/quotationService';
 import { usePermissions } from '../hooks/usePermissions';
 import XLSX from 'xlsx-js-style';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
+import Pagination from '../components/Pagination';
+import { useServerPagination } from '../hooks/useServerPagination';
 
 const QuotationListPage = () => {
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
     const { showConfirm, showAlert, showError } = useDialog();
-    const [quotations, setQuotations] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [dateFilterType, setDateFilterType] = useState('date');
-    const [statusFilter, setStatusFilter] = useState('');
+    const [kpis, setKpis] = useState({ draft: 0, sent: 0, approved: 0, totalValue: 0 });
+
+    const {
+        data: paginatedData,
+        totalItems,
+        totalPages,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        isLoading,
+        updateFilters,
+        startItem,
+        endItem,
+        refresh
+    } = useServerPagination(quotationService.getQuotationsPaginated, { searchTerm: '', dateFrom: '', dateTo: '' }, 50);
 
     useEffect(() => {
-        loadQuotations();
+        const timer = setTimeout(() => {
+            updateFilters({ searchTerm, dateFrom, dateTo });
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm, dateFrom, dateTo, updateFilters]);
+
+    useEffect(() => {
+        loadKpis();
     }, []);
 
-    const loadQuotations = async () => {
-        setIsLoading(true);
-        const data = await quotationService.getQuotations();
-        setQuotations(data || []);
-        setIsLoading(false);
+    const loadKpis = async () => {
+        const stats = await quotationService.getQuotationStats();
+        setKpis(stats);
     };
 
     const handleDelete = async (id, quotationNo) => {
@@ -38,7 +58,8 @@ const QuotationListPage = () => {
             try {
                 const success = await quotationService.deleteQuotation(id);
                 if (success) {
-                    setQuotations(quotations.filter(qt => qt.id !== id));
+                    refresh();
+                    loadKpis();
                 } else {
                     await showError('ไม่สามารถลบใบเสนอราคาได้');
                 }
@@ -52,21 +73,16 @@ const QuotationListPage = () => {
     const fmtNum = (n) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtDate = (d) => d ? new Date(d).toLocaleDateString('th-TH') : '-';
 
-    // Grouping by Month/Year of date
-    const getMonthYear = (dateString) => {
-        if (!dateString) return 'ไม่มีวันที่';
-        const date = new Date(dateString);
-        const monthNames = [
-            "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-        ];
-        return `${monthNames[date.getMonth()]} ${date.getFullYear() + 543}`;
-    };
-
     const exportToExcel = async () => {
         setIsExporting(true);
         try {
-            const dataToExport = filteredQuotations.map(qt => ({
+            const exportData = await quotationService.exportQuotations({
+                searchTerm,
+                dateFrom,
+                dateTo
+            });
+
+            const dataToExport = exportData.map(qt => ({
                 'เลขที่ใบเสนอราคา': qt.quotationNo,
                 'วันที่': qt.date ? new Date(qt.date).toLocaleDateString('th-TH') : '',
                 'ลูกค้า': qt.customerName,
@@ -89,122 +105,115 @@ const QuotationListPage = () => {
         }
     };
 
-    const hasActiveFilters = dateFrom || dateTo;
-    const clearFilters = () => { setDateFrom(''); setDateTo(''); setDateFilterType('date'); };
-
-    const filteredQuotations = quotations.filter(qt => {
-        const matchSearch = qt.quotationNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (qt.customerName || '').toLowerCase().includes(searchTerm.toLowerCase());
-
-        const targetDate = qt.date; // Only one date type for quotes
-        const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
-        const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
-        return matchSearch && matchDateFrom && matchDateTo;
-    });
-
-    const groupedQuotations = filteredQuotations.reduce((acc, qt) => {
-        const group = getMonthYear(qt.date);
-        if (!acc[group]) acc[group] = [];
-        acc[group].push(qt);
-        return acc;
-    }, {});
-
-    const monthYearGroups = Object.keys(groupedQuotations).sort((a, b) => {
-        if (a === 'ไม่มีวันที่') return 1;
-        if (b === 'ไม่มีวันที่') return -1;
-        const dateA = Math.max(...groupedQuotations[a].map(qt => new Date(qt.date || 0).getTime()));
-        const dateB = Math.max(...groupedQuotations[b].map(qt => new Date(qt.date || 0).getTime()));
-        return dateB - dateA;
-    });
+    const hasActiveFilters = !!(dateFrom || dateTo);
+    const clearFilters = () => { 
+        setDateFrom(''); 
+        setDateTo(''); 
+        setDateFilterType('date'); 
+        updateFilters({ dateFrom: '', dateTo: '' });
+    };
 
     const getStatusBlock = (status) => {
         const styles = {
-            Draft: { background: 'var(--card-hover)', color: 'var(--text-muted)' },
-            Sent: { background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' },
-            Approved: { background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)' },
-            Rejected: { background: 'rgba(248, 113, 113, 0.1)', color: 'var(--error)' },
-            Cancelled: { background: 'var(--card-hover)', color: 'var(--text-muted)' }
+            Draft: { background: '#f3f4f6', color: '#6b7280', icon: <FileText size={14} /> },
+            Sent: { background: 'rgba(59, 130, 246, 0.08)', color: '#2563eb', icon: <Clock size={14} /> },
+            Approved: { background: 'rgba(16, 185, 129, 0.08)', color: '#059669', icon: <CheckCircle size={14} /> },
+            Rejected: { background: 'rgba(239, 68, 68, 0.08)', color: '#dc2626', icon: <XCircle size={14} /> },
+            Cancelled: { background: '#f3f4f6', color: '#6b7280', icon: <AlertCircle size={14} /> }
         };
 
-        const currentStyle = styles[status] || styles.Draft;
+        const config = styles[status] || styles.Draft;
 
         return (
             <span style={{
-                padding: '0.3rem 0.8rem',
+                padding: '0.4rem 0.8rem',
                 borderRadius: '20px',
-                fontSize: '0.85rem',
-                fontWeight: '500',
+                fontSize: '0.8rem',
+                fontWeight: '600',
                 whiteSpace: 'nowrap',
-                ...currentStyle
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: config.background,
+                color: config.color,
+                border: `1px solid ${config.color}22`
             }}>
-                {status}
+                {config.icon}
+                {status === 'Draft' ? 'ฉบับร่าง' : 
+                 status === 'Sent' ? 'ส่งแล้ว' : 
+                 status === 'Approved' ? 'อนุมัติแล้ว' : 
+                 status === 'Rejected' ? 'ปฏิเสธ' : 
+                 status === 'Cancelled' ? 'ยกเลิก' : status}
             </span>
         );
     };
 
     return (
-        <div style={{ padding: '0 1rem' }}>
+        <div className="px-4">
             <PageHeader
-                title="รายการใบเสนอราคา (Quotations)"
+                title="รายการใบเสนอราคา"
                 helpContent={HELP_CONTENT?.quotations || "จัดการใบเสนอราคาสำหรับส่งให้ลูกค้าพิจารณา"}
             >
-                <button
-                    onClick={exportToExcel}
-                    disabled={isExporting}
-                    className="glass-panel"
-                    style={{
-                        padding: '0.6rem 1rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        background: 'rgba(16, 185, 129, 0.05)',
-                        border: '1px solid rgba(16, 185, 129, 0.1)',
-                        color: 'var(--success)',
-                        cursor: isExporting ? 'not-allowed' : 'pointer',
-                        borderRadius: '8px',
-                        opacity: isExporting ? 0.7 : 1
-                    }}
-                >
-                    <FileSpreadsheet size={18} /> {isExporting ? 'กำลัง Export...' : 'Export Excel'}
-                </button>
-                {hasPermission('invoices', 'create') && (
+                <div className="flex gap-3">
                     <button
-                        onClick={() => navigate('/dashboard/quotations/new')}
-                        style={{
-                            padding: '0.6rem 1.2rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            background: '#3b82f6',
-                            border: 'none',
-                            color: 'white',
-                            cursor: 'pointer',
-                            borderRadius: '8px',
-                            fontWeight: '500'
-                        }}
+                        onClick={exportToExcel}
+                        disabled={isExporting}
+                        className="glass-panel px-4 py-2.5 text-emerald-500 rounded-lg font-medium text-sm flex items-center gap-2 bg-white border border-slate-200" style={{ cursor: isExporting ? 'not-allowed' : 'pointer', opacity: isExporting ? 0.7 : 1 }}
                     >
-                        <Plus size={20} /> สร้างใบเสนอราคา
+                        <FileSpreadsheet size={18} /> {isExporting ? 'กำลัง Export...' : 'Export All'}
                     </button>
-                )}
+                    {hasPermission('invoices', 'create') && (
+                        <button
+                            onClick={() => navigate('/dashboard/quotations/new')}
+                            className="px-5 py-2.5 border-none text-white cursor-pointer rounded-lg font-semibold flex items-center gap-2 shadow-lg shadow-blue-500/25" style={{ background: '#3b82f6' }}
+                        >
+                            <Plus size={20} /> สร้างใบเสนอราคา
+                        </button>
+                    )}
+                </div>
             </PageHeader>
 
+            {/* KPI Cards */}
+            <div className="grid-mobile-stack mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="glass-panel flex items-center gap-4 border border-gray-500/10 bg-gray-500/[0.02]" style={{ padding: '1.25rem' }}>
+                    <div className="p-2.5 rounded-xl bg-gray-100 text-gray-500"><FileText size={20} /></div>
+                    <div>
+                        <div className="text-xs text-textMuted">ฉบับร่าง</div>
+                        <div className="text-xl font-bold text-gray-500">{kpis.draft}</div>
+                    </div>
+                </div>
+                <div className="glass-panel flex items-center gap-4 border border-blue-500/10 bg-blue-500/[0.02]" style={{ padding: '1.25rem' }}>
+                    <div className="p-2.5 rounded-xl text-blue-500 bg-blue-500/10"><Clock size={20} /></div>
+                    <div>
+                        <div className="text-xs text-textMuted">ส่งแล้ว/รอพิจารณา</div>
+                        <div className="text-xl font-bold text-blue-500">{kpis.sent}</div>
+                    </div>
+                </div>
+                <div className="glass-panel flex items-center gap-4 border border-emerald-500/10 bg-emerald-500/[0.02]" style={{ padding: '1.25rem' }}>
+                    <div className="p-2.5 rounded-xl text-emerald-500 bg-emerald-500/10"><CheckCircle size={20} /></div>
+                    <div>
+                        <div className="text-xs text-textMuted">อนุมัติแล้ว</div>
+                        <div className="text-xl font-bold text-emerald-500">{kpis.approved}</div>
+                    </div>
+                </div>
+                <div className="glass-panel flex items-center gap-4 border border-blue-500/10 bg-blue-500/[0.02]" style={{ padding: '1.25rem' }}>
+                    <div className="p-2.5 rounded-xl text-blue-500 bg-blue-500/10"><TrendingUp size={20} /></div>
+                    <div>
+                        <div className="text-xs text-textMuted">มูลค่าอนุมัติรวม</div>
+                        <div className="text-xl font-bold text-blue-500">฿{kpis.totalValue.toLocaleString()}</div>
+                    </div>
+                </div>
+            </div>
+
             {/* Search and Filter */}
-            <div style={{ marginBottom: '1rem', position: 'relative' }}>
-                <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <div className="mb-4 relative">
+                <Search size={18} className="text-textMuted absolute left-4 top-1/2 -translate-y-1/2" />
                 <input
                     type="text"
                     placeholder="ค้นหาเลขที่ใบเสนอราคา หรือชื่อลูกค้า..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{
-                        width: '100%',
-                        padding: '0.85rem 1rem 0.85rem 2.8rem',
-                        borderRadius: '12px',
-                        border: '1px solid var(--border-color)',
-                        background: 'var(--card-bg)',
-                        color: 'var(--text-main)',
-                        fontSize: '0.95rem'
-                    }}
+                    className="w-full border border-border text-main text-[0.95rem] rounded-xl bg-cardBg" style={{ padding: '0.85rem 1rem 0.85rem 2.8rem' }}
                 />
             </div>
 
@@ -228,108 +237,122 @@ const QuotationListPage = () => {
             />
 
             {/* Table */}
-            <div className="glass-panel" style={{ borderRadius: '12px', overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <div className="glass-panel overflow-hidden rounded-xl">
+                <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-left">
                         <thead>
-                            <tr style={{ background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--border-color)' }}>
-                                <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem' }}>จัดการ</th>
-                                <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem' }}>เลขที่ใบเสนอราคา</th>
-                                <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem' }}>ลูกค้า</th>
-                                <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem' }}>ยอดรวม (บาท)</th>
-                                <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem' }}>สถานะ</th>
+                            <tr className="border-b border-border" style={{ background: 'rgba(0, 0, 0, 0.02)' }}>
+                                <th className="actions-column text-textMuted font-semibold text-sm">จัดการ</th>
+                                <th className="p-4 text-textMuted font-semibold text-sm">เลขที่ใบเสนอราคา</th>
+                                <th className="p-4 text-textMuted font-semibold text-sm">ลูกค้า</th>
+                                <th className="p-4 text-textMuted font-semibold text-sm">ยอดรวม (บาท)</th>
+                                <th className="p-4 text-textMuted font-semibold text-sm">สถานะ</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="5" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                        <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+                                    <td colSpan="5" className="p-12 text-center text-textMuted">
+                                        <div className="loading-spinner mx-auto mb-4"></div>
                                         กำลังโหลดข้อมูล...
                                     </td>
                                 </tr>
-                            ) : monthYearGroups.length === 0 ? (
+                            ) : paginatedData.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    <td colSpan="5" className="p-8 text-center text-textMuted">
                                         ไม่พบข้อมูลใบเสนอราคา
                                     </td>
                                 </tr>
                             ) : (
-                                monthYearGroups.map(group => (
-                                    <React.Fragment key={group}>
-                                        <tr style={{ background: 'rgba(0,0,0,0.01)', borderBottom: '1px solid var(--border-color)', borderTop: '1px solid var(--border-color)' }}>
-                                            <td colSpan="5" style={{ padding: '0.75rem 1rem', fontWeight: 'bold', color: 'var(--text-main)', fontSize: '0.9rem' }}>
-                                                {group}
-                                            </td>
-                                        </tr>
-                                        {groupedQuotations[group].map((qt) => (
-                                            <tr key={qt.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
-                                                <td className="actions-column">
-                                                    <div className="table-actions">
-                                                        <button
-                                                            className="action-view"
-                                                            onClick={() => window.open(`/dashboard/quotations/${qt.id}`, '_blank')}
-                                                            title="View"
-                                                        >
-                                                            <Eye size={18} />
-                                                        </button>
-                                                        <button
-                                                            className="action-print"
-                                                            onClick={() => window.open(`/dashboard/quotations/${qt.id}/print`, '_blank')}
-                                                            title="Print"
-                                                        >
-                                                            <Printer size={18} />
-                                                        </button>
-                                                        <button
-                                                            className="action-edit"
-                                                            onClick={() => navigate(`/dashboard/quotations/${qt.id}`)}
-                                                            title="Edit"
-                                                        >
-                                                            <Edit size={18} />
-                                                        </button>
-                                                        {hasPermission('invoices', 'delete') && (
-                                                            <button
-                                                                className="action-delete"
-                                                                onClick={() => handleDelete(qt.id, qt.quotationNo)}
-                                                                title="Delete"
-                                                            >
-                                                                <Trash2 size={18} />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td style={{ padding: '1rem' }}>
-                                                    <div style={{ fontWeight: '600', color: '#3b82f6', marginBottom: '2px' }}>
-                                                        {qt.quotationNo}
-                                                    </div>
-                                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                                        {fmtDate(qt.date)}
-                                                    </div>
-                                                </td>
-                                                <td style={{ padding: '1rem' }}>
-                                                    <div style={{ color: 'var(--text-main)', fontWeight: '500' }}>
+                                paginatedData.map((qt) => (
+                                    <tr key={qt.id} className="border-b border-border table-row-hover">
+                                        <td className="actions-column">
+                                            <div className="table-actions">
+                                                <Link
+                                                    className="action-view"
+                                                    to={`/dashboard/quotations/${qt.id}`}
+                                                    target="_blank"
+                                                    title="View"
+                                                >
+                                                    <Eye size={18} />
+                                                </Link>
+                                                <Link
+                                                    className="action-print"
+                                                    to={`/dashboard/quotations/${qt.id}/print`}
+                                                    target="_blank"
+                                                    title="Print"
+                                                >
+                                                    <Printer size={18} />
+                                                </Link>
+                                                <button
+                                                    className="action-edit"
+                                                    onClick={() => navigate(`/dashboard/quotations/${qt.id}`)}
+                                                    title="Edit"
+                                                >
+                                                    <Edit size={18} />
+                                                </button>
+                                                {hasPermission('invoices', 'delete') && (
+                                                    <button
+                                                        className="action-delete"
+                                                        onClick={() => handleDelete(qt.id, qt.quotationNo)}
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="font-semibold text-blue-500" style={{ marginBottom: '2px' }}>
+                                                {qt.quotationNo}
+                                            </div>
+                                            <div className="text-xs text-textMuted">
+                                                {fmtDate(qt.date)}
+                                            </div>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="text-main font-medium">
+                                                {qt.customer_id ? (
+                                                    <Link 
+                                                        to={`/dashboard/customers/${qt.customer_id}`} 
+                                                        className="text-blue-500 no-underline"
+                                                        onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                                                        onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+                                                    >
                                                         {qt.customerName}
-                                                    </div>
-                                                    {qt.attnName && (
-                                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                                            ATTN: {qt.attnName}
-                                                        </div>
-                                                    )}
-                                                </td>
-                                                <td style={{ padding: '1rem', fontWeight: '500' }}>
-                                                    ฿{fmtNum(qt.grandTotal)}
-                                                </td>
-                                                <td style={{ padding: '1rem' }}>
-                                                    {getStatusBlock(qt.status)}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </React.Fragment>
+                                                    </Link>
+                                                ) : (
+                                                    qt.customerName
+                                                )}
+                                            </div>
+                                            {qt.attnName && (
+                                                <div className="text-xs text-textMuted" style={{ marginTop: '2px' }}>
+                                                    ATTN: {qt.attnName}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="p-4 font-medium">
+                                            ฿{fmtNum(qt.grandTotal)}
+                                        </td>
+                                        <td className="p-4">
+                                            {getStatusBlock(qt.status)}
+                                        </td>
+                                    </tr>
                                 ))
                             )}
                         </tbody>
                     </table>
                 </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    totalPages={totalPages}
+                    startItem={startItem}
+                    endItem={endItem}
+                    onPageChange={setCurrentPage}
+                    onItemsPerPageChange={setItemsPerPage}
+                />
             </div>
         </div>
     );

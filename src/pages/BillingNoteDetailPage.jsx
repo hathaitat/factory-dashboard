@@ -36,37 +36,35 @@ const BillingNoteDetailPage = () => {
         }
     };
 
-    if (isLoading) return <div style={{ padding: '2rem' }}>กำลังโหลด...</div>;
-    if (!bn) return <div style={{ padding: '2rem' }}>ไม่พบข้อมูลใบวางบิล</div>;
+    if (isLoading) return <div className="p-8">กำลังโหลด...</div>;
+    if (!bn) return <div className="p-8">ไม่พบข้อมูลใบวางบิล</div>;
 
     return (
-        <div style={{ padding: '0 1rem 3rem 1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div className="px-4 pb-12">
+            <div className="flex justify-between items-center mb-8">
                 <button
                     onClick={() => navigate('/dashboard/billing-notes')}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}
+                    className="flex items-center gap-2 bg-transparent border-none text-[#888888] cursor-pointer hover:opacity-80"
                 >
                     <ArrowLeft size={20} /> ย้อนกลับ
                 </button>
-                <div style={{ display: 'flex', gap: '0.8rem' }}>
+                <div className="flex gap-3">
                     <button
                         onClick={() => navigate(`/dashboard/billing-notes/${id}/print`)}
-                        className="glass-panel"
-                        style={{ padding: '0.6rem 1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.2)', color: '#8b5cf6', cursor: 'pointer', borderRadius: '8px' }}
+                        className="glass-panel py-2.5 px-[1.2rem] flex items-center gap-2 bg-[#8b5cf6]/10 border border-[#8b5cf6]/20 text-[#8b5cf6] cursor-pointer rounded-lg hover:bg-[#8b5cf6]/20"
                     >
                         <Printer size={18} /> พิมพ์ใบวางบิล
                     </button>
                     <button
                         onClick={() => navigate(`/dashboard/billing-notes/${id}/print-receipt`)}
-                        className="glass-panel"
-                        style={{ padding: '0.6rem 1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', color: '#f59e0b', cursor: 'pointer', borderRadius: '8px' }}
+                        className="glass-panel py-2.5 px-[1.2rem] flex items-center gap-2 bg-[#f59e0b]/10 border border-[#f59e0b]/20 text-[#f59e0b] cursor-pointer rounded-lg hover:bg-[#f59e0b]/20"
                     >
                         <Printer size={18} /> พิมพ์ใบเสร็จ
                     </button>
                     {hasPermission('billing', 'edit') && (
                         <button
                             onClick={() => navigate(`/dashboard/billing-notes/${id}/edit`)}
-                            style={{ padding: '0.6rem 1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                            className="py-2.5 px-[1.2rem] flex items-center gap-2 bg-[#3b82f6] text-white border-none rounded-lg cursor-pointer hover:opacity-90"
                         >
                             <Edit size={18} /> แก้ไข
                         </button>
@@ -74,7 +72,7 @@ const BillingNoteDetailPage = () => {
                     {hasPermission('billing', 'delete') && (
                         <button
                             onClick={handleDelete}
-                            style={{ padding: '0.6rem 1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: '1px solid #f87171', color: '#f87171', borderRadius: '8px', cursor: 'pointer' }}
+                            className="py-2.5 px-[1.2rem] flex items-center gap-2 bg-transparent border border-[#f87171] text-[#f87171] rounded-lg cursor-pointer hover:bg-[#f87171]/10"
                         >
                             <Trash2 size={18} /> ลบ
                         </button>
@@ -82,57 +80,50 @@ const BillingNoteDetailPage = () => {
                 </div>
             </div>
 
-            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="grid grid-cols-[2fr_1fr] gap-6 grid-mobile-stack">
+                <div className="flex flex-col gap-6">
                     {/* Header Info */}
-                    <div className="glass-panel" style={{ padding: '2rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+                    <div className="glass-panel p-8">
+                        <div className="flex justify-between items-start mb-8">
                             <div>
-                                <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: 'var(--text-main)', letterSpacing: '-0.02em' }}>{bn.billingNoteNo}</h1>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#888', fontSize: '0.9rem' }}>
+                                <h1 className="m-0 text-[2rem] font-bold text-textMain tracking-tight">{bn.billingNoteNo}</h1>
+                                <div className="flex items-center gap-4 mt-2">
+                                    <span className="flex items-center gap-1.5 text-[#888888] text-[0.9rem]">
                                         <Clock size={16} /> วันที่ออก: {new Date(bn.date).toLocaleDateString('th-TH', { dateStyle: 'long' })}
                                     </span>
-                                    <span style={{
-                                        padding: '0.2rem 0.8rem',
-                                        borderRadius: '20px',
-                                        fontSize: '0.8rem',
-                                        background: bn.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                                        color: bn.status === 'Paid' ? 'var(--success)' : '#f59e0b',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.3rem'
-                                    }}>
-                                        {bn.status === 'Paid' ? <CheckCircle2 size={14} /> : <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b' }} />}
+                                    <span className={`py-1 px-3 rounded-[20px] text-[0.8rem] flex items-center gap-1 ${
+                                        bn.status === 'Paid' ? 'bg-[#10b981]/10 text-success' : 'bg-[#f59e0b]/10 text-[#f59e0b]'
+                                    }`}>
+                                        {bn.status === 'Paid' ? <CheckCircle2 size={14} /> : <div className="w-2 h-2 rounded-full bg-[#f59e0b]" />}
                                         {bn.status}
                                     </span>
                                 </div>
                             </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontSize: '0.9rem', color: '#888' }}>จำนวนเงินรวมทั้งสิ้น</div>
-                                <div style={{ fontSize: '2.5rem', fontWeight: '800', color: 'var(--success)', marginTop: '0.2rem' }}>
+                            <div className="text-right">
+                                <div className="text-[0.9rem] text-[#888888]">จำนวนเงินรวมทั้งสิ้น</div>
+                                <div className="text-[2.5rem] font-extrabold text-success mt-1">
                                     ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', padding: '1.5rem', background: 'var(--bg-main)', borderRadius: '12px' }}>
+                        <div className="grid grid-cols-2 gap-12 p-6 bg-main rounded-[12px] grid-mobile-stack">
                             <div>
-                                <h4 style={{ margin: '0 0 1rem 0', color: '#888', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    <User size={14} style={{ display: 'inline', marginRight: '0.4rem' }} /> ข้อมูลลูกค้า
+                                <h4 className="m-0 mb-4 text-[#888888] text-[0.85rem] uppercase tracking-wider">
+                                    <User size={14} className="inline mr-1.5" /> ข้อมูลลูกค้า
                                 </h4>
-                                <div style={{ fontWeight: '600', fontSize: '1.1rem', marginBottom: '0.5rem' }}>{bn.customer.name}</div>
-                                <div style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                                <div className="font-semibold text-[1.1rem] mb-2">{bn.customer.name}</div>
+                                <div className="text-textMuted text-[0.95rem] leading-relaxed">
                                     <div>รหัส: {bn.customer.code}</div>
                                     <div>เลขประจำตัวผู้เสียภาษี: {bn.customer.taxId || '-'}</div>
                                     <div>สาขา: {bn.customer.branch || ''}</div>
                                 </div>
                             </div>
                             <div>
-                                <h4 style={{ margin: '0 0 1rem 0', color: '#888', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    <FileText size={14} style={{ display: 'inline', marginRight: '0.4rem' }} /> ข้อมูลเพิ่มเติม
+                                <h4 className="m-0 mb-4 text-[#888888] text-[0.85rem] uppercase tracking-wider">
+                                    <FileText size={14} className="inline mr-1.5" /> ข้อมูลเพิ่มเติม
                                 </h4>
-                                <div style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                                <div className="text-textMuted text-[0.95rem] leading-relaxed">
                                     <div>ที่อยู่: {bn.customer.address || '-'}</div>
                                     <div>โทร: {bn.customer.phone || '-'}</div>
                                 </div>
@@ -141,56 +132,51 @@ const BillingNoteDetailPage = () => {
                     </div>
 
                     {/* Invoices List */}
-                    <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-                        <div style={{ padding: '1.2rem 1.5rem', borderBottom: '1px solid var(--border-color)', background: 'var(--card-hover)' }}>
-                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600' }}>รายการใบกำกับภาษีที่แนบ</h3>
+                    <div className="glass-panel p-0 overflow-hidden">
+                        <div className="py-[1.2rem] px-[1.5rem] border-b border-border bg-card-hover">
+                            <h3 className="m-0 text-[1.1rem] font-semibold text-textMain">รายการใบกำกับภาษีที่แนบ</h3>
                         </div>
-                        <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <div className="table-responsive-wrapper w-full overflow-x-auto [webkit-overflow-scrolling:touch]">
+                            <table className="w-full border-collapse">
                                 <thead>
-                                    <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
-                                        <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500' }}>ลำดับ</th>
-                                        <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500' }}>บิลเลขที่</th>
-                                        <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500' }}>อ้างอิง(PO)</th>
-                                        <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500' }}>ลงวันที่</th>
-                                        <th style={{ padding: '1rem 1.5rem', color: '#888', fontWeight: '500', textAlign: 'right' }}>จำนวนเงิน</th>
+                                    <tr className="text-left border-b border-border">
+                                        <th className="py-4 px-[1.5rem] text-[#888888] font-medium">ลำดับ</th>
+                                        <th className="py-4 px-[1.5rem] text-[#888888] font-medium">บิลเลขที่</th>
+                                        <th className="py-4 px-[1.5rem] text-[#888888] font-medium">อ้างอิง(PO)</th>
+                                        <th className="py-4 px-[1.5rem] text-[#888888] font-medium">ลงวันที่</th>
+                                        <th className="py-4 px-[1.5rem] text-[#888888] font-medium text-right">จำนวนเงิน</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {bn.invoices.map((inv, idx) => (
-                                        <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                            <td style={{ padding: '1rem 1.5rem', color: '#888' }}>{idx + 1}</td>
-                                            <td style={{ padding: '1rem 1.5rem', fontWeight: '600', color: '#3b82f6' }}>
-                                                <Link to={`/dashboard/invoices/${inv.id}`} style={{ color: '#3b82f6', textDecoration: 'none' }}>
+                                        <tr key={inv.id} className="border-b border-border">
+                                            <td className="py-4 px-[1.5rem] text-[#888888]">{idx + 1}</td>
+                                            <td className="py-4 px-[1.5rem] font-semibold text-[#3b82f6]">
+                                                <Link to={`/dashboard/invoices/${inv.id}`} className="text-[#3b82f6] no-underline hover:underline">
                                                     {inv.invoiceNo}
                                                 </Link>
                                             </td>
-                                            <td style={{ padding: '1rem 1.5rem' }}>
+                                            <td className="py-4 px-[1.5rem]">
                                                 {inv.poNumber ? (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    <div className="flex items-center gap-1.5">
                                                         {inv.poNumber}
-                                                        <span style={{
-                                                            padding: '0.1rem 0.5rem',
-                                                            borderRadius: '12px',
-                                                            fontSize: '0.75rem',
-                                                            background: inv.poStatus === 'Completed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-                                                            color: inv.poStatus === 'Completed' ? 'var(--success)' : 'var(--primary)',
-                                                            whiteSpace: 'nowrap'
-                                                        }} title="สถานะ PO">
+                                                        <span className={`py-0.5 px-2 rounded-xl text-[0.75rem] whitespace-nowrap ${
+                                                            inv.poStatus === 'Completed' ? 'bg-[#10b981]/10 text-success' : 'bg-[#37477C]/10 text-[#37477C]'
+                                                        }`} title="สถานะ PO">
                                                             {inv.poStatus}
                                                         </span>
                                                     </div>
-                                                ) : <span style={{ color: '#888' }}>-</span>}
+                                                ) : <span className="text-[#888888]">-</span>}
                                             </td>
-                                            <td style={{ padding: '1rem 1.5rem' }}>{new Date(inv.date).toLocaleDateString('th-TH')}</td>
-                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
+                                            <td className="py-4 px-[1.5rem]">{new Date(inv.date).toLocaleDateString('th-TH')}</td>
+                                            <td className="py-4 px-[1.5rem] text-right font-semibold text-success">
                                                 ฿{inv.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </td>
                                         </tr>
                                     ))}
-                                    <tr style={{ background: 'rgba(16, 185, 129, 0.02)' }}>
-                                        <td colSpan="4" style={{ padding: '1.5rem', textAlign: 'right', fontWeight: '700', fontSize: '1.1rem' }}>ยอดรวมสุทธิ</td>
-                                        <td style={{ padding: '1.5rem', textAlign: 'right', fontWeight: '800', fontSize: '1.3rem', color: 'var(--success)' }}>
+                                    <tr className="bg-[#10b981]/[0.02]">
+                                        <td colSpan="4" className="p-6 text-right font-bold text-[1.1rem] text-textMain">ยอดรวมสุทธิ</td>
+                                        <td className="p-6 text-right font-extrabold text-[1.3rem] text-success">
                                             ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
                                     </tr>
@@ -201,24 +187,36 @@ const BillingNoteDetailPage = () => {
                 </div>
 
                 {/* Sidebar Info */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <div className="glass-panel" style={{ padding: '1.5rem' }}>
-                        <h4 style={{ margin: '0 0 1rem 0', color: '#888', fontSize: '0.9rem' }}>หมายเหตุ</h4>
-                        <div style={{ color: 'var(--text-main)', fontSize: '0.95rem', background: 'var(--bg-main)', padding: '1rem', borderRadius: '8px', minHeight: '100px', border: '1px solid var(--border-color)' }}>
+                <div className="flex flex-col gap-6">
+                    <div className="glass-panel p-6">
+                        <h4 className="m-0 mb-4 text-[#888888] text-[0.9rem]">หมายเหตุ</h4>
+                        <div className="text-textMain text-[0.95rem] bg-main p-4 rounded-lg min-h-[100px] border border-border">
                             {bn.notes || 'ไม่มีหมายเหตุ'}
                         </div>
                     </div>
 
-                    <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                        <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ข้อมูลระบบ</h4>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div className="glass-panel p-6 flex flex-col gap-3 text-textMuted text-[0.85rem]">
+                        <h4 className="m-0 mb-2 text-textMuted text-[0.75rem] uppercase tracking-wider">ข้อมูลระบบ</h4>
+                        <div className="flex items-center gap-2">
                             <Clock size={14} /> 
                             <span>สร้างเมื่อ: {new Date(bn.createdAt).toLocaleString('th-TH')}</span>
                         </div>
+                        {bn.createdBy && (
+                            <div className="flex items-center gap-2">
+                                <User size={14} /> 
+                                <span>สร้างโดย: <span className="text-textMain font-semibold">{bn.createdBy}</span></span>
+                            </div>
+                        )}
                         {bn.updatedAt && bn.updatedAt !== bn.createdAt && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div className="flex items-center gap-2">
                                 <Clock size={14} /> 
                                 <span>แก้ไขล่าสุด: {new Date(bn.updatedAt).toLocaleString('th-TH')}</span>
+                            </div>
+                        )}
+                        {bn.updatedBy && (
+                            <div className="flex items-center gap-2">
+                                <User size={14} /> 
+                                <span>แก้ไขล่าสุดโดย: <span className="text-textMain font-semibold">{bn.updatedBy}</span></span>
                             </div>
                         )}
                     </div>

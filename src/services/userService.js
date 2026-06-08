@@ -1,13 +1,24 @@
 import { supabase } from './supabaseClient';
 import bcrypt from 'bcryptjs';
 
+// Helper: fire-and-forget update of last_login_at
+const _updateLastLogin = (userId) => {
+    if (!userId) return;
+    supabase
+        .from('staff_members')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('id', userId)
+        .then(() => {})
+        .catch(err => console.warn('Failed to update last_login_at:', err));
+};
+
 export const userService = {
     // Get all users (Exclude password from return)
     getUsers: async () => {
         try {
             const { data, error } = await supabase
                 .from('staff_members')
-                .select('id, full_name, email, username, permissions, created_at')
+                .select('id, full_name, email, username, permissions, created_at, created_by, updated_by, last_login_at, updated_at')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -17,7 +28,12 @@ export const userService = {
                 fullName: user.full_name,
                 email: user.email,
                 username: user.username,
+                permissions: user.permissions || {},
                 createdAt: user.created_at,
+                createdBy: user.created_by,
+                updatedBy: user.updated_by,
+                lastLoginAt: user.last_login_at,
+                updatedAt: user.updated_at,
                 // Password is intentionally omitted for security
             }));
         } catch (error) {
@@ -44,6 +60,10 @@ export const userService = {
                 username: data.username,
                 permissions: data.permissions || {},
                 createdAt: data.created_at,
+                createdBy: data.created_by,
+                updatedBy: data.updated_by,
+                lastLoginAt: data.last_login_at,
+                updatedAt: data.updated_at,
                 // Password omitted
             };
         } catch (error) {
@@ -62,7 +82,9 @@ export const userService = {
                 email: userData.email,
                 username: userData.username,
                 password: hashedPassword,
-                permissions: userData.permissions
+                permissions: userData.permissions,
+                created_by: userData.createdBy,
+                updated_by: userData.updatedBy
             };
 
             const { data, error } = await supabase
@@ -87,7 +109,9 @@ export const userService = {
                 full_name: userData.fullName,
                 email: userData.email,
                 username: userData.username,
-                permissions: userData.permissions
+                permissions: userData.permissions,
+                updated_by: userData.updatedBy,
+                updated_at: new Date().toISOString()
             };
 
             // Only update password if a new one is provided
@@ -114,6 +138,22 @@ export const userService = {
     // Delete user
     deleteUser: async (id) => {
         try {
+            const currentUser = userService.getCurrentUser();
+            if (String(id) === String(currentUser?.id)) {
+                throw new Error('ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่ได้');
+            }
+
+            // Check if user is superadmin (frontend protection)
+            const { data: targetUser } = await supabase
+                .from('staff_members')
+                .select('username')
+                .eq('id', id)
+                .single();
+
+            if (targetUser?.username === 'superadmin') {
+                throw new Error('ไม่สามารถลบผู้ใช้งาน superadmin ได้');
+            }
+
             const { error } = await supabase
                 .from('staff_members')
                 .delete()
@@ -123,7 +163,7 @@ export const userService = {
             return true;
         } catch (error) {
             console.error('Error deleting user:', error);
-            return false;
+            throw error;
         }
     },
 
@@ -145,6 +185,9 @@ export const userService = {
                         loginTime: new Date().getTime()
                     };
                     localStorage.setItem('currentUser', JSON.stringify(sessionData));
+
+                    _updateLastLogin(userData?.id);
+
                     return { success: true, user: userData };
                 } else {
                     return {
@@ -184,6 +227,9 @@ export const userService = {
                 loginTime: new Date().getTime()
             };
             localStorage.setItem('currentUser', JSON.stringify(sessionData));
+
+            _updateLastLogin(userData?.id);
+
             return { success: true, user };
         } catch (error) {
             console.error('Login error:', error);

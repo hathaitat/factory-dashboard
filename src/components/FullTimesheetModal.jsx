@@ -1,54 +1,8 @@
 import React from 'react';
-import { X, FileText, Clock, AlertCircle } from 'lucide-react';
+import { X, FileText } from 'lucide-react';
 import { getLocalDateString } from '../utils/dateUtils';
 
-const DiligenceInput = ({ value, isOverridden, onCommit }) => {
-    const [localValue, setLocalValue] = React.useState(value);
-
-    // Sync with external value when it changes (and we are not editing potentially?)
-    // Actually, simple way: sync when prop changes. 
-    React.useEffect(() => {
-        setLocalValue(value);
-    }, [value]);
-
-    const handleBlur = () => {
-        // Commit logic
-        const val = localValue;
-        const isForced = (val === '' || val === null || val === undefined) ? null : true;
-        const amount = (val === '' || val === null || val === undefined) ? null : Number(val);
-
-        // Only commit if different from prop? 
-        // Or always commit to be safe?
-        // Let's commit.
-        onCommit(isForced, amount);
-    };
-
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter') {
-            e.target.blur(); // Trigger blur to save
-        }
-    };
-
-    return (
-        <input
-            type="number"
-            value={localValue === null || localValue === undefined ? '' : localValue}
-            onChange={(e) => setLocalValue(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            style={{
-                width: '70px',
-                padding: '2px 4px',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                textAlign: 'right',
-                color: isOverridden ? '#059669' : '#4b5563',
-                fontWeight: isOverridden ? 'bold' : 'normal',
-                background: isOverridden ? '#ecfdf5' : 'white'
-            }}
-        />
-    );
-};
+import DiligenceInput from './DiligenceInput';
 
 const TimeCell = ({ log, dateStr, empId, scheduleEndMins, onUpdate }) => {
     const [isEditing, setIsEditing] = React.useState(false);
@@ -171,12 +125,10 @@ const FullTimesheetModal = ({ isOpen, onClose, period, employees, logs, stats, w
     }
 
     // 2. Parse Schedule for late/early logic
-    let scheduleStartMins = null;
     let scheduleEndMins = null;
     if (workSchedule) {
         if (workSchedule.start_time) {
-            const [sh, sm] = workSchedule.start_time.split(':').map(Number);
-            scheduleStartMins = sh * 60 + sm;
+            // scheduleStartMins is currently unused
         }
         if (workSchedule.end_time) {
             const [eh, em] = workSchedule.end_time.split(':').map(Number);
@@ -349,33 +301,11 @@ const FullTimesheetModal = ({ isOpen, onClose, period, employees, logs, stats, w
                                         color: (stats && stats[emp.id]?.diligence > 0) ? '#10b981' : '#ccc', fontWeight: 'bold'
                                     }}>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                                            <input
-                                                type="number"
+                                            <DiligenceInput
                                                 value={stats && stats[emp.id]?.diligence !== undefined ? stats[emp.id].diligence : ''}
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    const numVal = val === '' ? null : Number(val);
-                                                    // Pass both override status (true if number, null if empty) and the amount
-                                                    // Logic: If empty, revert to auto (null). If number, force it (true).
-                                                    // But we need to handle "0".
-
-                                                    // If user clears input -> Auto
-                                                    // If user types 0 -> Forced 0
-
-                                                    const isForced = val === '' ? null : true;
-                                                    const amount = val === '' ? null : Number(val);
-
+                                                isOverridden={overrides && overrides[emp.id]?.amount !== undefined && overrides[emp.id]?.amount !== null}
+                                                onCommit={(isForced, amount) => {
                                                     if (onToggleDiligence) onToggleDiligence(emp.id, isForced, amount);
-                                                }}
-                                                style={{
-                                                    width: '60px',
-                                                    padding: '2px 4px',
-                                                    borderRadius: '4px',
-                                                    border: '1px solid #d1d5db',
-                                                    textAlign: 'right',
-                                                    color: (overrides && overrides[emp.id]?.amount !== undefined && overrides[emp.id]?.amount !== null) ? '#059669' : '#4b5563', // Green if overriden
-                                                    fontWeight: (overrides && overrides[emp.id]?.amount !== undefined && overrides[emp.id]?.amount !== null) ? 'bold' : 'normal',
-                                                    background: (overrides && overrides[emp.id]?.amount !== undefined && overrides[emp.id]?.amount !== null) ? '#ecfdf5' : 'white'
                                                 }}
                                             />
                                         </div>

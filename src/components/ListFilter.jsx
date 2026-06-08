@@ -7,35 +7,10 @@ import DatePickerCalendar from './DatePickerCalendar';
  */
 const ListFilter = ({ filters = [], onClear, hasActiveFilters }) => {
     return (
-        <div
-            style={{
-                marginBottom: '1rem',
-                padding: '0.75rem 1rem',
-                background: 'linear-gradient(135deg, rgba(59,130,246,0.04) 0%, rgba(139,92,246,0.04) 100%)',
-                border: '1px solid rgba(59,130,246,0.12)',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                flexWrap: 'wrap',
-                position: 'relative'
-            }}
-        >
+        <div className="mb-4 py-3 px-4 bg-gradient-to-br from-blue-500/[0.04] to-purple-500/[0.04] border border-blue-500/[0.12] rounded-xl flex items-center gap-3 flex-wrap relative">
             {/* Filter icon badge */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                background: hasActiveFilters
-                    ? 'linear-gradient(135deg, #3b82f6, #8b5cf6)'
-                    : 'rgba(100,116,139,0.1)',
-                flexShrink: 0,
-                transition: 'all 0.3s ease'
-            }}>
-                <Filter size={15} style={{ color: hasActiveFilters ? '#fff' : 'var(--text-muted)' }} />
+            <div className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 transition-all duration-300 ${hasActiveFilters ? 'bg-gradient-to-br from-blue-500 to-purple-500' : 'bg-slate-500/10'}`}>
+                <Filter size={15} className={hasActiveFilters ? 'text-white' : 'text-textMuted'} />
             </div>
 
             {filters.map((filter, idx) => {
@@ -43,58 +18,25 @@ const ListFilter = ({ filters = [], onClear, hasActiveFilters }) => {
                     return (
                         <React.Fragment key={idx}>
                             {filter.options && filter.options.length > 0 && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginRight: '4px' }}>
-                                    <span style={{
-                                        fontSize: '0.7rem',
-                                        fontWeight: '600',
-                                        color: 'var(--text-muted)',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.5px'
-                                    }}>กรองตาม</span>
-                                    <div style={{ position: 'relative' }}>
+                                <div className="flex flex-col gap-[2px] mr-1">
+                                    <span className="text-[0.7rem] font-semibold text-textMuted uppercase tracking-[0.5px]">กรองตาม</span>
+                                    <div className="relative">
                                         <select
                                             value={filter.value}
                                             onChange={(e) => filter.onChange(e.target.value)}
-                                            style={{
-                                                appearance: 'none',
-                                                WebkitAppearance: 'none',
-                                                background: 'rgba(59,130,246,0.08)',
-                                                border: '1px solid rgba(59,130,246,0.3)',
-                                                color: '#3b82f6',
-                                                padding: '0.4rem 2rem 0.4rem 0.7rem',
-                                                borderRadius: '8px',
-                                                fontSize: '0.85rem',
-                                                outline: 'none',
-                                                minWidth: '120px',
-                                                cursor: 'pointer',
-                                                fontWeight: '500',
-                                                transition: 'all 0.2s ease'
-                                            }}
+                                            className="appearance-none bg-blue-500/10 border border-blue-500/30 text-blue-500 py-[0.4rem] pr-8 pl-[0.7rem] rounded-lg text-[0.85rem] outline-none min-w-[120px] cursor-pointer font-medium transition-all duration-200"
                                         >
                                             {filter.options.map(opt => (
                                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
                                             ))}
                                         </select>
-                                        <ChevronDown size={14} style={{
-                                            position: 'absolute',
-                                            right: '8px',
-                                            top: '50%',
-                                            transform: 'translateY(-50%)',
-                                            color: '#3b82f6',
-                                            pointerEvents: 'none'
-                                        }} />
+                                        <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-500 pointer-events-none" />
                                     </div>
                                 </div>
                             )}
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                <span style={{
-                                    fontSize: '0.7rem',
-                                    fontWeight: '600',
-                                    color: 'var(--text-muted)',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px'
-                                }}>จากวันที่</span>
+                            <div className="flex flex-col gap-[2px]">
+                                <span className="text-[0.7rem] font-semibold text-textMuted uppercase tracking-[0.5px]">จากวันที่</span>
                                 <DatePickerCalendar
                                     value={filter.dateFrom}
                                     onChange={filter.onDateFromChange}
@@ -102,21 +44,10 @@ const ListFilter = ({ filters = [], onClear, hasActiveFilters }) => {
                                 />
                             </div>
 
-                            <span style={{
-                                color: 'var(--text-muted)',
-                                fontSize: '0.8rem',
-                                alignSelf: 'flex-end',
-                                marginBottom: '6px'
-                            }}>—</span>
+                            <span className="text-textMuted text-[0.8rem] self-end mb-[6px]">—</span>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                <span style={{
-                                    fontSize: '0.7rem',
-                                    fontWeight: '600',
-                                    color: 'var(--text-muted)',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px'
-                                }}>ถึงวันที่</span>
+                            <div className="flex flex-col gap-[2px]">
+                                <span className="text-[0.7rem] font-semibold text-textMuted uppercase tracking-[0.5px]">ถึงวันที่</span>
                                 <DatePickerCalendar
                                     value={filter.dateTo}
                                     onChange={filter.onDateToChange}
@@ -125,14 +56,7 @@ const ListFilter = ({ filters = [], onClear, hasActiveFilters }) => {
                             </div>
 
                             {/* Divider */}
-                            <div style={{
-                                width: '1px',
-                                height: '28px',
-                                background: 'var(--border-color)',
-                                alignSelf: 'flex-end',
-                                marginBottom: '4px',
-                                opacity: 0.6
-                            }} />
+                            <div className="w-[1px] h-7 bg-border self-end mb-1 opacity-60" />
                         </React.Fragment>
                     );
                 }
@@ -140,46 +64,19 @@ const ListFilter = ({ filters = [], onClear, hasActiveFilters }) => {
                 if (filter.type === 'select') {
                     const isActive = filter.value !== '' && filter.value !== undefined;
                     return (
-                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <span style={{
-                                fontSize: '0.7rem',
-                                fontWeight: '600',
-                                color: 'var(--text-muted)',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px'
-                            }}>{filter.label}</span>
-                            <div style={{ position: 'relative' }}>
+                        <div key={idx} className="flex flex-col gap-[2px]">
+                            <span className="text-[0.7rem] font-semibold text-textMuted uppercase tracking-[0.5px]">{filter.label}</span>
+                            <div className="relative">
                                 <select
                                     value={filter.value}
                                     onChange={(e) => filter.onChange(e.target.value)}
-                                    style={{
-                                        appearance: 'none',
-                                        WebkitAppearance: 'none',
-                                        background: isActive ? 'rgba(59,130,246,0.08)' : 'var(--card-bg)',
-                                        border: isActive ? '1px solid rgba(59,130,246,0.3)' : '1px solid var(--border-color)',
-                                        color: isActive ? '#3b82f6' : 'var(--text-main)',
-                                        padding: '0.4rem 2rem 0.4rem 0.7rem',
-                                        borderRadius: '8px',
-                                        fontSize: '0.85rem',
-                                        outline: 'none',
-                                        minWidth: '120px',
-                                        cursor: 'pointer',
-                                        fontWeight: isActive ? '500' : '400',
-                                        transition: 'all 0.2s ease'
-                                    }}
+                                    className={`appearance-none py-[0.4rem] pr-8 pl-[0.7rem] rounded-lg text-[0.85rem] outline-none min-w-[120px] cursor-pointer transition-all duration-200 ${isActive ? 'bg-blue-500/10 border border-blue-500/30 text-blue-500 font-medium' : 'bg-card border border-border text-textMain font-normal'}`}
                                 >
                                     {filter.options.map(opt => (
                                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                                     ))}
                                 </select>
-                                <ChevronDown size={14} style={{
-                                    position: 'absolute',
-                                    right: '8px',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    color: isActive ? '#3b82f6' : 'var(--text-muted)',
-                                    pointerEvents: 'none'
-                                }} />
+                                <ChevronDown size={14} className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${isActive ? 'text-blue-500' : 'text-textMuted'}`} />
                             </div>
                         </div>
                     );
@@ -189,35 +86,13 @@ const ListFilter = ({ filters = [], onClear, hasActiveFilters }) => {
             })}
 
             {/* Spacer */}
-            <div style={{ flex: 1 }} />
+            <div className="flex-1" />
 
             {/* Clear button */}
             {hasActiveFilters && (
                 <button
                     onClick={onClear}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                        padding: '0.4rem 0.9rem',
-                        background: 'rgba(239, 68, 68, 0.08)',
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                        color: '#ef4444',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '0.8rem',
-                        fontWeight: '500',
-                        whiteSpace: 'nowrap',
-                        transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
-                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
-                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)';
-                    }}
+                    className="flex items-center gap-[0.35rem] py-[0.4rem] px-[0.9rem] bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 hover:border-red-500/40 rounded-lg cursor-pointer text-[0.8rem] font-medium whitespace-nowrap transition-all duration-200"
                 >
                     <X size={13} /> ล้าง
                 </button>

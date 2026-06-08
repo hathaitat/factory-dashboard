@@ -91,6 +91,57 @@ export const certificateService = {
     }
   },
 
+  // Get certificate summary stats for dashboard
+  getCertificateStats: async () => {
+    try {
+      const now = new Date();
+      const today = getLocalDateString(now);
+      
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      const soon = getLocalDateString(thirtyDaysFromNow);
+
+      const { data, error } = await supabase
+        .from('certificates')
+        .select('id, expiry_date, status');
+
+      if (error) throw error;
+
+      const stats = {
+        total: data.length,
+        active: 0,
+        expired: 0,
+        expiringSoon: 0, // next 30 days
+        draft: 0
+      };
+
+      data.forEach(cert => {
+        if (cert.status === 'Draft') {
+            stats.draft++;
+            return;
+        }
+
+        if (cert.expiry_date) {
+            if (cert.expiry_date < today) {
+                stats.expired++;
+            } else if (cert.expiry_date <= soon) {
+                stats.expiringSoon++;
+                stats.active++;
+            } else {
+                stats.active++;
+            }
+        } else {
+            stats.active++;
+        }
+      });
+
+      return stats;
+    } catch (error) {
+      console.error('Error fetching certificate stats:', error);
+      return { total: 0, active: 0, expired: 0, expiringSoon: 0, draft: 0 };
+    }
+  },
+
   // Get a specific certificate by id
   getCertificateById: async (id) => {
     try {
@@ -124,7 +175,9 @@ export const certificateService = {
           file_url: certData.file_url,
           issue_date: certData.issue_date || null,
           expiry_date: certData.expiry_date || null,
-          status: certData.status || 'Active'
+          status: certData.status || 'Active',
+          created_by: certData.createdBy || certData.created_by || null,
+          updated_by: certData.updatedBy || certData.updated_by || null
         }])
         .select()
         .single();
@@ -175,7 +228,8 @@ export const certificateService = {
           issue_date: certData.issue_date || null,
           expiry_date: certData.expiry_date || null,
           status: certData.status,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          updated_by: certData.updatedBy || certData.updated_by || null
         })
         .eq('id', id)
         .select()

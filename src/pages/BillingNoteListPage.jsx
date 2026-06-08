@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import XLSX from 'xlsx-js-style';
-import { Plus, Search, FileText, Edit, Trash2, Printer, Eye, FileSpreadsheet } from 'lucide-react';
+import { Plus, Search, FileText, Edit, Trash2, Printer, Eye, FileSpreadsheet, TrendingUp, CheckCircle, Clock, XCircle, Calendar } from 'lucide-react';
 import { billingNoteService } from '../services/billingNoteService';
 import { companyService } from '../services/companyService';
 import { usePermissions } from '../hooks/usePermissions';
@@ -9,29 +9,49 @@ import { useDialog } from '../contexts/DialogContext';
 import { getLocalDateString } from '../utils/dateUtils';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import ListFilter from '../components/ListFilter';
+import Pagination from '../components/Pagination';
+import { useServerPagination } from '../hooks/useServerPagination';
 
 const BillingNoteListPage = () => {
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
     const { showConfirm, showAlert, showError } = useDialog();
-    const [billingNotes, setBillingNotes] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [dateFilterType, setDateFilterType] = useState('date');
-    const [statusFilter, setStatusFilter] = useState('');
+    const [kpis, setKpis] = useState({ draft: 0, sent: 0, paid: 0, totalValue: 0 });
+
+    const {
+        data: paginatedData,
+        totalItems,
+        totalPages,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        isLoading,
+        updateFilters,
+        startItem,
+        endItem,
+        refresh
+    } = useServerPagination(billingNoteService.getBillingNotesPaginated, { searchTerm: '', dateFrom: '', dateTo: '' }, 50);
 
     useEffect(() => {
-        loadBillingNotes();
+        const timer = setTimeout(() => {
+            updateFilters({ searchTerm, dateFrom, dateTo });
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm, dateFrom, dateTo, updateFilters]);
+
+    useEffect(() => {
+        loadKpis();
     }, []);
 
-    const loadBillingNotes = async () => {
-        setIsLoading(true);
-        const data = await billingNoteService.getBillingNotes();
-        setBillingNotes(data || []);
-        setIsLoading(false);
+    const loadKpis = async () => {
+        const stats = await billingNoteService.getBillingNoteStats();
+        setKpis(stats);
     };
 
     const handleDelete = async (id, noteNo) => {
@@ -39,7 +59,8 @@ const BillingNoteListPage = () => {
         if (confirmed) {
             const success = await billingNoteService.deleteBillingNote(id);
             if (success) {
-                setBillingNotes(billingNotes.filter(bn => bn.id !== id));
+                refresh();
+                loadKpis();
             } else {
                 await showError('ไม่สามารถลบใบวางบิลได้');
             }
@@ -53,10 +74,23 @@ const BillingNoteListPage = () => {
         setIsExporting(true);
         try {
             const company = await companyService.getCompanyInfo();
-            const bnIds = filteredNotes.map(bn => bn.id);
-            const fullBNs = await Promise.all(
-                bnIds.map(id => billingNoteService.getBillingNoteById(id))
-            );
+            const exportData = await billingNoteService.exportBillingNotes({
+                searchTerm,
+                dateFrom,
+                dateTo
+            });
+            const bnIds = exportData.map(bn => bn.id);
+            const fullBNs = [];
+
+            // Fetch in batches of 5 to avoid potential Rate Limits and browser stalls
+            const batchSize = 5;
+            for (let i = 0; i < bnIds.length; i += batchSize) {
+                const batchIds = bnIds.slice(i, i + batchSize);
+                const batchResults = await Promise.all(
+                    batchIds.map(id => billingNoteService.getBillingNoteById(id))
+                );
+                fullBNs.push(...batchResults);
+            }
 
             // Style helpers
             const border = (sides = 'all') => {
@@ -186,15 +220,15 @@ const BillingNoteListPage = () => {
                 // === Totals section ===
                 const notesStartRow = r;
                 setCell(r, 0, `หมายเหตุ: ${bn.notes || ''}`, { font: normal(9), alignment: { horizontal: 'left', vertical: 'top', wrapText: true }, border: border('all') });
-                
+
                 setCell(r, 4, 'จำนวนเงินรวมทั้งสิ้น', { font: bold(11), alignment: alignR, border: border('all') });
                 setCell(r, 5, fmtNum(bn.totalAmount), { font: bold(11), alignment: alignR, border: border('all') });
-                
+
                 // Baht Text
                 r++;
                 setCell(r, 0, bn.bahtText ? `(${bn.bahtText})` : '', { font: bold(10), border: border('blr') });
-                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } }); 
-                
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+
                 // Merge notes cell vertically across the total row
                 merges.push({ s: { r: notesStartRow, c: 0 }, e: { r: notesStartRow, c: 2 } });
                 merges.push({ s: { r: notesStartRow, c: 3 }, e: { r: r, c: 3 } }); // Empty cell next to notes
@@ -234,86 +268,77 @@ const BillingNoteListPage = () => {
         }
     };
 
-    const hasActiveFilters = dateFrom || dateTo;
-    const clearFilters = () => { setDateFrom(''); setDateTo(''); setDateFilterType('date'); };
-
-    const filteredNotes = billingNotes.filter(bn => {
-        const matchSearch = bn.billingNoteNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            bn.customerName.toLowerCase().includes(searchTerm.toLowerCase());
-            
-        const targetDate = bn.date;
-        const matchDateFrom = !dateFrom || (targetDate && targetDate >= dateFrom);
-        const matchDateTo = !dateTo || (targetDate && targetDate <= dateTo);
-        return matchSearch && matchDateFrom && matchDateTo;
-    });
-
-    // Grouping by Month/Year
-    const getMonthYear = (dateString) => {
-        const date = new Date(dateString);
-        const monthNames = [
-            "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-        ];
-        return `${monthNames[date.getMonth()]} ${date.getFullYear() + 543}`;
+    const hasActiveFilters = !!(dateFrom || dateTo);
+    const clearFilters = () => { 
+        setDateFrom(''); 
+        setDateTo(''); 
+        setDateFilterType('date'); 
+        updateFilters({ dateFrom: '', dateTo: '' });
     };
 
-    const groupedNotes = filteredNotes.reduce((acc, bn) => {
-        const group = getMonthYear(bn.date);
-        if (!acc[group]) acc[group] = [];
-        acc[group].push(bn);
-        return acc;
-    }, {});
-
-    // Create an ordered array of keys sorted by the latest note in each group
-    const monthYearGroups = Object.keys(groupedNotes).sort((a, b) => {
-        const dateA = Math.max(...groupedNotes[a].map(bn => new Date(bn.date).getTime()));
-        const dateB = Math.max(...groupedNotes[b].map(bn => new Date(bn.date).getTime()));
-        return dateB - dateA;
-    });
-
     return (
-        <div style={{ padding: '0 1rem' }}>
+        <div className="px-4">
             <PageHeader
                 title="รายการใบวางบิล (Billing Notes)"
                 helpContent={HELP_CONTENT.billingNotes}
             >
-                <button
-                    onClick={exportToExcel}
-                    disabled={isExporting}
-                    className="glass-panel"
-                    style={{
-                        padding: '0.6rem 1rem',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        background: 'rgba(16, 185, 129, 0.05)',
-                        border: '1px solid rgba(16, 185, 129, 0.1)',
-                        color: 'var(--success)', 
-                        cursor: isExporting ? 'not-allowed' : 'pointer', 
-                        borderRadius: '8px',
-                        opacity: isExporting ? 0.6 : 1
-                    }}
-                >
-                    <FileSpreadsheet size={18} /> {isExporting ? 'กำลังสร้างไฟล์...' : 'Export Excel'}
-                </button>
-                {hasPermission('billing', 'create') && (
+                <div className="flex gap-3">
                     <button
-                        onClick={() => navigate('/dashboard/billing-notes/new')}
-                        style={{
-                            padding: '0.6rem 1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            background: '#3b82f6', border: 'none', color: 'white',
-                            cursor: 'pointer', borderRadius: '8px', fontWeight: '500'
-                        }}
+                        onClick={exportToExcel}
+                        disabled={isExporting}
+                        className={`glass-panel py-2 px-4 flex items-center gap-2 bg-white border border-[#e2e8f0] text-success rounded-lg font-medium text-[0.9rem] ${isExporting ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
                     >
-                        <Plus size={20} /> ออกใบวางบิล
+                        <FileSpreadsheet size={18} /> {isExporting ? 'กำลังสร้างไฟล์...' : 'Export All'}
                     </button>
-                )}
+                    {hasPermission('billing', 'create') && (
+                        <button
+                            onClick={() => navigate('/dashboard/billing-notes/new')}
+                            className="py-2.5 px-[1.2rem] flex items-center gap-2 bg-[#3b82f6] border-none text-white cursor-pointer rounded-lg font-semibold shadow-[0_4px_12px_rgba(59,130,246,0.25)]"
+                        >
+                            <Plus size={20} /> ออกใบวางบิล
+                        </button>
+                    )}
+                </div>
             </PageHeader>
 
-            <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
-                <Search size={20} style={{ color: 'var(--text-muted)' }} />
+            {/* KPI Cards */}
+            <div className="grid grid-cols-4 gap-4 mb-8 grid-mobile-stack">
+                <div className="glass-panel p-5 flex items-center gap-4 border border-[#10b981]/10 bg-[#10b981]/[0.02]">
+                    <div className="bg-[#10b981]/10 p-[0.7rem] rounded-[10px] text-success"><FileText size={20} /></div>
+                    <div>
+                        <div className="text-[0.8rem] text-textMuted">จำนวนใบวางบิลเดือนนี้</div>
+                        <div className="text-[1.2rem] font-bold text-[#10b981]">{kpis.monthCount} ใบ</div>
+                    </div>
+                </div>
+                <div className="glass-panel p-5 flex items-center gap-4 border border-[#f59e0b]/10 bg-[#f59e0b]/[0.02]">
+                    <div className="bg-[#f59e0b]/10 p-[0.7rem] rounded-[10px] text-[#f59e0b]"><Clock size={20} /></div>
+                    <div>
+                        <div className="text-[0.8rem] text-textMuted">รอชำระเงิน</div>
+                        <div className="text-[1.2rem] font-bold text-[#f59e0b]">{kpis.pendingCount} ใบ</div>
+                    </div>
+                </div>
+                <div className="glass-panel p-5 flex items-center gap-4 border border-[#10b981]/10 bg-[#10b981]/[0.02]">
+                    <div className="bg-[#10b981]/10 p-[0.7rem] rounded-[10px] text-success"><CheckCircle size={20} /></div>
+                    <div>
+                        <div className="text-[0.8rem] text-textMuted">ชำระแล้ว</div>
+                        <div className="text-[1.2rem] font-bold text-[#10b981]">{kpis.paidCount} ใบ</div>
+                    </div>
+                </div>
+                <div className="glass-panel p-5 flex items-center gap-4 border border-[#3b82f6]/10 bg-[#3b82f6]/[0.02]">
+                    <div className="bg-[#3b82f6]/10 p-[0.7rem] rounded-[10px] text-[#3b82f6]"><TrendingUp size={20} /></div>
+                    <div>
+                        <div className="text-[0.8rem] text-textMuted">ใบวางบิลสะสม</div>
+                        <div className="text-[1.2rem] font-bold text-[#3b82f6]">{kpis.totalCount} ใบ</div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="glass-panel p-4 mb-6 flex items-center gap-4 bg-card border border-border">
+                <Search size={20} className="text-textMuted" />
                 <input
                     type="text"
                     placeholder="ค้นตามเลขที่หรือชื่อลูกค้า..."
-                    style={{ background: 'none', border: 'none', color: 'var(--text-main)', fontSize: '1rem', width: '100%', outline: 'none' }}
+                    className="bg-transparent border-none text-textMain text-base w-full outline-none"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -321,11 +346,11 @@ const BillingNoteListPage = () => {
 
             <ListFilter
                 filters={[
-                    { 
-                        type: 'date-range', 
-                        dateFrom, 
-                        dateTo, 
-                        onDateFromChange: setDateFrom, 
+                    {
+                        type: 'date-range',
+                        dateFrom,
+                        dateTo,
+                        onDateFromChange: setDateFrom,
                         onDateToChange: setDateTo,
                         value: dateFilterType,
                         onChange: setDateFilterType,
@@ -336,111 +361,122 @@ const BillingNoteListPage = () => {
                 hasActiveFilters={!!hasActiveFilters}
             />
 
-            <div className="glass-panel" style={{ padding: '0', overflowX: 'auto' }}>
-                <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                            <th className="actions-column" style={{ color: 'var(--text-muted)', fontWeight: '500' }}>จัดการ</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>เลขที่ใบวางบิล</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>ชื่อลูกค้า</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500' }}>วันที่</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'right' }}>จำนวนเงินสุทธิ</th>
-                            <th style={{ padding: '1.2rem 1.5rem', color: 'var(--text-muted)', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {isLoading ? (
-                            <tr>
-                                <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                    <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
-                                    กำลังโหลดข้อมูล...
-                                </td>
+            <div className="glass-panel p-0 overflow-x-auto">
+                <div className="table-responsive-wrapper w-full overflow-x-auto [webkit-overflow-scrolling:touch]">
+                    <table className="w-full border-collapse">
+                        <thead>
+                            <tr className="border-b border-border text-left">
+                                <th className="actions-column text-textMuted font-medium">จัดการ</th>
+                                <th className="py-[1.2rem] px-[1.5rem] text-textMuted font-medium">เลขที่ใบวางบิล</th>
+                                <th className="py-[1.2rem] px-[1.5rem] text-textMuted font-medium">ชื่อลูกค้า</th>
+                                <th className="py-[1.2rem] px-[1.5rem] text-textMuted font-medium">วันที่</th>
+                                <th className="py-[1.2rem] px-[1.5rem] text-textMuted font-medium text-right">จำนวนเงินสุทธิ</th>
+                                <th className="py-[1.2rem] px-[1.5rem] text-textMuted font-medium text-center">สถานะ</th>
                             </tr>
-                        ) : filteredNotes.length > 0 ? (
-                            monthYearGroups.map((group) => (
-                                <React.Fragment key={group}>
-                                    <tr style={{ background: 'var(--bg-main)' }}>
-                                        <td colSpan="6" style={{ padding: '0.8rem 1.5rem', fontWeight: '600', color: 'var(--text-main)', borderBottom: '1px solid var(--border-color)', borderTop: 'none' }}>
-                                            เดือน {group}
+                        </thead>
+                        <tbody>
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan="6" className="p-12 text-center text-textMuted">
+                                        <div className="loading-spinner mx-auto mb-4"></div>
+                                        กำลังโหลดข้อมูล...
+                                    </td>
+                                </tr>
+                            ) : paginatedData.length > 0 ? (
+                                paginatedData.map((bn) => (
+                                    <tr key={bn.id} className="border-b border-border transition-colors duration-200 bg-card">
+                                        <td className="actions-column">
+                                            <div className="table-actions">
+                                                <Link
+                                                    className="action-view"
+                                                    to={`/dashboard/billing-notes/${bn.id}`}
+                                                    target="_blank"
+                                                    title="View"
+                                                >
+                                                    <Eye size={18} />
+                                                </Link>
+                                                <Link
+                                                    className="action-print"
+                                                    to={`/dashboard/billing-notes/${bn.id}/print`}
+                                                    target="_blank"
+                                                    title="Print"
+                                                >
+                                                    <Printer size={18} />
+                                                </Link>
+                                                {hasPermission('billing', 'edit') && (
+                                                    <button
+                                                        className="action-edit"
+                                                        onClick={() => navigate(`/dashboard/billing-notes/${bn.id}/edit`)}
+                                                        title="Edit"
+                                                    >
+                                                        <Edit size={18} />
+                                                    </button>
+                                                )}
+                                                {hasPermission('billing', 'delete') && (
+                                                    <button
+                                                        className="action-delete"
+                                                        onClick={() => handleDelete(bn.id, bn.billingNoteNo)}
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="py-[1.2rem] px-[1.5rem] font-semibold text-[#3b82f6] text-[1.1rem] font-mono">
+                                            <Link to={`/dashboard/billing-notes/${bn.id}`} className="text-[#3b82f6] no-underline hover:underline">
+                                                {bn.billingNoteNo}
+                                            </Link>
+                                        </td>
+                                        <td className="py-[1.2rem] px-[1.5rem]">
+                                            {bn.customer_id ? (
+                                                <Link 
+                                                    to={`/dashboard/customers/${bn.customer_id}`} 
+                                                    className="text-[#3b82f6] no-underline hover:underline"
+                                                >
+                                                    {bn.customerName}
+                                                </Link>
+                                            ) : (
+                                                bn.customerName
+                                            )}
+                                        </td>
+                                        <td className="py-[1.2rem] px-[1.5rem]">{new Date(bn.date).toLocaleDateString('th-TH')}</td>
+                                        <td className="py-[1.2rem] px-[1.5rem] text-right font-semibold text-success">
+                                            ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </td>
+                                        <td className="py-[1.2rem] px-[1.5rem] text-center">
+                                            <span className={`py-1.5 px-3 rounded-[20px] text-[0.8rem] font-semibold whitespace-nowrap inline-flex items-center gap-1 ${
+                                                bn.status === 'Draft' ? 'bg-[#f3f4f6] text-[#6b7280] border border-[#e5e7eb]' :
+                                                bn.status === 'Paid' ? 'bg-[#10b981]/[0.08] text-[#059669] border border-[#10b981]/20' : 
+                                                'bg-[#ef4444]/[0.08] text-[#dc2626] border border-[#ef4444]/20'
+                                            }`}>
+                                                {bn.status === 'Draft' && <Clock size={14} />}
+                                                {bn.status === 'Paid' && <CheckCircle size={14} />}
+                                                {bn.status === 'Cancelled' && <XCircle size={14} />}
+                                                {bn.status === 'Draft' ? 'รอชำระ' :
+                                                    bn.status === 'Paid' ? 'ชำระแล้ว' : 'ยกเลิก'}
+                                            </span>
                                         </td>
                                     </tr>
-                                    {groupedNotes[group].map((bn) => (
-                                        <tr key={bn.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s', background: 'var(--card-bg)' }}>
-                                            <td className="actions-column">
-                                                <div className="table-actions">
-                                                    <button
-                                                        className="action-view"
-                                                        onClick={() => window.open(`/dashboard/billing-notes/${bn.id}`, '_blank')}
-                                                        title="View"
-                                                    >
-                                                        <Eye size={18} />
-                                                    </button>
-                                                    <button
-                                                        className="action-print"
-                                                        onClick={() => window.open(`/dashboard/billing-notes/${bn.id}/print`, '_blank')}
-                                                        title="Print"
-                                                    >
-                                                        <Printer size={18} />
-                                                    </button>
-                                                    {hasPermission('billing', 'edit') && (
-                                                        <button
-                                                            className="action-edit"
-                                                            onClick={() => navigate(`/dashboard/billing-notes/${bn.id}/edit`)}
-                                                            title="Edit"
-                                                        >
-                                                            <Edit size={18} />
-                                                        </button>
-                                                    )}
-                                                    {hasPermission('billing', 'delete') && (
-                                                        <button
-                                                            className="action-delete"
-                                                            onClick={() => handleDelete(bn.id, bn.billingNoteNo)}
-                                                            title="Delete"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem', fontWeight: '600', color: '#3b82f6', fontSize: '1.1rem', fontFamily: 'monospace' }}>
-                                                <Link to={`/dashboard/billing-notes/${bn.id}`} style={{ color: '#3b82f6', textDecoration: 'none' }}>
-                                                    {bn.billingNoteNo}
-                                                </Link>
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem' }}>{bn.customerName}</td>
-                                            <td style={{ padding: '1.2rem 1.5rem' }}>{new Date(bn.date).toLocaleDateString('th-TH')}</td>
-                                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
-                                                ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </td>
-                                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
-                                                <span style={{
-                                                    padding: '0.3rem 0.8rem',
-                                                    borderRadius: '20px',
-                                                    fontSize: '0.85rem',
-                                                    fontWeight: '500',
-                                                    whiteSpace: 'nowrap',
-                                                    background: bn.status === 'Draft' ? 'var(--card-hover)' : 
-                                                               bn.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(248, 113, 113, 0.1)',
-                                                    color: bn.status === 'Draft' ? 'var(--text-muted)' : 
-                                                           bn.status === 'Paid' ? '#10b981' : '#f87171'
-                                                }}>
-                                                    {bn.status === 'Draft' ? 'Draft' : 
-                                                     bn.status === 'Paid' ? 'Paid' : 'Cancelled'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </React.Fragment>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>ไม่พบรายการใบวางบิล</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-</div>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="6" className="p-12 text-center text-textMuted">ไม่พบรายการใบวางบิล</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    totalPages={totalPages}
+                    startItem={startItem}
+                    endItem={endItem}
+                    onPageChange={setCurrentPage}
+                    onItemsPerPageChange={setItemsPerPage}
+                />
             </div>
         </div>
     );

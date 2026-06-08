@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Search, Edit2, Trash2, User, Clock, CheckCircle, XCircle, MoreVertical, ChevronRight, ArrowLeft, Upload, FileSpreadsheet, FileText } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, User, Clock, CheckCircle, XCircle, ChevronRight, ArrowLeft, Upload, FileSpreadsheet, FileText } from 'lucide-react';
 import { employeeService } from '../services/employeeService';
 import { usePermissions } from '../hooks/usePermissions';
 import LogTimeModal from '../components/LogTimeModal';
@@ -8,10 +8,12 @@ import PeriodDetailModal from '../components/PeriodDetailModal';
 import ImportPreviewModal from '../components/ImportPreviewModal';
 import FullTimesheetModal from '../components/FullTimesheetModal';
 import AddPeriodModal from '../components/AddPeriodModal';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { useDialog } from '../contexts/DialogContext';
 import { getLocalDateString } from '../utils/dateUtils';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
+import Pagination from '../components/Pagination';
+import { useServerPagination } from '../hooks/useServerPagination';
 
 import { settingService } from '../services/settingService';
 import { periodService } from '../services/periodService';
@@ -20,7 +22,6 @@ const EmployeeListPage = () => {
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
     const { showConfirm, showAlert } = useDialog();
-    const fileInputRef = useRef(null);
     const [employees, setEmployees] = useState([]);
     const [filteredEmployees, setFilteredEmployees] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -106,13 +107,35 @@ const EmployeeListPage = () => {
         setIsLoading(false);
     };
 
+    const {
+        data: paginatedEmployees,
+        totalItems,
+        totalPages,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        isLoading: isPaginatedLoading,
+        updateFilters,
+        startItem,
+        endItem,
+        refresh
+    } = useServerPagination(employeeService.getEmployeesPaginated, { searchTerm: '' }, 50);
+
+    // Debounce search term
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            updateFilters({ searchTerm });
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm, updateFilters]);
+
     const loadPeriodData = async () => {
         if (!selectedPeriod) return;
         setIsLoading(true);
         const logs = await employeeService.getWorkLogsByPeriod(selectedPeriod.startDate, selectedPeriod.endDate);
         const overridesList = await employeeService.getDiligenceOverrides(selectedPeriod.id);
 
-        // Convert overrides to map: { empId: { isForced, amount } }
         const overridesMap = {};
         overridesList.forEach(o => {
             overridesMap[o.employee_id] = {
@@ -124,7 +147,6 @@ const EmployeeListPage = () => {
 
         setPeriodLogs(logs);
 
-        // Calculate Stats
         const stats = {};
         const periodStart = new Date(selectedPeriod.startDate);
         const periodEnd = new Date(selectedPeriod.endDate);
@@ -139,25 +161,15 @@ const EmployeeListPage = () => {
             const totalOT = empLogs.reduce((sum, l) => sum + Number(l.ot_hours), 0);
             const totalLate = empLogs.reduce((sum, l) => sum + (Number(l.late_hours) || 0), 0);
 
-            // Calculate Absent Days
             let absentDays = 0;
             daysInPeriod.forEach(date => {
                 const dateStr = getLocalDateString(date);
                 const isSunday = date.getDay() === 0;
-
-                // Sunday is never counted as absent (even if log exists as absent)
                 if (isSunday) return;
 
                 const dailyLog = empLogs.find(l => l.work_date.split('T')[0] === dateStr);
-
-                if (!dailyLog) {
-                    // No log: Count as absent (since not Sunday)
+                if (!dailyLog || Number(dailyLog.work_days) === 0) {
                     absentDays++;
-                } else {
-                    // Log exists: Check if it's an "Absent" log (work_days = 0)
-                    if (Number(dailyLog.work_days) === 0) {
-                        absentDays++;
-                    }
                 }
             });
 
@@ -168,31 +180,62 @@ const EmployeeListPage = () => {
                 absentDays: absentDays,
                 diligence: (() => {
                     const override = overridesMap[emp.id];
-
-                    // If manual amount is set, use it (regardless of forced flag, though usually forced=true if amount exists)
-                    if (override && override.amount !== null && override.amount !== undefined) {
-                        return Number(override.amount);
-                    }
-
-                    // Fallback to legacy forced flag if amount is missing but forced is true
+                    if (override && override.amount !== null && override.amount !== undefined) return Number(override.amount);
                     if (override && override.isForced === true) return (Number(emp.diligence_allowance) || 0);
                     if (override && override.isForced === false) return 0;
-
-                    // Auto Calculation
-                    // Logic: Must have 0 absent days and 0 late hours
-                    // Note: We don't have per-employee diligence setting anymore in form, so defaulting to 500 or 0?
-                    // User removed input, but maybe data still exists or we should use a default?
-                    // Let's assume 500 as default if not set, or 0.
-                    // Actually, if they removed the input, how do we know the base rate?
-                    // We should probably rely on the existing data in DB or ask user.
-                    // For now, I'll keep using `emp.diligence_allowance` (which might be in DB even if hidden in form).
-
                     return (absentDays === 0 && totalLate === 0) ? (Number(emp.diligence_allowance) || 0) : 0;
                 })()
             };
         });
         setPeriodStats(stats);
         setIsLoading(false);
+    };
+
+    const exportPeriodSummaryToExcel = () => {
+        if (!selectedPeriod || !employees.length) return;
+
+        const data = filteredEmployees.map(emp => {
+            const stats = periodStats[emp.id] || { workDays: 0, lateHours: 0, otHours: 0, absentDays: 0, diligence: 0 };
+            return {
+                'รหัส': emp.code,
+                'ชื่อ-นามสกุล': emp.full_name,
+                'วันเกิดในงวด': getBirthdayDisplay(emp) || '-',
+                'ทำงาน (วัน)': Number(stats.workDays),
+                'ขาด (วัน)': stats.absentDays,
+                'OT (ชม.)': Number(stats.otHours),
+                'สาย (นาที)': Math.round(stats.lateHours * 60),
+                'เบี้ยขยัน': stats.diligence
+            };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Summary");
+        XLSX.writeFile(wb, `PayrollSummary_${selectedPeriod.label}.xlsx`);
+    };
+
+    const exportEmployeeListToExcel = async () => {
+        try {
+            const exportData = await employeeService.exportEmployees({ searchTerm });
+            const data = exportData.map(emp => ({
+                'รหัส': emp.code,
+                'ชื่อ-นามสกุล': emp.full_name,
+                'ตำแหน่ง': emp.position,
+                'ประเภทการจ้าง': emp.employment_type,
+                'เบอร์โทร': emp.phone,
+                'ค่าแรงรายวัน': emp.daily_wage,
+                'เบี้ยขยัน': emp.diligence_allowance,
+                'สถานะ': emp.status === 'Active' ? 'ปกติ' : 'ระงับ'
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Employees");
+            XLSX.writeFile(wb, `EmployeeList_${new Date().toISOString().split('T')[0]}.xlsx`);
+        } catch (error) {
+            console.error('Error exporting employees:', error);
+            await showAlert('ไม่สามารถส่งออกข้อมูลได้');
+        }
     };
 
     const handleSelectPeriod = (period) => {
@@ -883,67 +926,57 @@ const EmployeeListPage = () => {
     };
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem' }}>
+        <div className="px-4 pb-8">
             <PageHeader
                 title="รายชื่อพนักงาน"
                 subtitle={viewMode === 'timesheet' ? 'จัดการเวลาทำงานและการเข้างาน' : 'จัดการข้อมูลพนักงานและค่าแรง'}
                 helpContent={HELP_CONTENT.employees}
             >
-                {viewMode === 'info' && hasPermission('employees', 'create') && (
+                {viewMode === 'info' && (
                     <button
-                        onClick={() => navigate('/dashboard/employees/new')}
-                        className="btn-primary"
-                        style={{
-                            padding: '0.8rem 1.5rem', borderRadius: '8px', border: 'none', background: '#37477C', color: 'white',
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500', fontSize: '1rem'
-                        }}
+                        onClick={exportEmployeeListToExcel}
+                        className="px-5 py-3 rounded-lg border border-slate-200 bg-white text-emerald-500 cursor-pointer flex items-center gap-2 font-medium text-[0.95rem]"
                     >
-                        <Plus size={20} /> เพิ่มพนักงาน
+                        <FileSpreadsheet size={18} /> Export List
                     </button>
                 )}
 
                 {viewMode === 'timesheet' && selectedPeriod && hasPermission('employees', 'edit') && (
-                    <label
-                        style={{
-                            padding: '0.8rem 1.5rem', borderRadius: '8px', border: 'none', background: '#10b981', color: 'white',
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500', fontSize: '1rem'
-                        }}>
-                        <FileSpreadsheet size={20} /> Import Time From Excel
-                        <input
-                            type="file"
-                            accept=".xlsx, .xls, .csv"
-                            onClick={(e) => { e.target.value = null; }}
-                            onChange={handleImport}
-                        />
-                    </label>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={exportPeriodSummaryToExcel}
+                            className="px-5 py-3 rounded-lg border border-slate-200 bg-white text-emerald-500 cursor-pointer flex items-center gap-2 font-medium text-[0.95rem]"
+                        >
+                            <FileSpreadsheet size={18} /> Export Summary
+                        </button>
+                        <label
+                            className="px-6 py-3 rounded-lg border-none bg-emerald-500 text-white cursor-pointer flex items-center gap-2 font-medium text-base shadow-[0_4px_12px_rgba(16,185,129,0.25)]">
+                            <Upload size={18} /> Import จาก Excel
+                            <input
+                                type="file"
+                                accept=".xlsx, .xls, .csv"
+                                className="hidden"
+                                onClick={(e) => { e.target.value = null; }}
+                                onChange={handleImport}
+                            />
+                        </label>
+                    </div>
                 )}
             </PageHeader>
 
             {/* Controls: View Mode Toggle */}
-            <div style={{ marginBottom: '2rem' }}>
-                <div style={{
-                    background: '#f3f4f6', padding: '0.4rem', borderRadius: '12px', display: 'flex', gap: '0.5rem', width: '100%',
-                }}>
+            <div className="mb-8">
+                <div className="bg-gray-100 p-1.5 rounded-xl flex gap-2 w-full">
                     <button
                         onClick={() => { setViewMode('timesheet'); setSelectedPeriod(null); }}
-                        style={{
-                            flex: 1, border: 'none', background: viewMode === 'timesheet' ? '#37477C' : 'transparent',
-                            color: viewMode === 'timesheet' ? 'white' : '#6b7280', padding: '0.6rem 1rem', borderRadius: '8px',
-                            cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                            boxShadow: viewMode === 'timesheet' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s', fontSize: '1rem'
-                        }}
+                        className={`flex-1 border-none px-4 py-2.5 rounded-lg cursor-pointer font-medium flex items-center justify-center gap-2 transition-all duration-200 text-base ${viewMode === 'timesheet' ? 'bg-indigo-900 text-white shadow-sm' : 'bg-transparent text-gray-500'}`}
                     >
                         <Clock size={18} /> ลงเวลางาน
                     </button>
 
                     <button
                         onClick={() => setViewMode('info')}
-                        style={{
-                            flex: 1, border: 'none', background: viewMode === 'info' ? '#37477C' : 'transparent',
-                            color: viewMode === 'info' ? 'white' : '#6b7280', padding: '0.6rem 1rem', borderRadius: '8px',
-                            cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                            boxShadow: viewMode === 'info' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s', fontSize: '1rem'
-                        }}
+                        className={`flex-1 border-none px-4 py-2.5 rounded-lg cursor-pointer font-medium flex items-center justify-center gap-2 transition-all duration-200 text-base ${viewMode === 'info' ? 'bg-indigo-900 text-white shadow-sm' : 'bg-transparent text-gray-500'}`}
                     >
                         <User size={18} /> ข้อมูลทั่วไป
                     </button>
@@ -953,20 +986,14 @@ const EmployeeListPage = () => {
             {/* CONTENT AREA */}
             {viewMode === 'timesheet' && !selectedPeriod ? (
                 /* PERIOD SELECTION LIST */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', color: '#37477C' }}>
+                <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-2 mb-6 text-indigo-900">
                         <Clock size={20} />
-                        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>เลือกงวดเวลาทำงาน</h3>
+                        <h3 className="m-0 text-lg">เลือกงวดเวลาทำงาน</h3>
                         {hasPermission('employees', 'create') && (
                             <button
                                 onClick={() => setIsAddPeriodModalOpen(true)}
-                                style={{
-                                    background: '#37477C', color: 'white', border: 'none',
-                                    borderRadius: '50%', width: '28px', height: '28px',
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center',
-                                    justifyContent: 'center', marginLeft: '8px',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                }}
+                                className="bg-indigo-900 text-white border-none rounded-full w-7 h-7 cursor-pointer flex items-center justify-center ml-2 shadow-sm"
                                 title="เพิ่มงวดเวลาใหม่"
                             >
                                 <Plus size={18} />
@@ -974,36 +1001,27 @@ const EmployeeListPage = () => {
                         )}
                     </div>
 
-                    <div style={{ display: 'grid', gap: '1rem' }}>
+                    <div className="grid gap-4">
                         {periods.map((period) => (
                             <div
                                 key={period.id}
-                                style={{ position: 'relative' }}
+                                className="relative"
                             >
                                 <button
                                     onClick={() => handleSelectPeriod(period)}
-                                    className="period-card"
-                                    style={{
-                                        width: '100%',
-                                        padding: '1.5rem',
-                                        paddingRight: '6rem', // More space for delete button
-                                        textAlign: 'left',
-                                        background: '#37477C',
-                                        borderRadius: '8px',
-                                        color: 'white',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        transition: 'transform 0.2s, background 0.2s',
-                                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                                    }}
+                                    className="w-full py-6 pl-8 pr-24 text-left bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-xl text-white border-none cursor-pointer flex justify-between items-center transition-all duration-300 shadow-md overflow-hidden relative"
+                                    onMouseOver={e => e.currentTarget.style.transform = 'translateY(-4px) scale(1.01)'}
+                                    onMouseOut={e => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
                                 >
-                                    <span style={{ fontSize: '1.2rem', fontWeight: '500' }}>
-                                        {period.label}
-                                    </span>
-                                    <ChevronRight size={24} color="white" />
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-xl font-bold tracking-wide">
+                                            {period.label}
+                                        </span>
+                                        <span className="text-sm opacity-80 flex items-center gap-2">
+                                            <Calendar size={14} /> {new Date(period.startDate).toLocaleDateString('th-TH')} - {new Date(period.endDate).toLocaleDateString('th-TH')}
+                                        </span>
+                                    </div>
+                                    <ChevronRight size={28} color="rgba(255,255,255,0.8)" />
                                 </button>
                                 {hasPermission('employees', 'delete') && (
                                     <button
@@ -1014,12 +1032,7 @@ const EmployeeListPage = () => {
                                                 periodService.deletePeriod(period.id).then(loadPeriods);
                                             }
                                         }}
-                                        style={{
-                                            position: 'absolute', right: '45px', top: '50%', transform: 'translateY(-50%)',
-                                            background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: 'none',
-                                            padding: '10px', borderRadius: '6px', cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                        }}
+                                        className="absolute right-11 top-1/2 -translate-y-1/2 bg-red-500/20 text-red-500 border-none p-2.5 rounded-md cursor-pointer flex items-center justify-center"
                                         title="ลบงวดนี้"
                                     >
                                         <Trash2 size={18} />
@@ -1028,10 +1041,10 @@ const EmployeeListPage = () => {
                             </div>
                         ))}
                         {periods.length === 0 && (
-                            <div style={{ padding: '3rem', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0', color: '#64748b' }}>
-                                <FileSpreadsheet size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+                            <div className="p-12 text-center bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 text-slate-500">
+                                <FileSpreadsheet size={48} className="opacity-30 mb-4 mx-auto" />
                                 <div>ยังไม่มีงวดเวลา</div>
-                                <p style={{ fontSize: '0.8rem', margin: '0.5rem 0 0 0' }}>กดปุ่ม + เพื่อเพิ่มงวดเวลาเริ่มต้นการทำงาน</p>
+                                <p className="text-xs mt-2 mb-0">กดปุ่ม + เพื่อเพิ่มงวดเวลาเริ่มต้นการทำงาน</p>
                             </div>
                         )}
                     </div>
@@ -1041,36 +1054,27 @@ const EmployeeListPage = () => {
                 <>
                     {/* Header for Drill-down (Back Button) */}
                     {viewMode === 'timesheet' && selectedPeriod && (
-                        <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div className="mb-4 flex items-center gap-4">
                             <button
                                 onClick={() => setSelectedPeriod(null)}
-                                style={{
-                                    border: 'none', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                    padding: '0.5rem 1rem', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', color: '#64748b'
-                                }}
+                                className="border-none bg-white cursor-pointer flex items-center gap-2 px-4 py-2 rounded-md shadow-sm text-slate-500"
                             >
                                 <ArrowLeft size={20} /> ย้อนกลับ
                             </button>
-                            <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#37477C' }}>
+                            <span className="text-lg font-bold text-indigo-900">
                                 งวด: {selectedPeriod.label}
                             </span>
-                            <div style={{ flex: 1 }}></div>
+                            <div className="flex-1"></div>
                             <button
                                 onClick={() => setIsFullTimesheetOpen(true)}
-                                style={{
-                                    border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                    padding: '0.5rem 1rem', borderRadius: '6px', color: '#37477C', fontWeight: '500', marginRight: '0.5rem'
-                                }}
+                                className="border border-slate-200 bg-white cursor-pointer flex items-center gap-2 px-4 py-2 rounded-md text-indigo-900 font-medium mr-2"
                             >
                                 <FileText size={18} /> ดูตารางรวมพนักงาน
                             </button>
                             {hasPermission('employees', 'delete') && (
                                 <button
                                     onClick={handleClearData}
-                                    style={{
-                                        border: '1px solid #fee2e2', background: '#fef2f2', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                        padding: '0.5rem 1rem', borderRadius: '6px', color: '#ef4444', fontWeight: '500'
-                                    }}
+                                    className="border border-red-200 bg-red-50 cursor-pointer flex items-center gap-2 px-4 py-2 rounded-md text-red-500 font-medium"
                                 >
                                     <Trash2 size={18} /> ลบข้อมูลทั้่งหมดในงวดนี้
                                 </button>
@@ -1081,76 +1085,76 @@ const EmployeeListPage = () => {
                     {/* Search Bar */}
 
                     {/* Search Bar */}
-                    <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div className="glass-panel p-4 mb-6 flex items-center gap-4">
                         <Search size={20} color="#888" />
                         <input
                             type="text"
                             placeholder="ค้นหาชื่อ, รหัสพนักงาน, เบอร์โทร..."
-                            className="glass-input"
+
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ border: 'none', background: 'transparent', width: '100%', fontSize: '1rem', outline: 'none', color: 'var(--text-main)' }}
+                            className="glass-input border-none bg-transparent w-full text-base outline-none text-main"
                         />
                     </div>
 
                     {/* Employee Table */}
-                    <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-                        <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <div className="glass-panel p-0 overflow-hidden">
+                        <div className="table-responsive-wrapper overflow-x-auto touch-pan-x">
+                            <table className="w-full border-collapse text-left">
                                 <thead>
-                                    <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                        <th style={{ padding: '1.2rem', color: '#6b7280', fontWeight: '500' }}>รหัส</th>
-                                        <th style={{ padding: '1.2rem', color: '#6b7280', fontWeight: '500' }}>ชื่อ - นามสกุล</th>
+                                    <tr className="border-b border-border">
+                                        <th className="p-5 text-gray-500 font-medium">รหัส</th>
+                                        <th className="p-5 text-gray-500 font-medium">ชื่อ - นามสกุล</th>
                                         {/* Dynamic Columns based on View Mode */}
                                         {viewMode === 'timesheet' && selectedPeriod ? (
                                             <>
-                                                <th style={{ padding: '1.2rem', textAlign: 'center', color: '#6b7280', fontWeight: '500' }}>วันเกิด</th>
-                                                <th style={{ padding: '1.2rem', textAlign: 'center', color: '#6b7280', fontWeight: '500' }}>ทำงาน (วัน)</th>
-                                                <th style={{ padding: '1.2rem', textAlign: 'center', color: '#6b7280', fontWeight: '500' }}>ขาด (วัน)</th>
-                                                <th style={{ padding: '1.2rem', textAlign: 'center', color: '#6b7280', fontWeight: '500' }}>OT (ชม.)</th>
-                                                <th style={{ padding: '1.2rem', textAlign: 'center', color: '#6b7280', fontWeight: '500' }}>สาย (นาที)</th>
-                                                <th style={{ padding: '1.2rem', textAlign: 'center', color: '#6b7280', fontWeight: '500' }}>เบี้ยขยัน</th>
+                                                <th className="p-5 text-center text-gray-500 font-medium">วันเกิด</th>
+                                                <th className="p-5 text-center text-gray-500 font-medium">ทำงาน (วัน)</th>
+                                                <th className="p-5 text-center text-gray-500 font-medium">ขาด (วัน)</th>
+                                                <th className="p-5 text-center text-gray-500 font-medium">OT (ชม.)</th>
+                                                <th className="p-5 text-center text-gray-500 font-medium">สาย (นาที)</th>
+                                                <th className="p-5 text-center text-gray-500 font-medium">เบี้ยขยัน</th>
                                             </>
                                         ) : (
                                             <>
-                                                <th className="actions-column" style={{ color: '#6b7280', fontWeight: '500' }}>จัดการ</th>
-                                                <th style={{ padding: '1.2rem', color: '#6b7280', fontWeight: '500' }}>ตำแหน่ง</th>
-                                                <th style={{ padding: '1.2rem', color: '#6b7280', fontWeight: '500' }}>เบอร์โทร</th>
-                                                <th style={{ padding: '1.2rem', color: '#6b7280', fontWeight: '500', textAlign: 'center' }}>สถานะ</th>
+                                                <th className="actions-column text-gray-500 font-medium">จัดการ</th>
+                                                <th className="p-5 text-gray-500 font-medium">ตำแหน่ง</th>
+                                                <th className="p-5 text-gray-500 font-medium">เบอร์โทร</th>
+                                                <th className="p-5 text-center text-gray-500 font-medium">สถานะ</th>
                                             </>
                                         )}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {isLoading ? (
-                                        <tr><td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: '#888' }}>กำลังโหลดข้อมูล...</td></tr>
-                                    ) : filteredEmployees.length === 0 ? (
-                                        <tr><td colSpan="8" style={{ padding: '3rem', textAlign: 'center' }}>ไม่พบข้อมูลพนักงาน</td></tr>
+                                        <tr><td colSpan="8" className="p-12 text-center text-gray-500">กำลังโหลดข้อมูล...</td></tr>
+                                    ) : paginatedEmployees.length === 0 ? (
+                                        <tr><td colSpan="8" className="p-12 text-center">ไม่พบข้อมูลพนักงาน</td></tr>
                                     ) : (
-                                        filteredEmployees.map(emp => {
+                                        paginatedEmployees.map(emp => {
                                             const stats = periodStats[emp.id] || { workDays: 0, lateHours: 0, otHours: 0, absentDays: 0 };
 
                                             return (
                                                 <tr
                                                     key={emp.id}
                                                     onClick={() => handleRowClick(emp)}
-                                                    style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer', transition: 'background 0.2s' }}
+                                                    className="border-b border-border cursor-pointer transition-colors hover:bg-slate-50"
                                                     onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(55, 71, 124, 0.05)'}
                                                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                                 >
-                                                    <td style={{ padding: '1.2rem', fontFamily: 'monospace', color: '#6b7280' }}>{emp.code}</td>
-                                                    <td style={{ padding: '1.2rem', fontWeight: '500', color: 'var(--text-main)' }}>{emp.full_name}</td>
+                                                    <td className="p-5 font-mono text-gray-500">{emp.code}</td>
+                                                    <td className="p-5 font-medium text-main">{emp.full_name}</td>
 
                                                     {viewMode === 'timesheet' && selectedPeriod ? (
                                                         <>
-                                                            <td style={{ padding: '1.2rem', textAlign: 'center', fontWeight: 'bold', color: '#ec4899' }}>
+                                                            <td className="p-5 text-center font-bold text-pink-500">
                                                                 {getBirthdayDisplay(emp) || '-'}
                                                             </td>
-                                                            <td style={{ padding: '1.2rem', textAlign: 'center', fontWeight: 'bold', color: '#10b981' }}>{Number(stats.workDays).toFixed(2)}</td>
-                                                            <td style={{ padding: '1.2rem', textAlign: 'center', fontWeight: 'bold', color: '#ef4444' }}>{stats.absentDays}</td>
-                                                            <td style={{ padding: '1.2rem', textAlign: 'center', color: '#8b5cf6' }}>{Number(stats.otHours).toFixed(2)}</td>
-                                                            <td style={{ padding: '1.2rem', textAlign: 'center', color: '#f59e0b' }}>{Math.round(stats.lateHours * 60)}</td>
-                                                            <td style={{ padding: '1.2rem', textAlign: 'center', fontWeight: 'bold', color: stats.diligence > 0 ? '#10b981' : '#ccc' }}>
+                                                            <td className="p-5 text-center font-bold text-emerald-500">{Number(stats.workDays).toFixed(2)}</td>
+                                                            <td className="p-5 text-center font-bold text-red-500">{stats.absentDays}</td>
+                                                            <td className="p-5 text-center text-violet-500">{Number(stats.otHours).toFixed(2)}</td>
+                                                            <td className="p-5 text-center text-amber-500">{Math.round(stats.lateHours * 60)}</td>
+                                                            <td className={`p-5 text-center font-bold ${stats.diligence > 0 ? 'text-emerald-500' : 'text-gray-300'}`}>
                                                                 {stats.diligence > 0 ? stats.diligence.toLocaleString() : '-'}
                                                             </td>
                                                         </>
@@ -1159,26 +1163,35 @@ const EmployeeListPage = () => {
                                                             <td className="actions-column">
                                                                 <div className="table-actions">
                                                                     {hasPermission('employees', 'edit') && (
-                                                                        <button className="action-edit" onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/employees/${emp.id}/edit`); }}>
+                                                                        <button
+                                                                            className="action-link"
+                                                                            title="ลงเวลารวดเร็ว"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setSelectedEmployee(emp);
+                                                                                setIsLogModalOpen(true);
+                                                                            }}
+                                                                        >
+                                                                            <Clock size={16} />
+                                                                        </button>
+                                                                    )}
+                                                                    {hasPermission('employees', 'edit') && (
+                                                                        <button className="action-edit" title="แก้ไขข้อมูล" onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/employees/${emp.id}/edit`); }}>
                                                                             <Edit2 size={16} />
                                                                         </button>
                                                                     )}
                                                                     {hasPermission('employees', 'delete') && (
-                                                                        <button className="action-delete" onClick={(e) => handleDelete(e, emp.id)}>
+                                                                        <button className="action-delete" title="ลบ" onClick={(e) => handleDelete(e, emp.id)}>
                                                                             <Trash2 size={16} />
                                                                         </button>
                                                                     )}
                                                                 </div>
                                                             </td>
-                                                            <td style={{ padding: '1.2rem', color: '#6b7280' }}>{emp.position || '-'}</td>
-                                                            <td style={{ padding: '1.2rem', color: '#6b7280' }}>{emp.phone || '-'}</td>
-                                                            <td style={{ padding: '1.2rem', textAlign: 'center' }}>
-                                                                <span style={{
-                                                                    padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem',
-                                                                    background: emp.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                                                    color: emp.status === 'Active' ? '#10b981' : '#ef4444',
-                                                                    border: emp.status === 'Active' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
-                                                                }}>
+                                                            <td className="p-5 text-gray-500">{emp.position || '-'}</td>
+                                                            <td className="p-5 text-gray-500">{emp.phone || '-'}</td>
+                                                            <td className="p-5 text-center">
+                                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1 ${emp.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+                                                                    {emp.status === 'Active' ? <CheckCircle size={14} /> : <XCircle size={14} />}
                                                                     {emp.status === 'Active' ? 'ปกติ' : 'ระงับ'}
                                                                 </span>
                                                             </td>
@@ -1190,7 +1203,17 @@ const EmployeeListPage = () => {
                                     )}
                                 </tbody>
                             </table>
-</div>
+                        </div>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                            itemsPerPage={itemsPerPage}
+                            onItemsPerPageChange={setItemsPerPage}
+                            totalItems={totalItems}
+                            startItem={startItem}
+                            endItem={endItem}
+                        />
                     </div>
                 </>
             )
@@ -1202,7 +1225,11 @@ const EmployeeListPage = () => {
                     <LogTimeModal
                         employee={selectedEmployee}
                         onClose={() => setIsLogModalOpen(false)}
-                        onSuccess={() => { }}
+                        onSuccess={() => {
+                            if (selectedPeriod) loadPeriodData();
+                            refresh();
+                            loadEmployees();
+                        }}
                     />
                 )
             }
@@ -1257,26 +1284,31 @@ const EmployeeListPage = () => {
                 }}
                 onUpdateLog={async (empId, dateStr, startTime, endTime) => {
                     try {
+                        const formattedStart = startTime ? (startTime.length === 5 ? startTime + ':00' : startTime) : null;
+                        const formattedEnd = endTime ? (endTime.length === 5 ? endTime + ':00' : endTime) : null;
+
                         const payload = {
                             employee_id: empId,
                             work_date: dateStr,
+                            start_time: formattedStart,
+                            end_time: formattedEnd,
+                            not_scan: false // Manually edited
                         };
-                        // Only add time if provided, otherwise null
-                        if (startTime) payload.start_time = startTime;
-                        else payload.start_time = null;
 
-                        if (endTime) payload.end_time = endTime;
-                        else payload.end_time = null;
+                        // Calculate basic work_days
+                        if (formattedStart && formattedEnd) {
+                            payload.work_days = 1;
+                        } else if (formattedStart || formattedEnd) {
+                            payload.work_days = 0.5;
+                        } else {
+                            payload.work_days = 0;
+                        }
 
-                        // If both null, upsert will create a log with null times (absent? or just cleared?)
-                        // If we want to delete log, we might need a separate delete function, but upsert with nulls is fine for now usually.
-
-                        // Calculate late minutes
+                        // Calculate late minutes if we have start time and schedule
                         let lateHours = 0;
-                        if (startTime && workSchedule && workSchedule.start_time) {
+                        if (formattedStart && workSchedule && workSchedule.start_time) {
                             const [sh, sm] = workSchedule.start_time.split(':').map(Number);
-                            const [ah, am] = startTime.split(':').map(Number);
-
+                            const [ah, am] = formattedStart.split(':').map(Number);
                             const scheduleMins = sh * 60 + sm;
                             const actualMins = ah * 60 + am;
 
@@ -1284,17 +1316,15 @@ const EmployeeListPage = () => {
                                 lateHours = (actualMins - scheduleMins) / 60;
                             }
                         }
-                        payload.late_hours = lateHours;
 
-                        // Also update work_days ? 
-                        // If no start/end, work_days = 0.
-                        // If start/end, work_days = 1 (or 0.5?). Default to 1 if present.
-                        if (startTime && endTime) {
-                            payload.work_days = 1;
-                        } else if (!startTime && !endTime) {
-                            payload.work_days = 0;
-                        }
-                        // If partial? let's assume 1 if either exists for now, or just stick to 1 if start exists.
+                        // Set calculated fields
+                        payload.late_hours = lateHours;
+                        payload.is_late = lateHours > 0;
+
+                        // OT and Early Leave calculation usually happens at backend or bulk-import.
+                        // Here we at least reset them so they aren't stale if previous log had them.
+                        payload.ot_hours = null;
+                        payload.is_early = null;
 
                         await employeeService.upsertWorkLog(payload);
                         loadPeriodData();

@@ -1,52 +1,11 @@
 import React from 'react';
-import { X, Clock, AlertCircle } from 'lucide-react';
+import { X } from 'lucide-react';
 import EditLogModal from './EditLogModal';
 import { employeeService } from '../services/employeeService';
 import { useDialog } from '../contexts/DialogContext';
 import { getLocalDateString } from '../utils/dateUtils';
 
-const DiligenceInput = ({ value, isOverridden, onCommit }) => {
-    const [localValue, setLocalValue] = React.useState(value);
-
-    React.useEffect(() => {
-        setLocalValue(value);
-    }, [value]);
-
-    const handleBlur = () => {
-        const val = localValue;
-        const isForced = (val === '' || val === null || val === undefined) ? null : true;
-        const amount = (val === '' || val === null || val === undefined) ? null : Number(val);
-        onCommit(isForced, amount);
-    };
-
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter') {
-            e.target.blur();
-        }
-    };
-
-    return (
-        <input
-            type="number"
-            value={localValue === null || localValue === undefined ? '' : localValue}
-            onChange={(e) => setLocalValue(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            onClick={(e) => e.stopPropagation()} // Prevent card click if inside one
-            style={{
-                width: '80px',
-                padding: '4px',
-                borderRadius: '4px',
-                border: '1px solid #d1d5db',
-                textAlign: 'center',
-                color: isOverridden ? '#059669' : '#4b5563',
-                fontWeight: isOverridden ? 'bold' : 'normal',
-                background: isOverridden ? '#ecfdf5' : 'white',
-                fontSize: '1.2rem'
-            }}
-        />
-    );
-};
+import DiligenceInput from './DiligenceInput';
 
 const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedule, diligenceOverride, onUpdate }) => {
     const { showConfirm, showAlert } = useDialog();
@@ -233,38 +192,42 @@ const PeriodDetailModal = ({ isOpen, onClose, employee, period, logs, workSchedu
                 </div>
 
                 {/* Summary Cards */}
-                <div style={{
-                    display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '1rem',
-                    padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0',
-                    overflowX: 'auto'
-                }}>
-                    <div style={{ textAlign: 'center' }}>
+                <div
+                    className="grid-mobile-stack"
+                    style={{
+                        display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '1rem',
+                        padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0',
+                        overflowX: 'auto'
+                    }}
+                >
+                    <div className="text-center">
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>วันทำงาน</div>
                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#10b981' }}>{Number(totalDays).toFixed(2)}</div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div className="text-center">
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>วันขาด</div>
                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#ef4444' }}>{absentDays > 0 ? absentDays : '-'}</div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div className="text-center">
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>OT (ชม.)</div>
                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#8b5cf6' }}>{Number(totalOT).toFixed(2)}</div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div className="text-center">
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>สาย (นาที)</div>
                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#f59e0b' }}>{Math.round(totalLate * 60)}</div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div className="text-center">
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>วันเกิด</div>
                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#ec4899' }}>{getBirthdayDisplay()}</div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div className="text-center">
                         <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px' }}>
                             เบี้ยขยัน {diligenceOverride && diligenceOverride.isForced ? '(Lock)' : ''}
                         </div>
                         <DiligenceInput
                             value={diligenceAmount}
                             isOverridden={diligenceOverride && diligenceOverride.amount !== undefined && diligenceOverride.amount !== null}
+                            style={{ fontSize: '1.2rem' }}
                             onCommit={async (isForced, amount) => {
                                 try {
                                     await employeeService.upsertDiligenceOverride(period.id, employee.id, isForced, amount);

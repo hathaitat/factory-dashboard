@@ -51,7 +51,7 @@ const GuideTab = () => {
                     <BookOpen size={16} />
                     <span>Official Documentation v4.5</span>
                 </div>
-                <h1 className="header-title">คู่มือระบบ <span className="text-gradient">MAW OS</span> แบบเจาะลึก</h1>
+                <h1 className="header-title">คู่มือระบบ <span className="text-gradient">MAW</span> แบบเจาะลึก</h1>
                 <p className="header-desc">
                     อธิบายการใช้งานทุกเมนูอย่างละเอียด ขั้นตอนการทำงาน (Workflow)
                     หน้าที่ของแต่ละปุ่ม และข้อควรระวังในการปฏิบัติงาน

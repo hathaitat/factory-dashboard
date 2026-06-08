@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, AlertCircle, Loader, FileText, Trash2, Save } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Loader, FileText } from 'lucide-react';
 import EditLogModal from './EditLogModal';
 import { getLocalDateString } from '../utils/dateUtils';
 
@@ -111,7 +111,7 @@ const ImportPreviewModal = ({ isOpen, onClose, data, onConfirm, status = 'previe
                                             borderBottom: '1px solid #e5e7eb', padding: '0.5rem', minWidth: '80px', textAlign: 'center',
                                             background: isSunday ? '#fee2e2' : '#f9fafb', color: isSunday ? '#991b1b' : '#374151'
                                         }}>
-                                            {date.toLocaleDateString('en-US', { day: 'numeric', weekday: 'short' })}
+                                            {date.toLocaleDateString('th-TH', { day: 'numeric', weekday: 'short' })}
                                         </th>
                                     );
                                 })}
@@ -255,7 +255,7 @@ const ImportPreviewModal = ({ isOpen, onClose, data, onConfirm, status = 'previe
 
                     {status === 'processing' && (
                         <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                            <div style={{ marginBottom: '1rem' }}>
+                            <div className="mb-4">
                                 <Loader className="animate-spin" size={48} color="#37477C" style={{ margin: '0 auto' }} />
                             </div>
                             <h4 style={{ margin: '0 0 0.5rem 0', color: '#37477C' }}>กำลังประมวลผล...</h4>

@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Save, ArrowLeft, User, DollarSign, Calendar, MapPin, Phone, Clock, Plus, Trash2, Heart, ChevronDown, ChevronRight } from 'lucide-react';
+import { Save, ArrowLeft, User, DollarSign, Calendar, MapPin, Phone, Clock, Plus, Heart, ChevronDown, ChevronRight, FileSpreadsheet } from 'lucide-react';
 import { employeeService } from '../services/employeeService';
+import { userService } from '../services/userService';
 import { getLocalDateString } from '../utils/dateUtils';
 import { useDialog } from '../contexts/DialogContext';
+import * as XLSX from 'xlsx-js-style';
+import LastUpdated from '../components/LastUpdated';
+import { useAuth } from '../contexts/AuthContext';
 
 const EmployeeFormPage = () => {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const { id } = useParams();
     const [searchParams] = useSearchParams();
@@ -116,10 +121,16 @@ const EmployeeFormPage = () => {
         e.preventDefault();
         setIsSaving(true);
         try {
+            const currentUser = user;
+            const payload = {
+                ...formData,
+                createdBy: isEditMode ? undefined : (currentUser?.fullName || currentUser?.username || 'Unknown'),
+                updatedBy: currentUser?.fullName || currentUser?.username || 'Unknown'
+            };
             if (isEditMode) {
-                await employeeService.updateEmployee(id, formData);
+                await employeeService.updateEmployee(id, payload);
             } else {
-                await employeeService.createEmployee(formData);
+                await employeeService.createEmployee(payload);
             }
             navigate('/dashboard/employees');
         } catch (error) {
@@ -165,35 +176,51 @@ const EmployeeFormPage = () => {
         });
     };
 
-    // Group logs by Month and Half-Month
-    const groupedLogs = workLogs
-        .filter(log => {
-            if (!periodStart || !periodEnd) return true;
-            return log.work_date >= periodStart && log.work_date <= periodEnd;
-        })
-        .reduce((acc, log) => {
-            const date = new Date(log.work_date);
-            const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
-            const day = date.getDate();
+    // Group logs by Month and Half-Month - Memoized
+    const groupedLogs = React.useMemo(() => {
+        return workLogs
+            .filter(log => {
+                if (!periodStart || !periodEnd) return true;
+                return log.work_date >= periodStart && log.work_date <= periodEnd;
+            })
+            .reduce((acc, log) => {
+                const date = new Date(log.work_date);
+                const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                const day = date.getDate();
 
-            if (!acc[yearMonth]) acc[yearMonth] = { first: [], second: [] };
+                if (!acc[yearMonth]) acc[yearMonth] = { first: [], second: [] };
 
-            if (day <= 15) {
-                acc[yearMonth].first.push(log);
-            } else {
-                acc[yearMonth].second.push(log);
-            }
-            return acc;
-        }, {});
+                if (day <= 15) {
+                    acc[yearMonth].first.push(log);
+                } else {
+                    acc[yearMonth].second.push(log);
+                }
+                return acc;
+            }, {});
+    }, [workLogs, periodStart, periodEnd]);
 
-    // Helper to calculate total
-    const calculateTotal = (logs) => {
-        return logs.reduce((sum, log) => {
-            return {
-                days: sum.days + parseFloat(log.work_days || 0),
-                ot: sum.ot + parseFloat(log.ot_hours || 0)
-            };
-        }, { days: 0, ot: 0 });
+    // Helper to calculate total - Memoized per list
+    const getTotals = (logs) => {
+        return logs.reduce((sum, log) => ({
+            days: sum.days + parseFloat(log.work_days || 0),
+            ot: sum.ot + parseFloat(log.ot_hours || 0)
+        }), { days: 0, ot: 0 });
+    };
+
+    const exportTimesheetToExcel = (monthKey, logs, title) => {
+        const wb = XLSX.utils.book_new();
+        const data = logs.map(log => ({
+            'วันที่': log.work_date,
+            'วันทำงาน': log.work_days,
+            'OT (ชม.)': log.ot_hours,
+            'เข้างาน': log.start_time?.slice(0, 5) || '-',
+            'ออกงาน': log.end_time?.slice(0, 5) || '-',
+            'หมายเหตุ': log.note || ''
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, "Timesheet");
+        XLSX.writeFile(wb, `Timesheet_${formData.full_name}_${monthKey}_${title}.xlsx`);
     };
 
     // Helper to calculate age
@@ -238,100 +265,102 @@ const EmployeeFormPage = () => {
         return parts.length > 0 ? parts.join(' ') : 'เริ่มงานวันนี้';
     };
 
-    if (isLoading) return <div style={{ padding: '2rem', textAlign: 'center' }}>กำลังโหลดข้อมูล...</div>;
+    if (isLoading) return <div className="p-8 text-center">กำลังโหลดข้อมูล...</div>;
 
     return (
-        <div style={{ padding: '0 1rem 2rem 1rem', maxWidth: '1000px', margin: '0 auto' }}>
+        <div className="px-4 pb-8 max-w-5xl mx-auto">
             <button
                 onClick={() => navigate('/dashboard/employees')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#888', marginBottom: '1rem' }}
+                className="bg-transparent border-none cursor-pointer flex items-center gap-2 text-muted mb-4 p-2 rounded-lg transition-all duration-200"
+                onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+                onMouseOut={e => e.currentTarget.style.background = 'none'}
             >
                 <ArrowLeft size={18} /> กลับไปหน้ารายชื่อ
             </button>
 
-            <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
+            <div className="mb-6 flex justify-between items-center flex-wrap gap-4">
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '600' }}>
+                    <h1 className="m-[0] text-3xl font-semibold">
                         {isEditMode ? formData.full_name : 'เพิ่มพนักงานใหม่'}
                     </h1>
-                    <p style={{ margin: '0.5rem 0 0 0', color: '#888' }}>
+                    <p className="mt-2 text-gray-500">
                         {formData.code} • {formData.position || 'ไม่ระบุตำแหน่ง'}
                     </p>
                 </div>
-                {isEditMode && (
-                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', display: 'flex', gap: '0.5rem' }}>
+                <div className="flex items-center gap-4">
+                    {isEditMode && (
+                        <div className="bg-gray-100 p-2 rounded-lg flex gap-2">
+                            <button
+                                onClick={() => setActiveTab('profile')}
+                                className={`px-4 py-2 border-none rounded-md cursor-pointer font-medium flex items-center gap-2 ${activeTab === 'profile' ? 'bg-white text-violet-500 shadow-sm' : 'bg-transparent text-gray-500'}`}
+                            >
+                                <User size={18} /> ข้อมูลส่วนตัว
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('timesheet')}
+                                className={`px-4 py-2 border-none rounded-md cursor-pointer font-medium flex items-center gap-2 ${activeTab === 'timesheet' ? 'bg-white text-violet-500 shadow-sm' : 'bg-transparent text-gray-500'}`}
+                            >
+                                <Clock size={18} /> {periodStart ? 'ลงเวลาทำงาน' : 'ประวัติการทำงาน'}
+                            </button>
+                        </div>
+                    )}
+                    {activeTab === 'profile' && (
                         <button
-                            onClick={() => setActiveTab('profile')}
-                            style={{
-                                padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500',
-                                background: activeTab === 'profile' ? 'white' : 'transparent',
-                                color: activeTab === 'profile' ? '#8b5cf6' : '#6b7280',
-                                boxShadow: activeTab === 'profile' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                                display: 'flex', alignItems: 'center', gap: '0.5rem'
-                            }}
+                            type="submit"
+                            form="employee-form"
+                            disabled={isSaving}
+                            className={`px-6 py-2.5 rounded-lg border-none bg-violet-500 text-white flex items-center gap-2 font-medium shadow-[0_4px_12px_rgba(139,92,246,0.3)] ${isSaving ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                         >
-                            <User size={18} /> ข้อมูลส่วนตัว
+                            <Save size={18} />
+                            {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
                         </button>
-                        <button
-                            onClick={() => setActiveTab('timesheet')}
-                            style={{
-                                padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500',
-                                background: activeTab === 'timesheet' ? 'white' : 'transparent',
-                                color: activeTab === 'timesheet' ? '#8b5cf6' : '#6b7280',
-                                boxShadow: activeTab === 'timesheet' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                                display: 'flex', alignItems: 'center', gap: '0.5rem'
-                            }}
-                        >
-                            <Clock size={18} /> {periodStart ? 'ลงเวลาทำงาน' : 'ประวัติการทำงาน'}
-                        </button>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
             {/* TAB 1: Profile Form */}
             {activeTab === 'profile' && (
-                <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '2rem' }}>
+                <form id="employee-form" onSubmit={handleSubmit} className="grid gap-8">
                     {/* ... (Existing Form Content) ... */}
-                    <div className="glass-panel" style={{ padding: '2rem' }}>
-                        <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8b5cf6' }}>
+                    <div className="glass-panel p-8">
+                        <h3 className="mt-[0] mb-6 flex items-center gap-2 text-violet-500">
                             <User size={20} /> ข้อมูลทั่วไป
                         </h3>
 
-                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                        <div className="grid-mobile-stack grid grid-cols-[1fr_2fr] gap-6 mb-6">
                             <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>รหัสพนักงาน</label>
+                                <label className="block mb-2 text-gray-500">รหัสพนักงาน</label>
                                 <input
                                     type="text"
                                     name="code"
                                     value={formData.code}
                                     onChange={handleChange}
                                     required
-                                    className="glass-input"
-                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                    className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                                 />
                             </div>
                             <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ชื่อ - นามสกุล <span style={{ color: '#ef4444' }}>*</span></label>
+                                <label className="block mb-2 text-gray-500">ชื่อ - นามสกุล <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     name="full_name"
                                     value={formData.full_name}
                                     onChange={handleChange}
                                     required
-                                    className="glass-input"
+
                                     placeholder="เช่น นายสมชาย ขยันทำงาน"
-                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                    className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                                 />
                             </div>
                         </div>
 
-                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                        <div className="grid-mobile-stack grid grid-cols-2 gap-6 mb-6">
                             <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>
-                                    <Calendar size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                                <label className="block mb-2 text-gray-500">
+                                    <Calendar size={14} className="inline mr-1" />
                                     วันเดือนปีเกิด
                                     {formData.date_of_birth && (
-                                        <span style={{ marginLeft: '8px', fontSize: '0.85rem', color: '#8b5cf6', background: '#f3f4f6', padding: '2px 8px', borderRadius: '12px' }}>
+                                        <span className="ml-2 text-sm text-violet-500 bg-gray-100 p-[2px 8px] rounded-xl">
                                             อายุ {calculateAge(formData.date_of_birth)} ปี
                                         </span>
                                     )}
@@ -341,13 +370,12 @@ const EmployeeFormPage = () => {
                                     name="date_of_birth"
                                     value={formData.date_of_birth || ''}
                                     onChange={handleChange}
-                                    className="glass-input"
-                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                    className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                                 />
                             </div>
                             <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>
-                                    <Phone size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                                <label className="block mb-2 text-gray-500">
+                                    <Phone size={14} className="inline mr-1" />
                                     เบอร์โทรศัพท์
                                 </label>
                                 <input
@@ -355,15 +383,14 @@ const EmployeeFormPage = () => {
                                     name="phone"
                                     value={formData.phone || ''}
                                     onChange={handleChange}
-                                    className="glass-input"
-                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                    className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                                 />
                             </div>
                         </div>
 
-                        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>
-                                <MapPin size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                        <div className="form-group mb-6">
+                            <label className="block mb-2 text-gray-500">
+                                <MapPin size={14} className="inline mr-1" />
                                 ที่อยู่
                             </label>
                             <textarea
@@ -371,82 +398,76 @@ const EmployeeFormPage = () => {
                                 value={formData.address || ''}
                                 onChange={handleChange}
                                 rows="3"
-                                className="glass-input"
-                                style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', resize: 'vertical' }}
+                                className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main resize-y"
                             />
                         </div>
                     </div>
 
-                    <div className="glass-panel" style={{ padding: '2rem' }}>
-                        <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444' }}>
+                    <div className="glass-panel p-8">
+                        <h3 className="mt-[0] mb-6 flex items-center gap-2 text-red-500">
                             <Heart size={20} /> ผู้ติดต่อฉุกเฉิน
                         </h3>
 
-                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                        <div className="grid-mobile-stack grid grid-cols-2 gap-6 mb-6">
                             <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ชื่อผู้ติดต่อ</label>
+                                <label className="block mb-2 text-gray-500">ชื่อผู้ติดต่อ</label>
                                 <input
                                     type="text"
                                     name="emergency_contact_name"
                                     value={formData.emergency_contact_name || ''}
                                     onChange={handleChange}
-                                    className="glass-input"
-                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                    className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                                 />
                             </div>
                             <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ความสัมพันธ์</label>
+                                <label className="block mb-2 text-gray-500">ความสัมพันธ์</label>
                                 <input
                                     type="text"
                                     name="emergency_contact_relation"
                                     value={formData.emergency_contact_relation || ''}
                                     onChange={handleChange}
                                     placeholder="เช่น บิดา, มารดา, คู่สมรส"
-                                    className="glass-input"
-                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                    className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                                 />
                             </div>
                         </div>
 
                         <div className="form-group">
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>เบอร์โทรศัพท์ฉุกเฉิน</label>
+                            <label className="block mb-2 text-gray-500">เบอร์โทรศัพท์ฉุกเฉิน</label>
                             <input
                                 type="text"
                                 name="emergency_contact_phone"
                                 value={formData.emergency_contact_phone || ''}
                                 onChange={handleChange}
-                                className="glass-input"
-                                style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                             />
                         </div>
                     </div>
 
-                    <div className="glass-panel" style={{ padding: '2rem' }}>
-                        <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981' }}>
+                    <div className="glass-panel p-8">
+                        <h3 className="mt-[0] mb-6 flex items-center gap-2 text-emerald-500">
                             <DollarSign size={20} /> ข้อมูลการทำงาน
                         </h3>
 
-                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                        <div className="grid-mobile-stack grid grid-cols-2 gap-6 mb-6">
                             <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ตำแหน่ง</label>
+                                <label className="block mb-2 text-gray-500">ตำแหน่ง</label>
                                 <input
                                     type="text"
                                     name="position"
                                     value={formData.position || ''}
                                     onChange={handleChange}
-                                    className="glass-input"
                                     placeholder="เช่น พนักงานฝ่ายผลิต"
-                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                    className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                                 />
                             </div>
                             <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ประเภทการจ้างงาน</label>
+                                <label className="block mb-2 text-gray-500">ประเภทการจ้างงาน</label>
                                 <select
                                     name="employment_type"
                                     value={formData.employment_type || 'Full-time'}
                                     onChange={handleChange}
-                                    className="glass-input"
-                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                    className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                                 >
                                     <option value="Full-time">Full-time</option>
                                     <option value="Part-time">Part-time</option>
@@ -456,37 +477,37 @@ const EmployeeFormPage = () => {
                             </div>
                         </div>
 
-                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                            {/* <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>ค่าแรงรายวัน (บาท)</label>
-                                <input
-                                    type="number"
-                                    name="daily_wage"
-                                    value={formData.daily_wage || ''}
-                                    onChange={handleChange}
-                                    className="glass-input"
-                                    placeholder="เช่น 350"
-                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
-                                />
+                        <div className="grid-mobile-stack grid grid-cols-2 gap-6 mb-6">
+                            <div className="grid-mobile-stack grid grid-cols-2 gap-6 mb-6">
+                                <div className="form-group">
+                                    <label className="block mb-2 text-textMuted">ค่าแรงรายวัน (บาท)</label>
+                                    <input
+                                        type="number"
+                                        name="daily_wage"
+                                        value={formData.daily_wage || ''}
+                                        onChange={handleChange}
+                                        placeholder="เช่น 350"
+                                        className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="block mb-2 text-textMuted">เบี้ยขยัน (บาท/งวด)</label>
+                                    <input
+                                        type="number"
+                                        name="diligence_allowance"
+                                        value={formData.diligence_allowance || ''}
+                                        onChange={handleChange}
+                                        placeholder="เช่น 500"
+                                        className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
+                                    />
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>เบี้ยขยัน (บาท/งวด)</label>
-                                <input
-                                    type="number"
-                                    name="diligence_allowance"
-                                    value={formData.diligence_allowance || ''}
-                                    onChange={handleChange}
-                                    className="glass-input"
-                                    placeholder="เช่น 500"
-                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
-                                />
-                            </div> */}
                         </div>
 
-                        <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                        <div className="grid-mobile-stack grid grid-cols-2 gap-6">
                             <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>
-                                    <Calendar size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                                <label className="block mb-2 text-gray-500">
+                                    <Calendar size={14} className="inline mr-1" />
                                     วันที่เริ่มงาน
                                 </label>
                                 <input
@@ -494,23 +515,21 @@ const EmployeeFormPage = () => {
                                     name="start_date"
                                     value={formData.start_date}
                                     onChange={handleChange}
-                                    className="glass-input"
-                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                    className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                                 />
                                 {formData.start_date && (
-                                    <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#10b981' }}>
+                                    <div className="mt-2 text-sm text-emerald-500">
                                         ทำงานมาแล้ว: {calculateWorkDuration(formData.start_date)}
                                     </div>
                                 )}
                             </div>
                             <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>สถานะ</label>
+                                <label className="block mb-2 text-gray-500">สถานะ</label>
                                 <select
                                     name="status"
                                     value={formData.status}
                                     onChange={handleChange}
-                                    className="glass-input"
-                                    style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                    className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                                 >
                                     <option value="Active">ทำงานอยู่ (Active)</option>
                                     <option value="Resigned">ลาออก (Resigned)</option>
@@ -520,30 +539,32 @@ const EmployeeFormPage = () => {
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                    {isEditMode && (
+                        <div className="glass-panel p-5 text-[0.85rem] text-textMuted flex flex-col gap-2 mt-4">
+                            {formData.created_at && (
+                                <div>สร้างเมื่อ: {new Date(formData.created_at).toLocaleDateString('th-TH')}</div>
+                            )}
+                            {formData.created_by && (
+                                <div className="flex items-center gap-2">
+                                    <User size={14} /> สร้างโดย: <span className="text-textMain font-semibold">{formData.created_by}</span>
+                                </div>
+                            )}
+                            <LastUpdated updatedBy={formData.updated_by} updatedAt={formData.updated_at} />
+                        </div>
+                    )}
+
+                    <div className="flex justify-end gap-4">
                         <button
                             type="button"
                             onClick={() => navigate('/dashboard/employees')}
-                            style={{ padding: '0.8rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
+                            className="px-6 py-3 rounded-lg border border-border bg-transparent text-muted cursor-pointer"
                         >
                             ยกเลิก
                         </button>
                         <button
                             type="submit"
                             disabled={isSaving}
-                            style={{
-                                padding: '0.8rem 1.5rem',
-                                borderRadius: '8px',
-                                border: 'none',
-                                background: '#8b5cf6',
-                                color: 'white',
-                                cursor: isSaving ? 'not-allowed' : 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                fontWeight: '500',
-                                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)'
-                            }}
+                            className={`px-6 py-3 rounded-lg border-none bg-violet-500 text-white flex items-center gap-2 font-medium shadow-[0_4px_12px_rgba(139,92,246,0.3)] ${isSaving ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                             <Save size={18} />
                             {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
@@ -556,75 +577,62 @@ const EmployeeFormPage = () => {
             {/* TAB 2: Timesheet */}
             {
                 activeTab === 'timesheet' && (
-                    <div style={{ display: 'grid', gap: '2rem' }}>
+                    <div className="grid gap-8">
                         {/* Add Log Form */}
                         {/* Add Log Form */}
                         {periodStart && (
-                            <div className="glass-panel" style={{ padding: '1.5rem', background: 'var(--card-bg)' }}>
-                                <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem' }}>บันทึกเวลาทำงาน</h3>
-                                <form onSubmit={handleAddLog} style={{ display: 'flex', gap: '1rem', alignItems: 'end', flexWrap: 'wrap' }}>
-                                    <div style={{ flex: 1, minWidth: '150px' }}>
-                                        <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.3rem', color: '#888' }}>วันที่</label>
+                            <div className="glass-panel p-6 bg-card">
+                                <h3 className="mt-[0] mb-4 text-lg">บันทึกเวลาทำงาน</h3>
+                                <form onSubmit={handleAddLog} className="flex gap-4 items-end flex-wrap">
+                                    <div className="min-w-[150px]">
+                                        <label className="block text-sm mb-1 text-gray-500">วันที่</label>
                                         <input
                                             type="date"
                                             name="work_date"
                                             value={logForm.work_date}
                                             onChange={handleLogChange}
                                             required
-                                            className="glass-input"
-                                            style={{ width: '100%', padding: '0.6rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '6px' }}
+                                            className="glass-input w-full p-2.5 bg-main border border-border rounded-md"
                                         />
                                     </div>
-                                    <div style={{ width: '100px' }}>
-                                        <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.3rem', color: '#888' }}>จำนวนวัน</label>
+                                    <div className="w-[100px]">
+                                        <label className="block text-sm mb-1 text-gray-500">จำนวนวัน</label>
                                         <select
                                             name="work_days"
                                             value={logForm.work_days}
                                             onChange={handleLogChange}
-                                            className="glass-input"
-                                            style={{ width: '100%', padding: '0.6rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '6px' }}
+                                            className="glass-input w-full p-2.5 bg-main border border-border rounded-md"
                                         >
                                             <option value="1">1 วัน</option>
                                             <option value="0.5">0.5 วัน</option>
                                             <option value="0">0 วัน</option>
                                         </select>
                                     </div>
-                                    <div style={{ width: '100px' }}>
-                                        <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.3rem', color: '#888' }}>OT (ชม.)</label>
+                                    <div className="w-[100px]">
+                                        <label className="block text-sm mb-1 text-gray-500">OT (ชม.)</label>
                                         <input
                                             type="number"
                                             step="0.5"
                                             name="ot_hours"
                                             value={logForm.ot_hours}
                                             onChange={handleLogChange}
-                                            className="glass-input"
-                                            style={{ width: '100%', padding: '0.6rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '6px' }}
+                                            className="glass-input w-full p-2.5 bg-main border border-border rounded-md"
                                         />
                                     </div>
-                                    <div style={{ flex: 2, minWidth: '200px' }}>
-                                        <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.3rem', color: '#888' }}>หมายเหตุ</label>
+                                    <div className="min-w-[200px]">
+                                        <label className="block text-sm mb-1 text-gray-500">หมายเหตุ</label>
                                         <input
                                             type="text"
                                             name="note"
                                             value={logForm.note}
                                             onChange={handleLogChange}
                                             placeholder="เช่น มาสาย, ลากิจ"
-                                            className="glass-input"
-                                            style={{ width: '100%', padding: '0.6rem', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '6px' }}
+                                            className="glass-input w-full p-2.5 bg-main border border-border rounded-md"
                                         />
                                     </div>
                                     <button
                                         type="submit"
-                                        style={{
-                                            padding: '0.6rem 1.2rem',
-                                            borderRadius: '6px',
-                                            border: 'none',
-                                            background: '#10b981',
-                                            color: 'white',
-                                            fontWeight: '500',
-                                            cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center', gap: '0.3rem'
-                                        }}
+                                        className="p-[0.6rem 1.2rem] rounded-md border-none bg-emerald-500 text-white font-medium cursor-pointer flex items-center gap-1"
                                     >
                                         <Plus size={18} /> เพิ่ม
                                     </button>
@@ -634,165 +642,175 @@ const EmployeeFormPage = () => {
 
                         {/* Logs List by Month */}
                         {Object.keys(groupedLogs).sort().reverse().map(monthKey => (
-                            <div key={monthKey} style={{ display: 'grid', gap: '1rem' }}>
-                                <h3 style={{ margin: '1rem 0 0.5rem 0', color: '#4b5563', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                            <div key={monthKey} className="grid gap-4">
+                                <h3 className="m-[1rem 0 0.5rem 0] text-[#4b5563] border-b border-border">
                                     เดือน {monthKey}
                                 </h3>
 
                                 {/* Second Half */}
                                 {groupedLogs[monthKey].second.length > 0 && (
-                                    <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
-                                        <div style={{ background: '#f9fafb', padding: '0.8rem 1rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)' }}>
-                                            <span style={{ fontWeight: '600', color: '#6b7280' }}>งวดวันที่ 16 - สิ้นเดือน</span>
-                                            <div style={{ fontSize: '0.9rem' }}>
-                                                รวม: <b style={{ color: '#10b981' }}>{calculateTotal(groupedLogs[monthKey].second).days} วัน</b> | OT: <b>{calculateTotal(groupedLogs[monthKey].second).ot} ชม.</b>
+                                    <div className="glass-panel p-[0] border-[1px solid rgba(139, 92, 246, 0.1)]">
+                                        <div className="bg-[rgba(139, 92, 246, 0.05)] p-[1rem 1.5rem] flex justify-between items-center border-b border-border">
+                                            <div className="flex items-center gap-[0.75rem]">
+                                                <span className="text-main">งวดวันที่ 16 - สิ้นเดือน</span>
+                                                <button
+                                                    onClick={() => exportTimesheetToExcel(monthKey, groupedLogs[monthKey].second, '16-end')}
+                                                    className="p-1 rounded border-[1px solid rgba(16, 185, 129, 0.2)] bg-[rgba(16, 185, 129, 0.05)] text-emerald-500 cursor-pointer flex"
+                                                    title="Export Excel งวดนี้"
+                                                >
+                                                    <FileSpreadsheet size={14} />
+                                                </button>
+                                            </div>
+                                            <div className="text-[0.95rem]">
+                                                รวม: <b className="text-emerald-500">{getTotals(groupedLogs[monthKey].second).days} วัน</b> | OT: <b className="text-violet-500">{getTotals(groupedLogs[monthKey].second).ot} ชม.</b>
                                             </div>
                                         </div>
-                                        <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                                            <thead>
-                                                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'left', color: '#888', fontWeight: '500' }}>วันที่</th>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'center', color: '#888', fontWeight: '500' }}>วันทำงาน</th>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'center', color: '#888', fontWeight: '500' }}>OT</th>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'left', color: '#888', fontWeight: '500' }}>หมายเหตุ</th>
+                                        <div className="table-responsive-wrapper overflow-x-auto touch-pan-x">
+                                            <table className="w-full text-[0.95rem]">
+                                                <thead>
+                                                    <tr className="border-b border-border">
+                                                        <th className="p-3 text-left text-gray-500 font-medium">วันที่</th>
+                                                        <th className="p-3 text-center text-gray-500 font-medium">วันทำงาน</th>
+                                                        <th className="p-3 text-center text-gray-500 font-medium">OT</th>
+                                                        <th className="p-3 text-left text-gray-500 font-medium">หมายเหตุ</th>
 
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {groupedLogs[monthKey].second.map(log => (
-                                                    <React.Fragment key={log.id}>
-                                                        <tr onClick={() => toggleExpand(log.id)} style={{ borderBottom: expandedLogs.has(log.id) ? 'none' : '1px solid var(--border-color)', cursor: 'pointer', background: expandedLogs.has(log.id) ? '#f8fafc' : 'transparent' }}>
-                                                            <td style={{ padding: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                {expandedLogs.has(log.id) ? <ChevronDown size={16} color="#6b7280" /> : <ChevronRight size={16} color="#6b7280" />}
-                                                                {log.work_date}
-                                                            </td>
-                                                            <td style={{ padding: '0.8rem', textAlign: 'center' }}>
-                                                                <span style={{
-                                                                    padding: '0.2rem 0.6rem', borderRadius: '10px',
-                                                                    background: log.work_days == 1 ? '#d1fae5' : '#fee2e2',
-                                                                    color: log.work_days == 1 ? '#047857' : '#b91c1c'
-                                                                }}>
-                                                                    {log.work_days}
-                                                                </span>
-                                                            </td>
-                                                            <td style={{ padding: '0.8rem', textAlign: 'center', color: log.ot_hours > 0 ? '#8b5cf6' : '#ccc' }}>
-                                                                {log.ot_hours > 0 ? log.ot_hours : '-'}
-                                                            </td>
-                                                            <td style={{ padding: '0.8rem', color: '#6b7280' }}>{log.note || '-'}</td>
-
-                                                        </tr>
-                                                        {expandedLogs.has(log.id) && (
-                                                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
-                                                                <td colSpan="5" style={{ padding: '0 1rem 1rem 2.8rem' }}>
-                                                                    <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#4b5563' }}>
-                                                                        <div>
-                                                                            <span style={{ color: '#9ca3af', marginRight: '8px' }}>เวลาเข้า:</span>
-                                                                            <span style={{ fontFamily: 'monospace', fontWeight: '500' }}>{log.start_time ? log.start_time.slice(0, 5) : '-'}</span>
-                                                                        </div>
-                                                                        <div>
-                                                                            <span style={{ color: '#9ca3af', marginRight: '8px' }}>เวลาออก:</span>
-                                                                            <span style={{ fontFamily: 'monospace', fontWeight: '500' }}>{log.end_time ? log.end_time.slice(0, 5) : '-'}</span>
-                                                                        </div>
-                                                                        {Number(log.late_hours) > 0 && (
-                                                                            <div style={{ color: '#d97706', fontWeight: '500' }}>
-                                                                                สาย: {Math.round(log.late_hours * 60)} นาที
-                                                                            </div>
-                                                                        )}
-                                                                        {log.is_early && (
-                                                                            <div style={{ color: '#ea580c', fontWeight: '500' }}>ออกก่อน</div>
-                                                                        )}
-                                                                    </div>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {groupedLogs[monthKey].second.map(log => (
+                                                        <React.Fragment key={log.id}>
+                                                            <tr onClick={() => toggleExpand(log.id)} className={`cursor-pointer ${expandedLogs.has(log.id) ? 'border-b-0 bg-slate-50' : 'border-b border-border bg-transparent'}`}>
+                                                                <td className="p-3 flex items-center gap-[8px]">
+                                                                    {expandedLogs.has(log.id) ? <ChevronDown size={16} color="#6b7280" /> : <ChevronRight size={16} color="#6b7280" />}
+                                                                    {log.work_date}
                                                                 </td>
+                                                                <td className="p-3 text-center">
+                                                                    <span className={`px-2.5 py-1 rounded-full ${log.work_days == 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                                                        {log.work_days}
+                                                                    </span>
+                                                                </td>
+                                                                <td className={`p-3 text-center ${log.ot_hours > 0 ? 'text-violet-500' : 'text-gray-300'}`}>
+                                                                    {log.ot_hours > 0 ? log.ot_hours : '-'}
+                                                                </td>
+                                                                <td className="p-3 text-gray-500">{log.note || '-'}</td>
+
                                                             </tr>
-                                                        )}
-                                                    </React.Fragment>
-                                                ))}
-                                            </tbody>
-                                        </table>
-</div>
+                                                            {expandedLogs.has(log.id) && (
+                                                                <tr className="bg-[#f8fafc] border-b border-border">
+                                                                    <td colSpan="5" className="p-[0 1rem 1rem 2.8rem]">
+                                                                        <div className="flex gap-8 text-[0.95rem] text-[#4b5563]">
+                                                                            <div>
+                                                                                <span className="text-[#9ca3af] mr-[8px]">เวลาเข้า:</span>
+                                                                                <span className="font-mono font-medium">{log.start_time ? log.start_time.slice(0, 5) : '-'}</span>
+                                                                            </div>
+                                                                            <div>
+                                                                                <span className="text-[#9ca3af] mr-[8px]">เวลาออก:</span>
+                                                                                <span className="font-mono font-medium">{log.end_time ? log.end_time.slice(0, 5) : '-'}</span>
+                                                                            </div>
+                                                                            {Number(log.late_hours) > 0 && (
+                                                                                <div className="text-[#d97706] font-medium">
+                                                                                    สาย: {Math.round(log.late_hours * 60)} นาที
+                                                                                </div>
+                                                                            )}
+                                                                            {log.is_early && (
+                                                                                <div className="text-[#ea580c] font-medium">ออกก่อน</div>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </React.Fragment>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 )}
 
                                 {/* First Half */}
                                 {groupedLogs[monthKey].first.length > 0 && (
-                                    <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
-                                        <div style={{ background: '#f9fafb', padding: '0.8rem 1rem', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)' }}>
-                                            <span style={{ fontWeight: '600', color: '#6b7280' }}>งวดวันที่ 1 - 15</span>
-                                            <div style={{ fontSize: '0.9rem' }}>
-                                                รวม: <b style={{ color: '#10b981' }}>{calculateTotal(groupedLogs[monthKey].first).days} วัน</b> | OT: <b>{calculateTotal(groupedLogs[monthKey].first).ot} ชม.</b>
+                                    <div className="glass-panel p-[0] border-[1px solid rgba(139, 92, 246, 0.1)]">
+                                        <div className="bg-[rgba(139, 92, 246, 0.05)] p-[1rem 1.5rem] flex justify-between items-center border-b border-border">
+                                            <div className="flex items-center gap-[0.75rem]">
+                                                <span className="text-main">งวดวันที่ 1 - 15</span>
+                                                <button
+                                                    onClick={() => exportTimesheetToExcel(monthKey, groupedLogs[monthKey].first, '01-15')}
+                                                    className="p-1 rounded border-[1px solid rgba(16, 185, 129, 0.2)] bg-[rgba(16, 185, 129, 0.05)] text-emerald-500 cursor-pointer flex"
+                                                    title="Export Excel งวดนี้"
+                                                >
+                                                    <FileSpreadsheet size={14} />
+                                                </button>
+                                            </div>
+                                            <div className="text-[0.95rem]">
+                                                รวม: <b className="text-emerald-500">{getTotals(groupedLogs[monthKey].first).days} วัน</b> | OT: <b className="text-violet-500">{getTotals(groupedLogs[monthKey].first).ot} ชม.</b>
                                             </div>
                                         </div>
-                                        <div className="table-responsive-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-<table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                                            <thead>
-                                                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'left', color: '#888', fontWeight: '500' }}>วันที่</th>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'center', color: '#888', fontWeight: '500' }}>วันทำงาน</th>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'center', color: '#888', fontWeight: '500' }}>OT</th>
-                                                    <th style={{ padding: '0.8rem', textAlign: 'left', color: '#888', fontWeight: '500' }}>หมายเหตุ</th>
+                                        <div className="table-responsive-wrapper overflow-x-auto touch-pan-x">
+                                            <table className="w-full text-[0.95rem]">
+                                                <thead>
+                                                    <tr className="border-b border-border">
+                                                        <th className="p-3 text-left text-gray-500 font-medium">วันที่</th>
+                                                        <th className="p-3 text-center text-gray-500 font-medium">วันทำงาน</th>
+                                                        <th className="p-3 text-center text-gray-500 font-medium">OT</th>
+                                                        <th className="p-3 text-left text-gray-500 font-medium">หมายเหตุ</th>
 
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {groupedLogs[monthKey].first.map(log => (
-                                                    <React.Fragment key={log.id}>
-                                                        <tr onClick={() => toggleExpand(log.id)} style={{ borderBottom: expandedLogs.has(log.id) ? 'none' : '1px solid var(--border-color)', cursor: 'pointer', background: expandedLogs.has(log.id) ? '#f8fafc' : 'transparent' }}>
-                                                            <td style={{ padding: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                {expandedLogs.has(log.id) ? <ChevronDown size={16} color="#6b7280" /> : <ChevronRight size={16} color="#6b7280" />}
-                                                                {log.work_date}
-                                                            </td>
-                                                            <td style={{ padding: '0.8rem', textAlign: 'center' }}>
-                                                                <span style={{
-                                                                    padding: '0.2rem 0.6rem', borderRadius: '10px',
-                                                                    background: log.work_days == 1 ? '#d1fae5' : '#fee2e2',
-                                                                    color: log.work_days == 1 ? '#047857' : '#b91c1c'
-                                                                }}>
-                                                                    {log.work_days}
-                                                                </span>
-                                                            </td>
-                                                            <td style={{ padding: '0.8rem', textAlign: 'center', color: log.ot_hours > 0 ? '#8b5cf6' : '#ccc' }}>
-                                                                {log.ot_hours > 0 ? log.ot_hours : '-'}
-                                                            </td>
-                                                            <td style={{ padding: '0.8rem', color: '#6b7280' }}>{log.note || '-'}</td>
-
-                                                        </tr>
-                                                        {expandedLogs.has(log.id) && (
-                                                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
-                                                                <td colSpan="5" style={{ padding: '0 1rem 1rem 2.8rem' }}>
-                                                                    <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#4b5563' }}>
-                                                                        <div>
-                                                                            <span style={{ color: '#9ca3af', marginRight: '8px' }}>เวลาเข้า:</span>
-                                                                            <span style={{ fontFamily: 'monospace', fontWeight: '500' }}>{log.start_time ? log.start_time.slice(0, 5) : '-'}</span>
-                                                                        </div>
-                                                                        <div>
-                                                                            <span style={{ color: '#9ca3af', marginRight: '8px' }}>เวลาออก:</span>
-                                                                            <span style={{ fontFamily: 'monospace', fontWeight: '500' }}>{log.end_time ? log.end_time.slice(0, 5) : '-'}</span>
-                                                                        </div>
-                                                                        {Number(log.late_hours) > 0 && (
-                                                                            <div style={{ color: '#d97706', fontWeight: '500' }}>
-                                                                                สาย: {Math.round(log.late_hours * 60)} นาที
-                                                                            </div>
-                                                                        )}
-                                                                        {log.is_early && (
-                                                                            <div style={{ color: '#ea580c', fontWeight: '500' }}>ออกก่อน</div>
-                                                                        )}
-                                                                    </div>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {groupedLogs[monthKey].first.map(log => (
+                                                        <React.Fragment key={log.id}>
+                                                            <tr onClick={() => toggleExpand(log.id)} className={`cursor-pointer ${expandedLogs.has(log.id) ? 'border-b-0 bg-slate-50' : 'border-b border-border bg-transparent'}`}>
+                                                                <td className="p-3 flex items-center gap-[8px]">
+                                                                    {expandedLogs.has(log.id) ? <ChevronDown size={16} color="#6b7280" /> : <ChevronRight size={16} color="#6b7280" />}
+                                                                    {log.work_date}
                                                                 </td>
+                                                                <td className="p-3 text-center">
+                                                                    <span className={`px-2.5 py-1 rounded-full ${log.work_days == 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                                                        {log.work_days}
+                                                                    </span>
+                                                                </td>
+                                                                <td className={`p-3 text-center ${log.ot_hours > 0 ? 'text-violet-500' : 'text-gray-300'}`}>
+                                                                    {log.ot_hours > 0 ? log.ot_hours : '-'}
+                                                                </td>
+                                                                <td className="p-3 text-gray-500">{log.note || '-'}</td>
+
                                                             </tr>
-                                                        )}
-                                                    </React.Fragment>
-                                                ))}
-                                            </tbody>
-                                        </table>
-</div>
+                                                            {expandedLogs.has(log.id) && (
+                                                                <tr className="bg-[#f8fafc] border-b border-border">
+                                                                    <td colSpan="5" className="p-[0 1rem 1rem 2.8rem]">
+                                                                        <div className="flex gap-8 text-[0.95rem] text-[#4b5563]">
+                                                                            <div>
+                                                                                <span className="text-[#9ca3af] mr-[8px]">เวลาเข้า:</span>
+                                                                                <span className="font-mono font-medium">{log.start_time ? log.start_time.slice(0, 5) : '-'}</span>
+                                                                            </div>
+                                                                            <div>
+                                                                                <span className="text-[#9ca3af] mr-[8px]">เวลาออก:</span>
+                                                                                <span className="font-mono font-medium">{log.end_time ? log.end_time.slice(0, 5) : '-'}</span>
+                                                                            </div>
+                                                                            {Number(log.late_hours) > 0 && (
+                                                                                <div className="text-[#d97706] font-medium">
+                                                                                    สาย: {Math.round(log.late_hours * 60)} นาที
+                                                                                </div>
+                                                                            )}
+                                                                            {log.is_early && (
+                                                                                <div className="text-[#ea580c] font-medium">ออกก่อน</div>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </React.Fragment>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 )}
                             </div>
                         ))}
 
                         {workLogs.length === 0 && (
-                            <div style={{ textAlign: 'center', padding: '2rem', color: '#ccc' }}>ยังไม่มีบันทึกเวลาทำงาน</div>
+                            <div className="text-center p-8 text-[#ccc]">ยังไม่มีบันทึกเวลาทำงาน</div>
                         )}
                     </div>
                 )

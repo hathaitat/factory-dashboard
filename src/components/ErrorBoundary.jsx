@@ -74,7 +74,7 @@ class ErrorBoundary extends React.Component {
                         </div>
 
                         {/* Body */}
-                        <div style={{ padding: '1.5rem' }}>
+                        <div className="p-6">
                             <div style={{
                                 background: 'rgba(239, 68, 68, 0.05)',
                                 border: '1px solid rgba(239, 68, 68, 0.12)',

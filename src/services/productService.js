@@ -1,4 +1,6 @@
 import { supabase } from './supabaseClient';
+import { settingService } from './settingService';
+import { warehouseService } from './warehouseService';
 
 export const productService = {
     // Get all products (for export)
@@ -17,6 +19,7 @@ export const productService = {
                 name: product.name,
                 unit: product.unit,
                 price: Number(product.price),
+                sku: product.sku,
                 createdAt: product.created_at
             }));
         } catch (error) {
@@ -42,6 +45,7 @@ export const productService = {
                 name: product.name,
                 unit: product.unit,
                 price: Number(product.price),
+                sku: product.sku,
                 createdAt: product.created_at
             }));
         } catch (error) {
@@ -57,7 +61,8 @@ export const productService = {
                 customer_id: productData.customerId,
                 name: productData.name,
                 unit: productData.unit,
-                price: productData.price
+                price: productData.price,
+                sku: productData.sku || null
             };
 
             const { data, error } = await supabase
@@ -68,12 +73,19 @@ export const productService = {
 
             if (error) throw error;
 
+            // Auto-sync to default distribution warehouse if configured
+            const defaultWarehouseId = await settingService.getSetting('default_distribution_warehouse_id');
+            if (defaultWarehouseId) {
+                await warehouseService.ensureProductInWarehouse(defaultWarehouseId, data.sku, data.name, data.unit);
+            }
+
             return {
                 id: data.id,
                 customerId: data.customer_id,
                 name: data.name,
                 unit: data.unit,
                 price: Number(data.price),
+                sku: data.sku,
                 createdAt: data.created_at
             };
         } catch (error) {
@@ -85,10 +97,18 @@ export const productService = {
     // Update a product
     updateProduct: async (id, productData) => {
         try {
+            // Get old data for syncing to warehouse
+            const { data: oldData } = await supabase
+                .from('customer_products')
+                .select('name, sku')
+                .eq('id', id)
+                .single();
+
             const dbData = {
                 name: productData.name,
                 unit: productData.unit,
-                price: productData.price
+                price: productData.price,
+                sku: productData.sku || null
             };
 
             const { data, error } = await supabase
@@ -100,12 +120,19 @@ export const productService = {
 
             if (error) throw error;
 
+            // Auto-sync to default distribution warehouse if configured
+            const defaultWarehouseId = await settingService.getSetting('default_distribution_warehouse_id');
+            if (defaultWarehouseId && oldData) {
+                await warehouseService.syncProductUpdateToWarehouse(defaultWarehouseId, oldData, data);
+            }
+
             return {
                 id: data.id,
                 customerId: data.customer_id,
                 name: data.name,
                 unit: data.unit,
                 price: Number(data.price),
+                sku: data.sku,
                 createdAt: data.created_at
             };
         } catch (error) {

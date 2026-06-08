@@ -19,6 +19,7 @@ const CustomerProductHistoryPrint = React.lazy(() => import('./pages/CustomerPro
 const CompanyInfoPage = React.lazy(() => import('./pages/CompanyInfoPage'));
 const UserListPage = React.lazy(() => import('./pages/UserListPage'));
 const UserFormPage = React.lazy(() => import('./pages/UserFormPage'));
+const UserDetailPage = React.lazy(() => import('./pages/UserDetailPage'));
 const CertificateListPage = React.lazy(() => import('./pages/CertificateListPage'));
 const CertificateFormPage = React.lazy(() => import('./pages/CertificateFormPage'));
 const InvoiceListPage = React.lazy(() => import('./pages/InvoiceListPage'));
@@ -32,6 +33,7 @@ const BillingNotePrintTemplate = React.lazy(() => import('./components/BillingNo
 const ReceiptListPage = React.lazy(() => import('./pages/ReceiptListPage'));
 const ReceiptDetailPage = React.lazy(() => import('./pages/ReceiptDetailPage'));
 const ReceiptPrintTemplate = React.lazy(() => import('./components/ReceiptPrintTemplate'));
+const CertificateReceiptPage = React.lazy(() => import('./pages/CertificateReceiptPage'));
 const EmployeeListPage = React.lazy(() => import('./pages/EmployeeListPage'));
 const EmployeeFormPage = React.lazy(() => import('./pages/EmployeeFormPage'));
 const EmployeeDashboardPage = React.lazy(() => import('./pages/EmployeeDashboardPage'));
@@ -42,12 +44,28 @@ const QuotationListPage = React.lazy(() => import('./pages/QuotationListPage'));
 const QuotationFormPage = React.lazy(() => import('./pages/QuotationFormPage'));
 const QuotationPrintTemplate = React.lazy(() => import('./components/QuotationPrintTemplate'));
 const GuidePage = React.lazy(() => import('./pages/GuidePage'));
+const SupplierListPage = React.lazy(() => import('./pages/SupplierListPage'));
+const SupplierCreatePage = React.lazy(() => import('./pages/SupplierCreatePage'));
+const SupplierEditPage = React.lazy(() => import('./pages/SupplierEditPage'));
+const SupplierDetailPage = React.lazy(() => import('./pages/SupplierDetailPage'));
+const SupplierPoListPage = React.lazy(() => import('./pages/SupplierPoListPage'));
+const SupplierPoFormPage = React.lazy(() => import('./pages/SupplierPoFormPage'));
+const SupplierPoDetailPage = React.lazy(() => import('./pages/SupplierPoDetailPage'));
+const SupplierPoPrintPage = React.lazy(() => import('./pages/SupplierPoPrintPage'));
+const WarehouseListPage = React.lazy(() => import('./pages/WarehouseListPage'));
+const WarehouseDetailPage = React.lazy(() => import('./pages/WarehouseDetailPage'));
+const InventoryHistoryPage = React.lazy(() => import('./pages/InventoryHistoryPage'));
+const InternalItemListPage = React.lazy(() => import('./pages/InternalItemListPage'));
+const InternalRequisitionListPage = React.lazy(() => import('./pages/InternalRequisitionListPage'));
+const InternalRequisitionFormPage = React.lazy(() => import('./pages/InternalRequisitionFormPage'));
+const InternalRequisitionDetailPage = React.lazy(() => import('./pages/InternalRequisitionDetailPage'));
+const InternalItemHistoryPage = React.lazy(() => import('./pages/InternalItemHistoryPage'));
 // Loading fallback component
 const PageLoader = () => (
-  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--text-muted)', background: 'var(--bg-main)' }}>
-    <div style={{ textAlign: 'center' }}>
-      <div className="loading-spinner" style={{ margin: '0 auto 12px', width: '40px', height: '40px' }}></div>
-      <p style={{ fontWeight: '500' }}>กำลังโหลด...</p>
+  <div className="flex justify-center items-center h-screen text-textMuted bg-main">
+    <div className="text-center">
+      <div className="loading-spinner mx-auto mb-3 w-10 h-10"></div>
+      <p className="font-medium">กำลังโหลด...</p>
     </div>
   </div>
 );
@@ -85,14 +103,63 @@ function App() {
                       <Route path="customers/:id/edit" element={<CustomerEditPage />} />
                     </Route>
 
+                    {/* Suppliers Module */}
+                    <Route element={<PermissionRoute module="suppliers" action="view" />}>
+                      <Route path="suppliers" element={<SupplierListPage />} />
+                      <Route path="suppliers/:id" element={<SupplierDetailPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="suppliers" action="create" />}>
+                      <Route path="suppliers/new" element={<SupplierCreatePage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="suppliers" action="edit" />}>
+                      <Route path="suppliers/:id/edit" element={<SupplierEditPage />} />
+                    </Route>
+
+                    {/* Supplier POs */}
+                    <Route element={<PermissionRoute module="supplier_pos" action="create" />}>
+                      <Route path="supplier-pos/create" element={<SupplierPoFormPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="supplier_pos" action="view" />}>
+                      <Route path="supplier-pos" element={<SupplierPoListPage />} />
+                      <Route path="supplier-pos/:id" element={<SupplierPoDetailPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="supplier_pos" action="edit" />}>
+                      <Route path="supplier-pos/:id/edit" element={<SupplierPoFormPage />} />
+                    </Route>
+
+                    {/* Warehouse Module */}
+                    <Route element={<PermissionRoute module="warehouses" action="view" />}>
+                      <Route path="warehouses" element={<WarehouseListPage />} />
+                      <Route path="warehouses/:id" element={<WarehouseDetailPage />} />
+                      <Route path="inventory/:id" element={<InventoryHistoryPage />} />
+                    </Route>
+
+                    {/* Internal Items Module */}
+                    <Route element={<PermissionRoute module="internal_items" action="view" />}>
+                      <Route path="internal-items" element={<InternalItemListPage />} />
+                      <Route path="internal-items/:id/history" element={<InternalItemHistoryPage />} />
+                    </Route>
+
+                    {/* Internal Requisitions Module */}
+                    <Route element={<PermissionRoute module="internal_requisitions" action="view" />}>
+                      <Route path="internal-requisitions" element={<InternalRequisitionListPage />} />
+                      <Route path="internal-requisitions/:id" element={<InternalRequisitionDetailPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="internal_requisitions" action="create" />}>
+                      <Route path="internal-requisitions/new" element={<InternalRequisitionFormPage />} />
+                    </Route>
+                    <Route element={<PermissionRoute module="internal_requisitions" action="edit" />}>
+                      <Route path="internal-requisitions/:id/edit" element={<InternalRequisitionFormPage />} />
+                    </Route>
+
                     {/* Certificates Module */}
-                    <Route element={<PermissionRoute module="customers" action="view" />}>
+                    <Route element={<PermissionRoute module="certificates" action="view" />}>
                       <Route path="certificates" element={<CertificateListPage />} />
                     </Route>
-                    <Route element={<PermissionRoute module="customers" action="create" />}>
+                    <Route element={<PermissionRoute module="certificates" action="create" />}>
                       <Route path="certificates/new" element={<CertificateFormPage />} />
                     </Route>
-                    <Route element={<PermissionRoute module="customers" action="edit" />}>
+                    <Route element={<PermissionRoute module="certificates" action="edit" />}>
                       <Route path="certificates/:id/edit" element={<CertificateFormPage />} />
                     </Route>
 
@@ -104,14 +171,14 @@ function App() {
                     </Route>
 
                     {/* Quotations Module */}
-                    <Route element={<PermissionRoute module="invoices" action="view" />}>
+                    <Route element={<PermissionRoute module="quotations" action="view" />}>
                       <Route path="quotations" element={<QuotationListPage />} />
                       <Route path="quotations/:id" element={<QuotationFormPage />} />
                     </Route>
-                    <Route element={<PermissionRoute module="invoices" action="create" />}>
+                    <Route element={<PermissionRoute module="quotations" action="create" />}>
                       <Route path="quotations/new" element={<QuotationFormPage />} />
                     </Route>
-                    <Route element={<PermissionRoute module="invoices" action="edit" />}>
+                    <Route element={<PermissionRoute module="quotations" action="edit" />}>
                       <Route path="quotations/:id/edit" element={<QuotationFormPage />} />
                     </Route>
 
@@ -145,9 +212,15 @@ function App() {
                       <Route path="receipts/:id" element={<ReceiptDetailPage />} />
                     </Route>
 
+                    {/* Certificate Receipts Module */}
+                    <Route element={<PermissionRoute module="certificate_receipts" action="view" />}>
+                      <Route path="certificate-receipts" element={<CertificateReceiptPage />} />
+                    </Route>
+
                     {/* Users/Permissions Module */}
                     <Route element={<PermissionRoute module="users" action="view" />}>
                       <Route path="users" element={<UserListPage />} />
+                      <Route path="users/:id" element={<UserDetailPage />} />
                     </Route>
                     <Route element={<PermissionRoute module="users" action="create" />}>
                       <Route path="users/new" element={<UserFormPage />} />
@@ -175,7 +248,7 @@ function App() {
 
                     {/* Production Module */}
                     <Route element={<PermissionRoute module="production" action="view" />}>
-                      <Route path="production" element={<div style={{ padding: '2rem' }}><h2>ข้อมูลการผลิต (เร็วๆ นี้)</h2></div>} />
+                      <Route path="production" element={<div className="p-8"><h2>ข้อมูลการผลิต (เร็วๆ นี้)</h2></div>} />
                     </Route>
                     <Route element={<PermissionRoute module="overview" action="view" />}>
                       <Route path="guide" element={<GuidePage />} />
@@ -185,11 +258,16 @@ function App() {
                   {/* Print Routes (Protected + Permission Check) */}
                   <Route element={<PermissionRoute module="invoices" action="view" />}>
                     <Route path="/dashboard/invoices/:id/print" element={<InvoicePrintTemplate />} />
+                  </Route>
+                  <Route element={<PermissionRoute module="quotations" action="view" />}>
                     <Route path="/dashboard/quotations/:id/print" element={<QuotationPrintTemplate />} />
                   </Route>
                   <Route element={<PermissionRoute module="billing" action="view" />}>
                     <Route path="/dashboard/billing-notes/:id/print" element={<BillingNotePrintTemplate />} />
                     <Route path="/dashboard/billing-notes/:id/print-receipt" element={<ReceiptPrintTemplate />} />
+                  </Route>
+                  <Route element={<PermissionRoute module="supplier_pos" action="view" />}>
+                    <Route path="/dashboard/supplier-pos/:id/print" element={<SupplierPoPrintPage />} />
                   </Route>
                   <Route element={<PermissionRoute module="customers" action="view" />}>
                     <Route path="/dashboard/customers/:id/print-product-history" element={<CustomerProductHistoryPrint />} />

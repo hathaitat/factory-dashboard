@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { AlertCircle, CheckCircle, Info, XCircle, HelpCircle, X } from 'lucide-react';
+import { translateError } from '../utils/errorTranslator';
 
 const DialogContext = createContext();
 
@@ -9,6 +10,8 @@ export const DialogProvider = ({ children }) => {
     const [toast, setToast] = useState({
         isOpen: false,
         message: '',
+        title: '',
+        type: 'info', // 'success' | 'error' | 'info'
         duration: 5000
     });
 
@@ -27,7 +30,7 @@ export const DialogProvider = ({ children }) => {
                 isOpen: true,
                 type: 'alert',
                 title,
-                message,
+                message: translateError(message),
                 resolveProps: resolve
             });
         });
@@ -51,7 +54,7 @@ export const DialogProvider = ({ children }) => {
                 isOpen: true,
                 type: 'error',
                 title,
-                message: errorMessage,
+                message: translateError(errorMessage),
                 resolveProps: resolve
             });
         });
@@ -70,15 +73,27 @@ export const DialogProvider = ({ children }) => {
         });
     }, []);
 
-    const showToast = useCallback((message, duration = 3000) => {
+    const showToast = useCallback((message, typeOrDuration = 'info', title = '', duration = 3000) => {
+        // Backwards-compatible: if second arg is a number, treat as duration (old API)
+        let resolvedType = 'info';
+        let resolvedTitle = title;
+        let resolvedDuration = duration;
+        if (typeof typeOrDuration === 'number') {
+            resolvedDuration = typeOrDuration;
+        } else if (typeof typeOrDuration === 'string') {
+            resolvedType = typeOrDuration;
+        }
+
         setToast({
             isOpen: true,
-            message,
-            duration
+            message: translateError(message),
+            type: resolvedType,
+            title: resolvedTitle,
+            duration: resolvedDuration
         });
         setTimeout(() => {
             setToast(prev => ({ ...prev, isOpen: false }));
-        }, duration);
+        }, resolvedDuration);
     }, []);
 
     const handleClose = (result) => {
@@ -92,17 +107,7 @@ export const DialogProvider = ({ children }) => {
         <DialogContext.Provider value={{ showAlert, showConfirm, showError, showHelp, showToast }}>
             {children}
             {dialogState.isOpen && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 9999,
-                    backdropFilter: 'blur(4px)',
-                    animation: 'fadeIn 0.2s ease-out'
-                }}>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] backdrop-blur-[4px] animate-[fadeIn_0.2s_ease-out]">
                     <style>
                         {`
                         @keyframes fadeIn {
@@ -123,58 +128,44 @@ export const DialogProvider = ({ children }) => {
                         }
                         `}
                     </style>
-                    <div style={{
-                        background: 'var(--bg-main, #ffffff)',
-                        borderRadius: '12px',
-                        width: '90%',
-                        maxWidth: (dialogState.type === 'help' && dialogState.videoUrl) ? '720px' : '400px',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-                        border: '1px solid var(--border-color, #e5e7eb)',
-                        overflow: 'hidden',
-                        animation: 'slideUp 0.3s ease-out',
-                        maxHeight: '90vh',
-                        display: 'flex',
-                        flexDirection: 'column'
-                    }}>
+                    <div className={`bg-main rounded-xl w-[90%] shadow-2xl border border-border overflow-hidden animate-[slideUp_0.3s_ease-out] max-h-[90vh] flex flex-col ${
+                        (dialogState.type === 'help' && dialogState.videoUrl) ? 'max-w-[720px]' : 'max-w-[400px]'
+                    }`}>
                         {/* Header */}
-                        <div style={{
-                            padding: '1.2rem',
-                            borderBottom: '1px solid var(--border-color, #e5e7eb)',
-                            display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            background: dialogState.type === 'error' ? 'rgba(239, 68, 68, 0.08)'
-                                : dialogState.type === 'help' ? 'rgba(99, 102, 241, 0.08)'
-                                    : dialogState.type === 'confirm' ? 'rgba(245, 158, 11, 0.05)'
-                                        : 'rgba(59, 130, 246, 0.05)'
-                        }}>
-                            {dialogState.type === 'error' ? <XCircle size={20} color="#ef4444" />
-                                : dialogState.type === 'help' ? <HelpCircle size={20} color="#6366f1" />
-                                    : dialogState.type === 'confirm' ? <AlertCircle size={20} color="#f59e0b" />
-                                        : <Info size={20} color="#3b82f6" />}
-                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600', color: 'var(--text-main, #111)' }}>{dialogState.title}</h3>
+                        <div className={`p-[1.2rem] border-b border-border flex items-center gap-2 ${
+                            dialogState.type === 'error' ? 'bg-[#ef4444]/[0.08]' :
+                            dialogState.type === 'help' ? 'bg-[#6366f1]/[0.08]' :
+                            dialogState.type === 'confirm' ? 'bg-[#f59e0b]/[0.05]' : 'bg-[#3b82f6]/[0.05]'
+                        }`}>
+                            {dialogState.type === 'error' ? <XCircle size={20} className="text-error" />
+                                : dialogState.type === 'help' ? <HelpCircle size={20} className="text-[#6366f1]" />
+                                    : dialogState.type === 'confirm' ? <AlertCircle size={20} className="text-warning" />
+                                        : <Info size={20} className="text-[#3b82f6]" />}
+                            <h3 className="m-0 text-[1.1rem] font-semibold text-textMain">{dialogState.title}</h3>
                         </div>
                         {/* Body */}
-                        <div style={{ padding: '1.5rem', color: 'var(--text-muted, #4b5563)', fontSize: '0.95rem', lineHeight: '1.5', whiteSpace: 'pre-line', overflowY: 'auto', flex: 1 }}>
+                        <div className="p-6 text-textMuted text-[0.95rem] leading-[1.5] whitespace-pre-line overflow-y-auto flex-1">
                             {dialogState.type === 'error' ? (
                                 <>
-                                    <div style={{ background: 'rgba(239, 68, 68, 0.06)', border: '1px solid rgba(239, 68, 68, 0.15)', borderRadius: '8px', padding: '0.8rem 1rem', marginBottom: '1rem', fontFamily: 'monospace', fontSize: '0.85rem', color: '#dc2626', wordBreak: 'break-all' }}>
+                                    <div className="bg-[#ef4444]/[0.06] border border-[#ef4444]/[0.15] rounded-lg py-3 px-4 mb-4 font-mono text-[0.85rem] text-[#dc2626] break-all">
                                         {dialogState.message}
                                     </div>
-                                    <div style={{ color: '#6b7280', fontSize: '0.9rem' }}>
+                                    <div className="text-[#6b7280] text-[0.9rem]">
                                         หากปัญหายังไม่หายไป กรุณาติดต่อผู้ดูแลระบบ (Admin)
                                     </div>
                                 </>
                             ) : dialogState.type === 'help' ? (
                                 <div>
                                     {dialogState.videoUrl && (
-                                        <div style={{ marginBottom: '1rem', borderRadius: '8px', overflow: 'hidden', background: '#f8f9fa', border: '1px solid #e5e7eb' }}>
+                                        <div className="mb-4 rounded-lg overflow-hidden bg-[#f8f9fa] border border-[#e5e7eb]">
                                             <img
                                                 src={dialogState.videoUrl}
                                                 alt="Tutorial Video"
-                                                style={{ width: '100%', display: 'block', maxHeight: '400px', objectFit: 'contain' }}
+                                                className="w-full block max-h-[400px] object-contain"
                                             />
                                         </div>
                                     )}
-                                    <div style={{ lineHeight: '1.8' }}>
+                                    <div className="leading-[1.8]">
                                         {dialogState.message}
                                     </div>
                                 </div>
@@ -183,39 +174,22 @@ export const DialogProvider = ({ children }) => {
                             )}
                         </div>
                         {/* Footer */}
-                        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color, #e5e7eb)', display: 'flex', justifyContent: 'flex-end', gap: '0.8rem', background: 'var(--bg-main, #ffffff)' }}>
+                        <div className="py-4 px-6 border-t border-border flex justify-end gap-3 bg-[#f8fafc]">
                             {dialogState.type === 'confirm' && (
                                 <button
                                     onClick={() => handleClose(false)}
-                                    style={{
-                                        padding: '0.5rem 1rem',
-                                        borderRadius: '6px',
-                                        border: '1px solid var(--border-color, #e5e7eb)',
-                                        background: 'transparent',
-                                        color: 'var(--text-muted, #4b5563)',
-                                        cursor: 'pointer',
-                                        fontWeight: '500'
-                                    }}
+                                    className="py-2 px-4 rounded-md border border-border bg-transparent text-textMuted cursor-pointer font-medium hover:bg-card-hover"
                                 >
                                     ยกเลิก
                                 </button>
                             )}
                             <button
                                 onClick={() => handleClose(true)}
-                                style={{
-                                    padding: '0.5rem 1rem',
-                                    borderRadius: '6px',
-                                    border: 'none',
-                                    background: dialogState.type === 'error' ? '#ef4444'
-                                        : dialogState.type === 'help' ? '#6366f1'
-                                            : dialogState.type === 'confirm' ? '#f59e0b' : '#3b82f6',
-                                    color: 'white',
-                                    cursor: 'pointer',
-                                    fontWeight: '500',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.4rem'
-                                }}
+                                className={`py-2 px-4 rounded-md border-none text-white cursor-pointer font-medium flex items-center gap-1.5 hover:opacity-90 ${
+                                    dialogState.type === 'error' ? 'bg-[#ef4444]' :
+                                    dialogState.type === 'help' ? 'bg-[#6366f1]' :
+                                    dialogState.type === 'confirm' ? 'bg-[#f59e0b]' : 'bg-[#3b82f6]'
+                                }`}
                             >
                                 <CheckCircle size={16} /> {dialogState.type === 'confirm' ? 'ยืนยัน' : dialogState.type === 'error' ? 'ปิด' : 'ตกลง'}
                             </button>
@@ -226,36 +200,23 @@ export const DialogProvider = ({ children }) => {
 
             {/* Toast Notification */}
             {toast.isOpen && (
-                <div style={{
-                    position: 'fixed',
-                    top: '20px',
-                    right: '20px',
-                    zIndex: 10000,
-                    animation: 'slideInRight 0.3s ease-out',
-                    maxWidth: '350px'
-                }}>
-                    <div className="glass-panel" style={{
-                        padding: '1rem 1.2rem',
-                        background: 'rgba(59, 130, 246, 0.95)',
-                        color: 'white',
-                        borderRadius: '12px',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        backdropFilter: 'blur(8px)',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '0.8rem'
-                    }}>
-                        <div style={{ marginTop: '2px' }}>
-                            <Info size={20} />
+                <div className="fixed top-5 right-5 z-[10000] animate-[slideInRight_0.3s_ease-out] max-w-[350px]">
+                    <div className={`glass-panel py-4 px-[1.2rem] text-white rounded-xl shadow-2xl border border-white/20 backdrop-blur-md flex items-start gap-3 ${
+                        toast.type === 'success' ? 'bg-[#10b981]/95' :
+                        toast.type === 'error' ? 'bg-[#ef4444]/95' : 'bg-[#3b82f6]/95'
+                    }`}>
+                        <div className="mt-[2px]">
+                            {toast.type === 'success' ? <CheckCircle size={20} />
+                                : toast.type === 'error' ? <XCircle size={20} />
+                                : <Info size={20} />}
                         </div>
-                        <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '2px', fontWeight: '500' }}>หมายเหตุเฉพาะลูกค้า</div>
-                            <div style={{ fontSize: '0.95rem', lineHeight: '1.4', fontWeight: '500' }}>{toast.message}</div>
+                        <div className="flex-1">
+                            {toast.title && <div className="text-[0.85rem] opacity-80 mb-[2px] font-medium">{toast.title}</div>}
+                            <div className="text-[0.95rem] leading-[1.4] font-medium">{toast.message}</div>
                         </div>
                         <button
                             onClick={() => setToast(prev => ({ ...prev, isOpen: false }))}
-                            style={{ background: 'none', border: 'none', color: 'white', opacity: 0.7, cursor: 'pointer', padding: '2px' }}
+                            className="bg-transparent border-none text-white opacity-70 cursor-pointer p-0.5 hover:opacity-100"
                         >
                             <X size={16} />
                         </button>

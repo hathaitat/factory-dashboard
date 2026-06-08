@@ -74,7 +74,7 @@ const CustomerTab = () => {
     return (
         <div className="tab-content">
             <div className="kpi-grid">
-                <div className="kpi-card glass-panel" onClick={() => navigate('/dashboard/customers')} style={{ cursor: 'pointer' }}>
+                <div className="kpi-card glass-panel cursor-pointer" onClick={() => navigate('/dashboard/customers')}>
                     <div className="kpi-icon-wrapper blue">
                         <Users size={24} />
                     </div>
@@ -110,7 +110,7 @@ const CustomerTab = () => {
                     </div>
                     <div className="kpi-content">
                         <span className="kpi-label">ลูกค้าที่ซื้อเดือนนี้</span>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div className="flex flex-col">
                             <span className="kpi-value">{data.purchasedThisMonth.toLocaleString()} <span className="unit">ราย</span></span>
                             <span className="kpi-sub-value" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                                 ฿{data.monthlyPurchasedAmount.toLocaleString()}

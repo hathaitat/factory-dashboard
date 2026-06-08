@@ -31,8 +31,8 @@ const QuotationPrintTemplate = () => {
         window.print();
     };
 
-    if (isLoading) return <div style={{ padding: '2rem' }}>กำลังโหลด...</div>;
-    if (!quotation || !company) return <div style={{ padding: '2rem' }}>ไม่พบข้อมูลใบเสนอราคา</div>;
+    if (isLoading) return <div className="p-8">กำลังโหลด...</div>;
+    if (!quotation || !company) return <div className="p-8">ไม่พบข้อมูลใบเสนอราคา</div>;
 
     const cust = quotation.customer || quotation.customerSnapshot || {};
     const filledItems = [...quotation.items];
@@ -75,22 +75,64 @@ const QuotationPrintTemplate = () => {
                 `}
             </style>
 
-            <div className="no-print" style={{ padding: '1rem', display: 'flex', gap: '1rem', background: '#111', borderBottom: '1px solid #333', flexWrap: 'wrap', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000 }}>
-                <button onClick={() => navigate('/dashboard/quotations')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: '1px solid #444', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' }}>
+            <div className="no-print" style={{ 
+                padding: '0.8rem 1.5rem', 
+                display: 'flex', 
+                alignItems: 'center',
+                gap: '1rem',
+                background: '#111', 
+                color: 'white', 
+                position: 'fixed', 
+                top: 0, 
+                left: 0,
+                right: 0,
+                zIndex: 1000,
+                borderBottom: '1px solid #333'
+            }}>
+                <button 
+                    onClick={() => navigate('/dashboard/quotations')} 
+                    style={{ 
+                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white', 
+                        padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
+                        fontSize: '0.9rem'
+                    }}
+                >
                     <ArrowLeft size={18} /> ย้อนกลับ
                 </button>
-                <button onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#3b82f6', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' }}>
+                
+                <button 
+                    onClick={handlePrint} 
+                    style={{ 
+                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                        background: '#3b82f6', border: 'none', color: 'white', 
+                        padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
+                        fontWeight: '600', fontSize: '0.95rem',
+                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                    }}
+                >
                     <Printer size={18} /> พิมพ์ใบเสนอราคา
                 </button>
             </div>
             {/* Spacer for fixed header */}
             <div className="no-print" style={{ height: '60px' }}></div>
 
-            <div style={{ textAlign: 'center', lineHeight: '1.4' }}>
-                <div style={{ fontSize: '16pt', fontFamily: 'serif' }}>{company.nameEn || 'MULTIPLY AUTO WORKS CO.,LTD.'}</div>
-                <div style={{ fontSize: '16pt', fontWeight: 'bold' }}>{company.name}</div>
-                <div style={{ fontSize: '13pt' }}>{company.address} โทรศัพท์ {company.phone} {company.fax ? `โทรสาร ${company.fax}` : ''}</div>
-                <div style={{ fontSize: '13pt' }}>{company.email && `E-mail : ${company.email}`}</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px', marginBottom: '10px' }}>
+                {company.logoUrl && (
+                    <img src={company.logoUrl} alt="Company Logo" style={{ height: '90px', maxWidth: '250px', objectFit: 'contain' }} />
+                )}
+                <div style={{ textAlign: 'center', lineHeight: '1.4' }}>
+                    {company.nameEn && <div style={{ fontSize: '16pt', fontFamily: 'serif' }}>{company.nameEn}</div>}
+                    <div style={{ fontSize: '16pt', fontWeight: 'bold' }}>{company.name}</div>
+                    <div style={{ fontSize: '13pt' }}>
+                        {[
+                            company.address,
+                            company.phone && `โทรศัพท์ ${company.phone}`,
+                            company.fax && `โทรสาร ${company.fax}`
+                        ].filter(Boolean).join(' ')}
+                    </div>
+                    {company.email && <div style={{ fontSize: '13pt' }}>E-mail : {company.email}</div>}
+                </div>
             </div>
 
             <div style={{ marginTop: '5px', marginBottom: '10px' }}>
@@ -106,51 +148,53 @@ const QuotationPrintTemplate = () => {
 
                 <div style={{ display: 'flex', minHeight: '140px' }}>
                     <div style={{ width: '55%', padding: '10px 15px', borderRight: '1px solid #000', fontSize: '13pt', lineHeight: '1.6' }}>
-                        <div style={{ display: 'flex' }}>
+                        <div className="flex">
                             <div style={{ width: '50px' }}>ATTN</div>
                             <div>{quotation.attnName ? `คุณ ${quotation.attnName}` : ''}</div>
                         </div>
-                        <div style={{ display: 'flex' }}>
+                        <div className="flex">
                             <div style={{ width: '50px' }}>บริษัท</div>
-                            <div>{cust.name}</div>
+                            <div>{cust.name} {cust.branch && `(สาขา ${cust.branch})`}</div>
                         </div>
                         <div style={{ display: 'flex', marginTop: '5px' }}>
                             <div style={{ width: '50px' }}></div>
-                            <div style={{ flex: 1 }}>{cust.address}</div>
+                            <div className="flex-1">{cust.address}</div>
                         </div>
-                        <div style={{ display: 'flex', marginTop: '5px' }}>
+                        <div className="flex">
                             <div style={{ width: '50px' }}>TEL.</div>
                             <div>{cust.phone || '-'}</div>
-                        </div>
-                        <div style={{ display: 'flex' }}>
-                            <div style={{ width: '50px' }}>FAX.</div>
-                            <div>{cust.fax || '-'}</div>
+                            {cust.fax && (
+                                <>
+                                    <div style={{ width: '50px', marginLeft: '20px' }}>FAX.</div>
+                                    <div>{cust.fax}</div>
+                                </>
+                            )}
                         </div>
                     </div>
 
                     <div style={{ width: '45%', padding: '10px 15px', fontSize: '13pt', lineHeight: '1.6' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div className="flex justify-between">
                             <div style={{ width: '220px' }}>วันที่ ( DATE )</div>
                             <div>{new Date(quotation.date).toLocaleDateString('th-TH')}</div>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div className="flex justify-between">
                             <div style={{ width: '220px' }}>เลขที่ ( QT/NO. )</div>
                             <div>{quotation.quotationNo}</div>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div className="flex justify-between">
                             <div style={{ width: '220px' }}>ยืนราคา ( VALIDITY )</div>
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                                 <span>{quotation.validityDays}</span>
                                 <span>วัน</span>
                             </div>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div className="flex justify-between">
                             <div style={{ width: '220px' }}>กำหนดชำระเงิน ( PAYMENT TIME )</div>
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                                 <span>{quotation.paymentCondition}</span>
                             </div>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div className="flex justify-between">
                             <div style={{ width: '220px' }}>กำหนดส่งสินค้า ( DELIVERY TIME )</div>
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                                 <span>{quotation.deliveryTime}</span>

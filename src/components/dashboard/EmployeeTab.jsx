@@ -122,7 +122,7 @@ const EmployeeTab = () => {
                     </div>
                     <div className="kpi-content">
                         <span className="kpi-label">ค่าแรงรวมเดือนนี้ (ประมาณ)</span>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div className="flex flex-col">
                             <span className="kpi-value">฿{data.estimatedPayroll.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                             <span className="kpi-sub-value" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                                 รวม {data.totalWorkDays} วันทำงาน

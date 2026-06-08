@@ -6,7 +6,7 @@ import SupplierForm from '../components/SupplierForm';
 import { supplierService } from '../services/supplierService';
 import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
-import { useAuth } from '../contexts/AuthContext';
+
 
 const SupplierEditPage = () => {
     const { user } = useAuth();

@@ -10,7 +10,7 @@ import { useDialog } from '../contexts/DialogContext';
 import { userService } from '../services/userService';
 import { calculateSubcontractTotal } from '../utils/bomCalculator';
 import PageHeader from '../components/PageHeader';
-import { useAuth } from '../contexts/AuthContext';
+
 
 const SupplierPoFormPage = () => {
     const { user } = useAuth();

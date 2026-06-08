@@ -206,7 +206,7 @@ export const warehouseService = {
                 .from('warehouse_inventory')
                 .select('*')
                 .eq('warehouse_id', warehouseId)
-                .order('product_type', { ascending: true })
+                .order('last_updated', { ascending: false, nullsFirst: false })
                 .order('product_name', { ascending: true });
 
             if (error) throw error;

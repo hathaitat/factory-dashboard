@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fix for tailwind color naming clash */
+.text-main { color: var(--text-main) !important; }
+.bg-main { background-color: var(--bg-main) !important; }
+.bg-cardBg { background-color: var(--card-bg) !important; }
+.bg-cardHover { background-color: var(--card-hover) !important; }
+.border-border { border-color: var(--border-color) !important; }
+
 :root {
   /* Professional Light Palette */
   --bg-main: #f8fafc;

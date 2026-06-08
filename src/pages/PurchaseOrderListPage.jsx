@@ -298,7 +298,7 @@ const PurchaseOrderListPage = () => {
                                                     {po.total_delivered_quantity?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                                                 </span>
                                                 <span className="text-textMuted">/</span>
-                                                <span className="text-main font-medium">
+                                                <span className="font-medium text-main">
                                                     {po.total_po_quantity?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                                                 </span>
                                             </div>

@@ -18,7 +18,7 @@ export const userService = {
         try {
             const { data, error } = await supabase
                 .from('staff_members')
-                .select('id, full_name, email, username, permissions, created_at, created_by, updated_by, last_login_at, updated_at')
+                .select('id, full_name, email, username, permissions, created_at, last_login_at, updated_at')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -30,8 +30,6 @@ export const userService = {
                 username: user.username,
                 permissions: user.permissions || {},
                 createdAt: user.created_at,
-                createdBy: user.created_by,
-                updatedBy: user.updated_by,
                 lastLoginAt: user.last_login_at,
                 updatedAt: user.updated_at,
                 // Password is intentionally omitted for security
@@ -60,8 +58,6 @@ export const userService = {
                 username: data.username,
                 permissions: data.permissions || {},
                 createdAt: data.created_at,
-                createdBy: data.created_by,
-                updatedBy: data.updated_by,
                 lastLoginAt: data.last_login_at,
                 updatedAt: data.updated_at,
                 // Password omitted
@@ -82,9 +78,7 @@ export const userService = {
                 email: userData.email,
                 username: userData.username,
                 password: hashedPassword,
-                permissions: userData.permissions,
-                created_by: userData.createdBy,
-                updated_by: userData.updatedBy
+                permissions: userData.permissions
             };
 
             const { data, error } = await supabase
@@ -110,7 +104,6 @@ export const userService = {
                 email: userData.email,
                 username: userData.username,
                 permissions: userData.permissions,
-                updated_by: userData.updatedBy,
                 updated_at: new Date().toISOString()
             };
 

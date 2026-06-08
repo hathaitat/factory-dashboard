@@ -217,6 +217,10 @@ const PurchaseOrderFormPage = () => {
             await showAlert('กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ');
             return;
         }
+        if (!formData.due_date) {
+            await showAlert('กรุณาระบุ วันกำหนดส่ง (Due Date)');
+            return;
+        }
 
         setIsLoading(true);
         try {
@@ -224,6 +228,7 @@ const PurchaseOrderFormPage = () => {
             const userName = currentUser?.fullName || currentUser?.username || 'Unknown';
             const payload = {
                 ...formData,
+                due_date: formData.due_date || null,
                 created_by: isEdit ? undefined : userName,
                 updated_by: userName
             };
@@ -366,11 +371,12 @@ const PurchaseOrderFormPage = () => {
                             />
                         </div>
                         <div>
-                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>วันกำหนดส่ง (Due Date)</label>
+                            <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>วันกำหนดส่ง (Due Date) <span className="text-error">*</span></label>
                             <input
                                 type="date"
                                 value={formData.due_date}
                                 onChange={e => setFormData({ ...formData, due_date: e.target.value })}
+                                required
                                 className="glass-panel w-full p-2.5 bg-main rounded-lg text-main border border-border"
                             />
                         </div>

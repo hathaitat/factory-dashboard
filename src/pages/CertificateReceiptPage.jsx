@@ -198,7 +198,7 @@ const CertificateReceiptPage = () => {
                                 <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--text-main)' }}>฿ {totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             {totalAmount > 0 && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', marginTop: '0.5rem', background: 'var(--bg-main)', borderRadius: '8px', padding: '1rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', background: 'var(--bg-main)', borderRadius: '8px', padding: '1rem' }}>
                                     <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>ตัวอักษร</span>
                                     <span style={{ fontWeight: '500', color: 'var(--primary)' }}>({thaiBaht(totalAmount)})</span>
                                 </div>

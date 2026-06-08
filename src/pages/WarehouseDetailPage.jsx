@@ -288,9 +288,9 @@ const WarehouseDetailPage = () => {
                                         <td className="px-6 py-4 text-main font-medium">{item.product_name}</td>
                                         <td className="px-6 py-4">
                                             {item.product_type === 'material' ? (
-                                                <span className="text-primary rounded-xl" style={{ fontSize: '0.75rem', background: 'rgba(59, 130, 246, 0.1)', padding: '0.2rem 0.6rem' }}>วัตถุดิบ</span>
+                                                <span className="text-primary rounded-xl inline-block whitespace-nowrap" style={{ fontSize: '0.75rem', background: 'rgba(59, 130, 246, 0.1)', padding: '0.2rem 0.6rem' }}>วัตถุดิบ</span>
                                             ) : (
-                                                <span className="text-emerald-500 rounded-xl" style={{ fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', padding: '0.2rem 0.6rem' }}>สินค้าสำเร็จรูป</span>
+                                                <span className="text-emerald-500 rounded-xl inline-block whitespace-nowrap" style={{ fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', padding: '0.2rem 0.6rem' }}>สินค้าสำเร็จรูป</span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-textMuted">{item.sku || '-'}</td>
@@ -326,9 +326,9 @@ const WarehouseDetailPage = () => {
                                         )}
                                         <td className="px-6 py-4 text-center">
                                             {(item.quantity < 0 || (item.min_stock > 0 && item.quantity <= item.min_stock)) ? (
-                                                <span className="text-red-500 rounded-xl" style={{ fontSize: '0.75rem', background: '#fee2e2', padding: '0.2rem 0.6rem' }}>ของใกล้หมด</span>
+                                                <span className="text-red-500 rounded-xl inline-block whitespace-nowrap" style={{ fontSize: '0.75rem', background: '#fee2e2', padding: '0.2rem 0.6rem' }}>ของใกล้หมด</span>
                                             ) : (
-                                                <span className="text-emerald-500 rounded-xl" style={{ fontSize: '0.75rem', background: '#d1fae5', padding: '0.2rem 0.6rem' }}>ปกติ</span>
+                                                <span className="text-emerald-500 rounded-xl inline-block whitespace-nowrap" style={{ fontSize: '0.75rem', background: '#d1fae5', padding: '0.2rem 0.6rem' }}>ปกติ</span>
                                             )}
                                         </td>
                                     </tr>

@@ -745,6 +745,24 @@ export const warehouseService = {
         }
     },
 
+    syncProductUpdateToWarehouse: async (warehouseId, oldData, newData) => {
+        if (!warehouseId) return;
+        try {
+            const matchColumn = oldData.sku ? 'sku' : 'product_name';
+            const matchValue = oldData.sku || oldData.name;
+            await supabase
+                .from('warehouse_inventory')
+                .update({ 
+                    sku: newData.sku || null,
+                    product_name: newData.name
+                })
+                .eq('warehouse_id', warehouseId)
+                .eq(matchColumn, matchValue);
+        } catch (error) {
+            console.error('Error syncing product update to warehouse:', error);
+        }
+    },
+
     syncCustomerProductsToWarehouse: async (warehouseId) => {
         try {
             // 1. Fetch all customer products with customer name

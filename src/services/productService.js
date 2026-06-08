@@ -97,6 +97,13 @@ export const productService = {
     // Update a product
     updateProduct: async (id, productData) => {
         try {
+            // Get old data for syncing to warehouse
+            const { data: oldData } = await supabase
+                .from('customer_products')
+                .select('name, sku')
+                .eq('id', id)
+                .single();
+
             const dbData = {
                 name: productData.name,
                 unit: productData.unit,
@@ -112,6 +119,12 @@ export const productService = {
                 .single();
 
             if (error) throw error;
+
+            // Auto-sync to default distribution warehouse if configured
+            const defaultWarehouseId = await settingService.getSetting('default_distribution_warehouse_id');
+            if (defaultWarehouseId && oldData) {
+                await warehouseService.syncProductUpdateToWarehouse(defaultWarehouseId, oldData, data);
+            }
 
             return {
                 id: data.id,

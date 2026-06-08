@@ -500,16 +500,16 @@ const CustomerDetailPage = () => {
                                             <button
                                                 type="submit"
                                                 disabled={!newProduct.name || isSavingProduct}
-                                                className="p-[0.6rem 1rem] rounded-md border-none bg-[#f59e0b] text-white cursor-pointer font-medium"
+                                                className="px-5 py-2.5 rounded-lg border-none bg-blue-500 text-white cursor-pointer font-medium hover:bg-blue-600 transition-colors shadow-sm"
                                             >
                                                 {isSavingProduct ? '...' : (editingProduct ? 'บันทึก' : 'เพิ่ม')}
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={handleCancelEdit}
-                                                className="p-2.5 rounded-md border border-border bg-transparent text-muted cursor-pointer"
+                                                className="px-3 py-2.5 rounded-lg border border-border bg-card text-textMuted hover:text-red-500 hover:bg-red-50 cursor-pointer transition-colors shadow-sm"
                                             >
-                                                <X size={18} />
+                                                <X size={20} />
                                             </button>
                                         </div>
                                     </form>

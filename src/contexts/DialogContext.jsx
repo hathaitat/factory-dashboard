@@ -201,7 +201,7 @@ export const DialogProvider = ({ children }) => {
             {/* Toast Notification */}
             {toast.isOpen && (
                 <div className="fixed top-5 right-5 z-[10000] animate-[slideInRight_0.3s_ease-out] max-w-[350px]">
-                    <div className={`glass-panel py-4 px-[1.2rem] text-white rounded-xl shadow-2xl border border-white/20 backdrop-blur-md flex items-start gap-3 ${
+                    <div className={`py-4 px-[1.2rem] text-white rounded-xl shadow-2xl border border-white/20 backdrop-blur-md flex items-start gap-3 ${
                         toast.type === 'success' ? 'bg-[#10b981]/95' :
                         toast.type === 'error' ? 'bg-[#ef4444]/95' : 'bg-[#3b82f6]/95'
                     }`}>

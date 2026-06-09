@@ -197,7 +197,7 @@ const DashboardLayout = () => {
                     {/* COLLAPSIBLE GROUPS */}
 
                     {/* 1. Warehouse & Production */}
-                    {(hasPermission('warehouses', 'view') || hasPermission('production', 'view')) && (
+                    {(hasPermission('warehouses', 'view') || hasPermission('production', 'view') || hasPermission('internal_items', 'view') || hasPermission('internal_requisitions', 'view')) && (
                         <div className={`nav-group ${openGroups.ops ? 'open' : ''}`}>
                             <button className="nav-item group-header" onClick={() => toggleGroup('ops')}>
                                 <Package size={20} className="text-[#14b8a6]" />

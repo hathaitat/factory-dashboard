@@ -104,6 +104,19 @@ const InvoiceFormPage = () => {
                         deliveredBy: inv.customerSnapshot?.deliveredBy || ''
                     });
 
+                    let customerProducts = [];
+                    let pos = [];
+                    if (inv.customerId) {
+                        const [fetchedProducts, fetchedPos] = await Promise.all([
+                            productService.getProductsByCustomerId(inv.customerId),
+                            purchaseOrderService.getPurchaseOrdersByCustomer(inv.customerId)
+                        ]);
+                        customerProducts = fetchedProducts || [];
+                        pos = fetchedPos || [];
+                        setAllProducts(customerProducts);
+                        setCustomerPOs(pos);
+                    }
+
                     let loadedItems = inv.items;
                     if (inv.purchaseOrderId) {
                         const fullPo = await purchaseOrderService.getPurchaseOrderWithRemainingQuantity(inv.purchaseOrderId);
@@ -120,16 +133,17 @@ const InvoiceFormPage = () => {
                             });
                         }
                     }
-                    setItems(loadedItems);
 
-                    if (inv.customerId) {
-                        const [customerProducts, pos] = await Promise.all([
-                            productService.getProductsByCustomerId(inv.customerId),
-                            purchaseOrderService.getPurchaseOrdersByCustomer(inv.customerId)
-                        ]);
-                        setAllProducts(customerProducts || []);
-                        setCustomerPOs(pos || []);
-                    }
+                    // Map SKU from customer products
+                    loadedItems = loadedItems.map(item => {
+                        const matchedProduct = customerProducts.find(p => p.name === item.productName);
+                        return {
+                            ...item,
+                            sku: matchedProduct?.sku || item.sku || ''
+                        };
+                    });
+
+                    setItems(loadedItems);
                 }
             } else {
                 const nextNo = await invoiceService.getNextInvoiceNo();

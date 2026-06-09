@@ -60,10 +60,12 @@ const Pagination = ({
         return pages;
     };
 
-    const btnClass = "inline-flex items-center justify-center border border-border bg-cardBg text-textMain cursor-pointer transition-all duration-200 text-sm font-medium disabled:opacity-35 disabled:cursor-not-allowed hover:not(:disabled):not(.active):bg-primary/10 hover:not(:disabled):not(.active):border-primary/30 hover:not(:disabled):not(.active):text-primary";
-    const navBtnClass = `${btnClass} w-7 h-7 md:w-8 md:h-8 min-w-[28px] md:min-w-[32px] rounded-lg`;
-    const pageBtnClass = `${btnClass} h-7 md:h-8 min-w-[28px] md:min-w-[32px] px-1.5 md:px-1.5 rounded-lg`;
-    const activeClass = "active bg-primary border-primary text-white font-bold shadow-[0_2px_8px_rgba(99,102,241,0.3)]";
+    const baseBtnClass = "inline-flex items-center justify-center border border-solid transition-all duration-200 text-sm font-medium disabled:opacity-35 disabled:cursor-not-allowed rounded-lg";
+    const defaultStateClass = "border-border bg-cardBg text-textMain hover:not(:disabled):bg-blue-500/10 hover:not(:disabled):border-blue-500/30 hover:not(:disabled):text-blue-500";
+    const activeStateClass = "bg-blue-500 border-blue-500 text-white font-bold shadow-md shadow-blue-500/30";
+
+    const navBtnClass = `${baseBtnClass} ${defaultStateClass} w-7 h-7 md:w-8 md:h-8 min-w-[28px] md:min-w-[32px]`;
+    const getPageBtnClass = (isActive) => `${baseBtnClass} h-7 md:h-8 min-w-[28px] md:min-w-[32px] px-1.5 md:px-1.5 ${isActive ? activeStateClass : defaultStateClass}`;
 
     return (
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between px-4 py-3 md:px-6 md:py-4 border-t border-border bg-cardBg flex-wrap gap-4">
@@ -111,7 +113,7 @@ const Pagination = ({
                         ) : (
                             <button
                                 key={page}
-                                className={`${pageBtnClass} ${currentPage === page ? activeClass : ''}`}
+                                className={getPageBtnClass(currentPage === page)}
                                 onClick={() => onPageChange(page)}
                             >
                                 {page}

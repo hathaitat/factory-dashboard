@@ -156,32 +156,32 @@ const SupplierPoListPage = () => {
             </PageHeader>
 
             <div className="grid-mobile-stack mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="glass-panel p-6 bg-white" style={{ display: 'flex', alignItems: 'center', gap: '1.2rem', border: '1px solid rgba(107, 114, 128, 0.1)' }}>
-                    <div className="p-3 rounded-xl text-gray-500" style={{ background: 'rgba(107, 114, 128, 0.1)' }}><FileText size={24} /></div>
+                <div className="glass-panel flex items-center gap-4" style={{ padding: '1.25rem', border: '1px solid rgba(107, 114, 128, 0.1)', background: 'rgba(107, 114, 128, 0.02)' }}>
+                    <div className="p-2.5 rounded-xl text-gray-500" style={{ background: 'rgba(107, 114, 128, 0.1)' }}><FileText size={20} /></div>
                     <div>
-                        <div className="text-sm text-textMuted" style={{ marginBottom: '0.2rem' }}>ฉบับร่าง (Draft)</div>
-                        <div className="text-gray-500" style={{ fontSize: '1.8rem', fontWeight: '800', lineHeight: 1 }}>{kpis.draft}</div>
+                        <div className="text-xs text-textMuted">ฉบับร่าง (Draft)</div>
+                        <div className="text-xl font-bold text-gray-500">{kpis.draft}</div>
                     </div>
                 </div>
-                <div className="glass-panel p-6 bg-white" style={{ display: 'flex', alignItems: 'center', gap: '1.2rem', border: '1px solid rgba(245, 158, 11, 0.1)' }}>
-                    <div className="p-3 rounded-xl text-amber-500" style={{ background: 'rgba(245, 158, 11, 0.1)' }}><Clock size={24} /></div>
+                <div className="glass-panel flex items-center gap-4" style={{ padding: '1.25rem', border: '1px solid rgba(245, 158, 11, 0.1)', background: 'rgba(245, 158, 11, 0.02)' }}>
+                    <div className="p-2.5 rounded-xl text-amber-500" style={{ background: 'rgba(245, 158, 11, 0.1)' }}><Clock size={20} /></div>
                     <div>
-                        <div className="text-sm text-textMuted" style={{ marginBottom: '0.2rem' }}>รับบางส่วน (Partial)</div>
-                        <div className="text-amber-500" style={{ fontSize: '1.8rem', fontWeight: '800', lineHeight: 1 }}>{kpis.partial}</div>
+                        <div className="text-xs text-textMuted">รับบางส่วน (Partial)</div>
+                        <div className="text-xl font-bold text-amber-500">{kpis.partial}</div>
                     </div>
                 </div>
-                <div className="glass-panel p-6 bg-white" style={{ display: 'flex', alignItems: 'center', gap: '1.2rem', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
-                    <div className="p-3 rounded-xl text-emerald-500" style={{ background: 'rgba(16, 185, 129, 0.1)' }}><ShoppingCart size={24} /></div>
+                <div className="glass-panel flex items-center gap-4" style={{ padding: '1.25rem', border: '1px solid rgba(16, 185, 129, 0.1)', background: 'rgba(16, 185, 129, 0.02)' }}>
+                    <div className="p-2.5 rounded-xl text-emerald-500" style={{ background: 'rgba(16, 185, 129, 0.1)' }}><ShoppingCart size={20} /></div>
                     <div>
-                        <div className="text-sm text-textMuted" style={{ marginBottom: '0.2rem' }}>รับครบแล้ว (Completed)</div>
-                        <div className="text-emerald-500" style={{ fontSize: '1.8rem', fontWeight: '800', lineHeight: 1 }}>{kpis.completed}</div>
+                        <div className="text-xs text-textMuted">รับครบแล้ว (Completed)</div>
+                        <div className="text-xl font-bold text-emerald-500">{kpis.completed}</div>
                     </div>
                 </div>
-                <div className="glass-panel p-6 bg-white" style={{ display: 'flex', alignItems: 'center', gap: '1.2rem', border: '1px solid rgba(239, 68, 68, 0.1)' }}>
-                    <div className="p-3 rounded-xl text-red-500" style={{ background: 'rgba(239, 68, 68, 0.1)' }}><XCircle size={24} /></div>
+                <div className="glass-panel flex items-center gap-4" style={{ padding: '1.25rem', border: '1px solid rgba(239, 68, 68, 0.1)', background: 'rgba(239, 68, 68, 0.02)' }}>
+                    <div className="p-2.5 rounded-xl text-red-500" style={{ background: 'rgba(239, 68, 68, 0.1)' }}><XCircle size={20} /></div>
                     <div>
-                        <div className="text-sm text-textMuted" style={{ marginBottom: '0.2rem' }}>ยกเลิก (Cancelled)</div>
-                        <div className="text-red-500" style={{ fontSize: '1.8rem', fontWeight: '800', lineHeight: 1 }}>{kpis.cancelled}</div>
+                        <div className="text-xs text-textMuted">ยกเลิก (Cancelled)</div>
+                        <div className="text-xl font-bold text-red-500">{kpis.cancelled}</div>
                     </div>
                 </div>
             </div>

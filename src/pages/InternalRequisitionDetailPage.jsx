@@ -18,6 +18,7 @@ const InternalRequisitionDetailPage = () => {
     const [requisition, setRequisition] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedItems, setSelectedItems] = useState([]);
+    const [approvedQuantities, setApprovedQuantities] = useState({});
 
     // Stock Receive Modal
     const [showReceiveModal, setShowReceiveModal] = useState(false);
@@ -34,6 +35,11 @@ const InternalRequisitionDetailPage = () => {
                 setRequisition(data);
                 if (data.status === 'Draft' && data.items) {
                     setSelectedItems(data.items.map(item => item.id));
+                    const initialQtys = {};
+                    data.items.forEach(item => {
+                        initialQtys[item.id] = item.quantity;
+                    });
+                    setApprovedQuantities(initialQtys);
                 }
             } else {
                 showError('ไม่พบข้อมูลใบสั่งซื้อ');
@@ -71,6 +77,19 @@ const InternalRequisitionDetailPage = () => {
             return;
         }
 
+        // Validate quantities
+        for (const itemId of selectedItems) {
+            if (!approvedQuantities[itemId] || approvedQuantities[itemId] <= 0) {
+                showError('กรุณาระบุจำนวนที่ต้องการอนุมัติให้ถูกต้อง (ต้องมากกว่า 0)');
+                return;
+            }
+            const originalItem = requisition.items.find(i => i.id === itemId);
+            if (approvedQuantities[itemId] > originalItem.quantity) {
+                showError(`จำนวนที่อนุมัติของ ${originalItem.item_name} ต้องไม่เกินจำนวนที่ขอเบิก (${originalItem.quantity})`);
+                return;
+            }
+        }
+
         const unselectedCount = requisition.items.length - selectedItems.length;
         let confirmMsg = `ยืนยันการอนุมัติและตัดสต๊อกสินค้าที่เลือกจำนวน ${selectedItems.length} รายการ?\n\nระบบจะหักสต๊อกและบันทึกประวัติการเบิกใช้อัตโนมัติ`;
         if (unselectedCount > 0) {
@@ -82,7 +101,12 @@ const InternalRequisitionDetailPage = () => {
 
         setIsLoading(true); // Reuse loading state for the whole page during action
         try {
-            await internalRequisitionService.approveAndDeductStock(id, currentUser?.fullName || 'system', selectedItems);
+            const quantitiesToPass = {};
+            selectedItems.forEach(itemId => {
+                quantitiesToPass[itemId] = Number(approvedQuantities[itemId]);
+            });
+
+            await internalRequisitionService.approveAndDeductStock(id, currentUser?.fullName || 'system', quantitiesToPass);
             showAlert(`อนุมัติและตัดสต๊อกเรียบร้อยแล้ว`);
             loadData();
         } catch (err) {
@@ -106,6 +130,13 @@ const InternalRequisitionDetailPage = () => {
                 ? prev.filter(id => id !== itemId) 
                 : [...prev, itemId]
         );
+    };
+
+    const handleQuantityChange = (itemId, val) => {
+        setApprovedQuantities(prev => ({
+            ...prev,
+            [itemId]: val
+        }));
     };
 
     const getStatusColor = (status) => {
@@ -197,7 +228,24 @@ const InternalRequisitionDetailPage = () => {
                                             )}
                                             <td className="px-6 py-4 text-textMuted text-sm">{idx + 1}</td>
                                             <td className="px-6 py-4 font-medium text-textMain">{item.item_name}</td>
-                                            <td className="px-6 py-4 text-right text-textMain font-semibold">{(item.quantity || 0).toLocaleString()}</td>
+                                            <td className="px-6 py-4 text-right">
+                                                {requisition.status === 'Draft' && hasPermission('internal_items', 'edit') && selectedItems.includes(item.id) ? (
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <input 
+                                                            type="number" 
+                                                            min="1" 
+                                                            max={item.quantity}
+                                                            value={approvedQuantities[item.id] || ''} 
+                                                            onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                                                            className="glass-input w-20 text-right text-main border border-border" 
+                                                            style={{ padding: '0.4rem', background: 'var(--bg-main)', borderRadius: '6px' }}
+                                                        />
+                                                        <span className="text-xs text-textMuted">/ {item.quantity}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-textMain font-semibold">{(item.quantity || 0).toLocaleString()}</span>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4 text-center text-textMuted text-sm">{item.unit || '-'}</td>
                                         </tr>
                                     ))}

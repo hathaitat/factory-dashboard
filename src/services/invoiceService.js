@@ -337,12 +337,37 @@ export const invoiceService = {
     // Update Invoice
     updateInvoice: async (id, invoiceData, items) => {
         try {
-            // 0. Get old invoice to check for PO changes and status for stock handling
+            // 0. Get old invoice and old items to check for changes
             const { data: oldInv } = await supabase
                 .from('invoices')
                 .select('purchase_order_id, status')
                 .eq('id', id)
                 .single();
+
+            const { data: oldItemsData } = await supabase
+                .from('invoice_items')
+                .select('*')
+                .eq('invoice_id', id);
+
+            const mappedOldItems = (oldItemsData || []).map(item => ({
+                productName: item.product_name,
+                quantity: item.quantity
+            }));
+            
+            // Check if items changed
+            let itemsChanged = false;
+            if (mappedOldItems.length !== items.length) {
+                itemsChanged = true;
+            } else {
+                const oldSorted = [...mappedOldItems].sort((a,b) => a.productName.localeCompare(b.productName));
+                const newSorted = [...items].sort((a,b) => a.productName.localeCompare(b.productName));
+                for (let i = 0; i < oldSorted.length; i++) {
+                    if (oldSorted[i].productName !== newSorted[i].productName || Number(oldSorted[i].quantity) !== Number(newSorted[i].quantity)) {
+                        itemsChanged = true;
+                        break;
+                    }
+                }
+            }
 
             // 1. Update Invoice
             const dbInv = {
@@ -401,16 +426,10 @@ export const invoiceService = {
             // 3. Auto Stock Handling (Return Old, Deduct New)
             const defaultWarehouseId = await settingService.getSetting('default_distribution_warehouse_id');
             let deductionWarnings = [];
-            if (defaultWarehouseId) {
-                // If the old invoice was NOT Cancelled or Draft, return its stock first
+            if (defaultWarehouseId && (itemsChanged || oldInv?.status !== invoiceData.status)) {
+                // If the old invoice was NOT Cancelled, return its stock first
                 if (oldInv && oldInv.status !== 'Cancelled') {
-                    // Fetch old items to return
-                    const { data: oldItems } = await supabase.from('invoice_items').select('*').eq('invoice_id', id);
-                    if (oldItems && oldItems.length > 0) {
-                        const mappedOldItems = oldItems.map(item => ({
-                            productName: item.product_name,
-                            quantity: item.quantity
-                        }));
+                    if (mappedOldItems.length > 0) {
                         await warehouseService.returnStockForInvoice(
                             defaultWarehouseId,
                             mappedOldItems,
@@ -420,7 +439,7 @@ export const invoiceService = {
                     }
                 }
 
-                // If the new status is NOT Draft or Cancelled, deduct the new stock
+                // If the new status is NOT Cancelled, deduct the new stock
                 if (invoiceData.status !== 'Cancelled') {
                     const deductionResult = await warehouseService.deductStockForInvoice(
                         defaultWarehouseId,

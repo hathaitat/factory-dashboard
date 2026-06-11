@@ -249,7 +249,7 @@ export const supplierPoService = {
 
             if (items && items.length > 0) {
                 const itemsToInsert = items.map((item, index) => {
-                    const { raw_material_qty, sku, ...itemData } = item;
+                    const { raw_material_qty, sku, image_url, ...itemData } = item;
                     return {
                         ...itemData,
                         po_id: poResult.id,
@@ -389,7 +389,7 @@ export const supplierPoService = {
                 // Insert new items
                 if (items.length > 0) {
                     const itemsToInsert = items.map((item, index) => {
-                        const { raw_material_qty, sku, ...itemData } = item;
+                        const { raw_material_qty, sku, image_url, ...itemData } = item;
                         return {
                             ...itemData,
                             po_id: id,

@@ -419,7 +419,10 @@ const SupplierPoFormPage = () => {
                             'OUT',
                             subcontractQty,
                             `เบิกไปแปรรูปชิ้นส่วนตามใบสั่งจ้างผลิต (PO: ${savedPo.po_number || savedPo.id})`,
-                            currentUser?.fullName || 'system'
+                            currentUser?.fullName || 'system',
+                            'subcontract',
+                            savedPo.id,
+                            savedPo.po_number || savedPo.id
                         );
                         await showAlert('สร้างใบสั่งซื้อ และตัดยอดสต็อกวัตถุดิบสำเร็จ');
                     } catch (err) {

@@ -10,7 +10,7 @@ export const internalRequisitionService = {
                 .select(`
                     *,
                     items:internal_requisition_items(
-                        id, item_id, item_name, quantity, unit, unit_price, amount
+                        id, item_id, item_name, quantity, unit, unit_price, amount, approved_quantity
                     )
                 `)
                 .order('created_at', { ascending: false });
@@ -29,7 +29,7 @@ export const internalRequisitionService = {
                 .select(`
                     *,
                     items:internal_requisition_items(
-                        id, item_id, item_name, quantity, unit, unit_price, amount
+                        id, item_id, item_name, quantity, unit, unit_price, amount, approved_quantity
                     )
                 `)
                 .eq('id', id)
@@ -50,21 +50,12 @@ export const internalRequisitionService = {
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const datePrefix = `${prefix}-${year}${month}`;
 
-            const { data } = await supabase
-                .from('internal_requisitions')
-                .select('requisition_number')
-                .like('requisition_number', `${datePrefix}%`)
-                .order('requisition_number', { ascending: false })
-                .limit(1);
+            const { data, error } = await supabase.rpc('generate_requisition_number', {
+                p_prefix: datePrefix
+            });
 
-            let nextNumber = 1;
-            if (data && data.length > 0) {
-                const lastNum = data[0].requisition_number;
-                const lastSeq = parseInt(lastNum.split('-').pop(), 10);
-                if (!isNaN(lastSeq)) nextNumber = lastSeq + 1;
-            }
-
-            return `${datePrefix}-${String(nextNumber).padStart(4, '0')}`;
+            if (error) throw error;
+            return data;
         } catch (error) {
             console.error('Error generating requisition number:', error);
             const fallback = Date.now().toString().slice(-6);
@@ -113,44 +104,59 @@ export const internalRequisitionService = {
         try {
             requisitionData.updated_at = new Date().toISOString();
 
-            const { data: req, error: reqError } = await supabase
-                .from('internal_requisitions')
-                .update(requisitionData)
-                .eq('id', id)
-                .select()
-                .single();
-
-            if (reqError) throw reqError;
-
-            // Replace items: delete old, insert new
             if (items) {
-                const { error: delError } = await supabase
+                const { data: oldItems } = await supabase
                     .from('internal_requisition_items')
-                    .delete()
+                    .select('item_id, item_name, approved_quantity')
                     .eq('requisition_id', id);
 
-                if (delError) throw delError;
-
-                if (items.length > 0) {
-                    const itemsToInsert = items.map(item => ({
-                        requisition_id: id,
+                const itemsToInsert = items.map(item => {
+                    const oldItem = oldItems?.find(old => 
+                        (old.item_id === item.item_id && old.item_id !== null) || 
+                        (old.item_name === item.item_name)
+                    );
+                    
+                    return {
                         item_id: item.item_id || null,
                         item_name: item.item_name,
                         quantity: item.quantity,
                         unit: item.unit,
                         unit_price: item.unit_price,
-                        amount: item.amount
-                    }));
+                        amount: item.amount,
+                        approved_quantity: oldItem?.approved_quantity || 0
+                    };
+                });
 
-                    const { error: insError } = await supabase
-                        .from('internal_requisition_items')
-                        .insert(itemsToInsert);
+                const { error: rpcError } = await supabase.rpc('update_requisition_with_items', {
+                    p_req_id: id,
+                    p_req_data: requisitionData,
+                    p_items: itemsToInsert
+                });
 
-                    if (insError) throw insError;
+                if (rpcError) throw rpcError;
+
+                // Auto-update status to Completed if all items are now fully approved
+                const allCompleted = itemsToInsert.every(item => (Number(item.approved_quantity) || 0) >= (Number(item.quantity) || 0));
+                if (allCompleted && itemsToInsert.length > 0 && requisitionData.status === 'Partial') {
+                    await supabase
+                        .from('internal_requisitions')
+                        .update({ status: 'Completed' })
+                        .eq('id', id);
+                    requisitionData.status = 'Completed';
                 }
-            }
+                
+                return { id, ...requisitionData };
+            } else {
+                const { data: req, error: reqError } = await supabase
+                    .from('internal_requisitions')
+                    .update(requisitionData)
+                    .eq('id', id)
+                    .select()
+                    .single();
 
-            return req;
+                if (reqError) throw reqError;
+                return req;
+            }
         } catch (error) {
             console.error('Error updating requisition:', error);
             throw error;
@@ -188,70 +194,59 @@ export const internalRequisitionService = {
             // 1. Get requisition data with items
             const req = await internalRequisitionService.getRequisitionById(id);
             if (!req) throw new Error('ไม่พบข้อมูลใบเบิก/สั่งซื้อ');
-            if (req.status === 'Completed' || req.status === 'Approved') {
-                throw new Error('รายการนี้ถูกอนุมัติหรือตัดสต๊อกไปแล้ว');
+            if (req.status === 'Completed' || req.status === 'Cancelled') {
+                throw new Error('รายการนี้เสร็จสมบูรณ์หรือถูกยกเลิกไปแล้ว');
             }
 
-            const itemsToProcess = approvedQuantities ? req.items.filter(item => approvedQuantities[item.id] !== undefined) : req.items;
+            const itemsToProcess = approvedQuantities ? req.items.filter(item => approvedQuantities[item.id] !== undefined && approvedQuantities[item.id] > 0) : req.items;
             
             if (itemsToProcess.length === 0) {
-                throw new Error('กรุณาเลือกอย่างน้อย 1 รายการเพื่ออนุมัติ');
+                throw new Error('ไม่มีรายการที่ระบุจำนวนอนุมัติ');
             }
 
-            let newTotalAmount = 0;
+            // 2. Prepare items for batch RPC
+            let allItemsComplete = true;
+            const rpcItems = [];
 
-            // 2. Loop through each item and deduct stock
-            for (const item of itemsToProcess) {
-                const finalQty = approvedQuantities ? approvedQuantities[item.id] : item.quantity;
-                const finalAmount = finalQty * (item.unit_price || 0);
-                newTotalAmount += finalAmount;
-                
-                if (item.item_id) {
-                    await internalItemService.adjustStockWithLog(
-                        item.item_id,
-                        'OUT',             // ตัดสต๊อกออกไปใช้
-                        finalQty,
-                        item.unit_price || null,
-                        `เบิกใช้ตามใบสั่งซื้อ ${req.requisition_number}`,
-                        approvedBy || 'System',
-                        'requisition',
-                        req.id,
-                        req.requisition_number
-                    );
+            for (const item of req.items) {
+                const currentApproved = Number(item.approved_quantity) || 0;
+                const requestedQty = Number(item.quantity) || 0;
+                let newApprovedInThisRun = 0;
+
+                if (approvedQuantities && approvedQuantities[item.id]) {
+                    newApprovedInThisRun = Number(approvedQuantities[item.id]);
+                } else if (!approvedQuantities) {
+                    newApprovedInThisRun = requestedQty - currentApproved;
                 }
 
-                // Update quantity and amount in the database if it was partially approved
-                if (finalQty !== item.quantity) {
-                    await supabase.from('internal_requisition_items')
-                        .update({ quantity: finalQty, amount: finalAmount })
-                        .eq('id', item.id);
+                const finalApprovedQty = currentApproved + newApprovedInThisRun;
+                if (finalApprovedQty < requestedQty) {
+                    allItemsComplete = false;
                 }
+
+                rpcItems.push({
+                    item_id: item.item_id || null,
+                    req_item_id: item.id,
+                    deduct_qty: newApprovedInThisRun,
+                    final_approved_qty: finalApprovedQty,
+                    unit_price: item.unit_price || null
+                });
             }
 
-            // 2.5 Delete unapproved items if any
-            if (approvedQuantities) {
-                const unapprovedItemIds = req.items.filter(item => approvedQuantities[item.id] === undefined).map(i => i.id);
-                if (unapprovedItemIds.length > 0) {
-                    await supabase.from('internal_requisition_items').delete().in('id', unapprovedItemIds);
-                }
-            }
+            const newStatus = allItemsComplete ? 'Completed' : 'Partial';
 
-            // 3. Update requisition status and total_amount
-            const { data, error } = await supabase
-                .from('internal_requisitions')
-                .update({
-                    status: 'Completed', // เปลี่ยนเป็นเสร็จสมบูรณ์ทันที
-                    total_amount: newTotalAmount,
-                    approved_by: approvedBy,
-                    updated_at: new Date().toISOString(),
-                    updated_by: approvedBy || null
-                })
-                .eq('id', id)
-                .select()
-                .single();
+            // 3. Execute batch RPC
+            const { error: rpcError } = await supabase.rpc('batch_approve_requisition_items', {
+                p_req_id: id,
+                p_items: rpcItems,
+                p_approved_by: approvedBy || 'System',
+                p_requisition_number: req.requisition_number,
+                p_new_status: newStatus
+            });
 
-            if (error) throw error;
-            return data;
+            if (rpcError) throw rpcError;
+
+            return { id, status: newStatus };
         } catch (error) {
             console.error('Error in approveAndDeductStock:', error);
             throw error;

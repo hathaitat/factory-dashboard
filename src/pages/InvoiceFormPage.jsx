@@ -49,11 +49,9 @@ const InvoiceFormPage = () => {
     });
 
     const [items, setItems] = useState([
-        { productName: '', quantity: 1, unit: '', pricePerUnit: 0, amount: 0, sku: '' }
+        { productName: '', quantity: 1, unit: '', pricePerUnit: 0, amount: 0, sku: '', maxQuantity: undefined }
     ]);
 
-    // Add state for product autocomplete dropdown
-    const [activeProductDropdown, setActiveProductDropdown] = useState(null);
 
     useEffect(() => {
         loadInitialData();
@@ -241,22 +239,32 @@ const InvoiceFormPage = () => {
 
     const handleItemChange = (index, field, value) => {
         const newItems = [...items];
+        const item = newItems[index];
 
-        if (field === 'quantity') {
+        if (field === 'sku' || field === 'productName') {
+            const selectedProduct = allProducts.find(p => p.sku === value || p.name === value);
+            item[field] = value;
+            if (selectedProduct) {
+                item.sku = selectedProduct.sku || '';
+                item.productName = selectedProduct.name || '';
+                item.unit = selectedProduct.unit || 'ชิ้น';
+                item.pricePerUnit = selectedProduct.price || 0;
+            }
+        } else if (field === 'quantity') {
             const numValue = Number(value);
-            if (newItems[index].maxQuantity !== undefined && numValue > newItems[index].maxQuantity) {
-                showToast(`สามารถระบุจำนวนได้สูงสุด ${newItems[index].maxQuantity} (ตามยอดคงเหลือใน PO)`, 4000);
-                newItems[index][field] = newItems[index].maxQuantity;
+            if (item.maxQuantity !== undefined && numValue > item.maxQuantity) {
+                showToast(`สามารถระบุจำนวนได้สูงสุด ${item.maxQuantity} (ตามยอดคงเหลือใน PO)`, 4000);
+                item[field] = item.maxQuantity;
             } else {
-                newItems[index][field] = value;
+                item[field] = value;
             }
         } else {
-            newItems[index][field] = value;
+            item[field] = value;
         }
 
-        if (field === 'quantity' || field === 'pricePerUnit') {
-            const calculatedAmt = Number(newItems[index].quantity || 0) * Number(newItems[index].pricePerUnit || 0);
-            newItems[index].amount = Math.round((calculatedAmt + Number.EPSILON) * 100) / 100;
+        if (field === 'quantity' || field === 'pricePerUnit' || field === 'sku' || field === 'productName') {
+            const calculatedAmt = Number(item.quantity || 0) * Number(item.pricePerUnit || 0);
+            item.amount = Math.round((calculatedAmt + Number.EPSILON) * 100) / 100;
         }
 
         setItems(newItems);
@@ -681,57 +689,48 @@ const InvoiceFormPage = () => {
                                         <td style={{ padding: '0.8rem 1rem', verticalAlign: 'top', position: 'relative' }}>
                                             <input
                                                 type="text"
+                                                list={`customer-sku-${index}`}
                                                 value={item.sku}
-                                                onChange={e => {
-                                                    const val = e.target.value;
-                                                    handleItemChange(index, 'sku', val);
-                                                    setActiveProductDropdown(index);
-                                                }}
-                                                onFocus={() => setActiveProductDropdown(index)}
+                                                onChange={e => handleItemChange(index, 'sku', e.target.value)}
                                                 placeholder="เลือกหรือพิมพ์ SKU..."
                                                 className="glass-input w-full text-main border border-border" style={{ padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px' }}
                                             />
-                                            {activeProductDropdown === index && (
-                                                <div className="border border-border rounded-lg" style={{ position: 'absolute', top: '100%', left: '1.5rem', right: '1.5rem', background: 'var(--card-bg)', zIndex: 100, maxHeight: '200px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' }}>
-                                                    {allProducts.filter(p =>
-                                                        (p.sku || '').toLowerCase().includes((item.sku || '').toLowerCase()) ||
-                                                        (p.name || '').toLowerCase().includes((item.sku || '').toLowerCase())
-                                                    ).map(p => (
-                                                        <div
-                                                            key={p.id}
-                                                            onClick={() => {
-                                                                handleItemChange(index, 'sku', p.sku || '');
-                                                                handleItemChange(index, 'productName', p.name || '');
-                                                                handleItemChange(index, 'unit', p.unit || '');
-                                                                handleItemChange(index, 'pricePerUnit', p.price || 0);
-                                                                setActiveProductDropdown(null);
-                                                            }}
-                                                            className="px-4 py-2.5 cursor-pointer border-b border-border text-main" style={{ transition: 'background 0.2s', display: 'flex', justifyContent: 'space-between' }}
-                                                            onMouseOver={(e) => e.currentTarget.style.background = 'var(--card-hover)'}
-                                                            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                                                        >
-                                                            <div>
-                                                                <span className="font-medium text-blue-500" style={{ marginRight: '0.5rem' }}>{p.sku || '-'}</span>
-                                                                {p.name}
-                                                            </div>
-                                                            <div className="text-textMuted">฿{p.price}</div>
-                                                        </div>
-                                                    ))}
-                                                    {allProducts.filter(p => (p.sku || '').toLowerCase().includes((item.sku || '').toLowerCase()) || (p.name || '').toLowerCase().includes((item.sku || '').toLowerCase())).length === 0 && (
-                                                        <div className="text-textMuted text-center" style={{ padding: '0.7rem' }}>ไม่พบรายการ กด Enter หรือพิมพ์ต่อเพื่อเพิ่มใหม่</div>
-                                                    )}
-                                                </div>
-                                            )}
+                                            <datalist id={`customer-sku-${index}`}>
+                                                {allProducts.map(p => (
+                                                    <option key={`sku-${p.id}`} value={p.sku}>
+                                                        {p.sku} - {p.name}
+                                                    </option>
+                                                ))}
+                                            </datalist>
                                         </td>
                                         <td style={{ padding: '0.8rem 1rem', verticalAlign: 'top' }}>
-                                            <input
-                                                type="text"
-                                                required
-                                                value={item.productName}
-                                                onChange={e => handleItemChange(index, 'productName', e.target.value)}
-                                                placeholder="ชื่อสินค้า..."
-                                                className="glass-input w-full text-main border border-border" style={{ padding: '0.5rem', background: 'var(--card-hover)', borderRadius: '4px' }}
-                                            />
+                                            <div className="relative flex items-center">
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    list={`customer-product-${index}`}
+                                                    value={item.productName}
+                                                    onChange={e => handleItemChange(index, 'productName', e.target.value)}
+                                                    placeholder="ชื่อสินค้า..."
+                                                    className="glass-input w-full text-main border border-border" style={{ padding: '0.5rem', paddingRight: '2rem', background: 'var(--card-hover)', borderRadius: '4px' }}
+                                                />
+                                                {item.productName && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleItemChange(index, 'productName', '')}
+                                                        className="absolute right-2 bg-none border-none text-textMuted cursor-pointer flex items-center justify-center p-0.5"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                )}
+                                                <datalist id={`customer-product-${index}`}>
+                                                    {allProducts.map(p => (
+                                                        <option key={`prod-${p.id}`} value={p.name}>
+                                                            {p.name} - ฿{p.price}
+                                                        </option>
+                                                    ))}
+                                                </datalist>
+                                            </div>
                                         </td>
                                         <td style={{ padding: '0.8rem 1rem', verticalAlign: 'top' }}>
                                             <input

@@ -67,7 +67,8 @@ const OverviewTab = () => {
                 const monthlyInvoiceCount = monthlyInvoices.length;
 
                 const monthlyPOs = (purchaseOrders || []).filter(po => {
-                    const d = new Date(po.issue_date || po.created_at);
+                    if (!po.issue_date) return false;
+                    const d = new Date(po.issue_date);
                     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
                 });
                 const monthlyPOCount = monthlyPOs.length;

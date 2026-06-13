@@ -18,6 +18,8 @@ const POTab = () => {
         overdueAmount: 0,
         overdueQuantity: 0,
         deliveredQuantity: 0,
+        monthlyTotalQuantity: 0,
+        monthlyDeliveredQuantity: 0,
         upcomingPOs: [],
         overduePOs: [],
         amountChartData: [],
@@ -40,7 +42,8 @@ const POTab = () => {
                 const today = new Date(now.setHours(0, 0, 0, 0));
 
                 const monthly = (purchaseOrders || []).filter(po => {
-                    const d = new Date(po.issue_date || po.created_at);
+                    if (!po.issue_date) return false;
+                    const d = new Date(po.issue_date);
                     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
                 });
 
@@ -81,6 +84,10 @@ const POTab = () => {
                 const totalQuantity = nonCancelled.reduce((sum, po) => sum + (Number(po.total_po_quantity) || 0), 0);
 
                 const monthlyQuantity = monthly.reduce((sum, po) => sum + (Number(po.total_po_quantity) || 0), 0);
+                
+                const monthlyNonCancelled = monthly.filter(po => po.status !== 'Cancelled');
+                const monthlyTotalQuantity = monthlyNonCancelled.reduce((sum, po) => sum + (Number(po.total_po_quantity) || 0), 0);
+                const monthlyDeliveredQuantity = monthlyNonCancelled.reduce((sum, po) => sum + (po.total_delivered_quantity || 0), 0);
 
                 const pendingPOs = (purchaseOrders || []).filter(po => po.status === 'Waiting' || po.status === 'Progressing');
                 const pendingAmount = pendingPOs.reduce((sum, po) => sum + (Number(po.grand_total) || 0), 0);
@@ -114,6 +121,8 @@ const POTab = () => {
                     overdueAmount,
                     overdueQuantity,
                     deliveredQuantity,
+                    monthlyTotalQuantity,
+                    monthlyDeliveredQuantity,
                     upcomingPOs,
                     overduePOs,
                     rawPOs: purchaseOrders || [],
@@ -237,14 +246,14 @@ const POTab = () => {
                         <CheckCircle size={20} />
                     </div>
                     <div className="kpi-content">
-                        <span className="kpi-label">สินค้า สั่ง / ส่งแล้ว</span>
+                        <span className="kpi-label">สินค้า สั่ง / ส่งแล้ว (เดือนนี้)</span>
                         <span className="kpi-value text-xl">
-                            {data.totalQuantity.toLocaleString()} / <span className="text-emerald-500">{data.deliveredQuantity.toLocaleString()}</span>
+                            {data.monthlyTotalQuantity?.toLocaleString()} / <span className="text-emerald-500">{data.monthlyDeliveredQuantity?.toLocaleString()}</span>
                             <span className="unit ml-1">ชิ้น</span>
                         </span>
                         <div className="w-full h-1 bg-slate-100 rounded-sm mt-2 overflow-hidden">
                             <div className="h-full bg-emerald-500 transition-[width] duration-500 ease-in-out" style={{
-                                width: `${Math.min(100, (data.deliveredQuantity / (data.totalQuantity || 1)) * 100)}%`
+                                width: `${Math.min(100, (data.monthlyDeliveredQuantity / (data.monthlyTotalQuantity || 1)) * 100)}%`
                             }}></div>
                         </div>
                     </div>

@@ -76,7 +76,7 @@ const PurchaseOrderFormPage = () => {
             setCustomers(customerData || []);
 
             if (isEdit) {
-                const po = await purchaseOrderService.getPurchaseOrderById(id);
+                const po = await purchaseOrderService.getPurchaseOrderWithRemainingQuantity(id);
                 if (po) {
                     setFormData({
                         po_number: po.po_number,
@@ -501,6 +501,14 @@ const PurchaseOrderFormPage = () => {
                                                 onChange={e => handleItemChange(index, 'quantity', e.target.value)}
                                                 className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
                                             />
+                                            {isEdit && item.delivered_quantity !== undefined && (
+                                                <div className="mt-1 text-xs">
+                                                    <span className="text-textMuted">ส่งแล้ว: </span>
+                                                    <span className="font-medium text-success">{item.delivered_quantity}</span>
+                                                    <span className="text-textMuted"> / ขาด: </span>
+                                                    <span className="font-medium text-error">{Math.max(0, (item.quantity || 0) - item.delivered_quantity)}</span>
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-3">
                                             <input

@@ -37,7 +37,7 @@ const InvoiceListPage = () => {
         startItem,
         endItem,
         refresh
-    } = useServerPagination(invoiceService.getInvoicesPaginated, { searchTerm: '', status: '', dateFrom: '', dateTo: '' }, 50);
+    } = useServerPagination(invoiceService.getInvoicesPaginated, { searchTerm: '', status: '', dateFrom: '', dateTo: '', dateFilterType: 'date' }, 50);
 
     useEffect(() => {
         const loadKPIs = async () => {
@@ -57,16 +57,16 @@ const InvoiceListPage = () => {
         setStatusFilter('');
         setDateFrom('');
         setDateTo('');
-        updateFilters({ status: '', dateFrom: '', dateTo: '' });
+        updateFilters({ status: '', dateFrom: '', dateTo: '', dateFilterType: 'date' });
     };
 
     // Debounce filters
     useEffect(() => {
         const timer = setTimeout(() => {
-            updateFilters({ searchTerm, status: statusFilter, dateFrom, dateTo });
+            updateFilters({ searchTerm, status: statusFilter, dateFrom, dateTo, dateFilterType });
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchTerm, statusFilter, dateFrom, dateTo, updateFilters]);
+    }, [searchTerm, statusFilter, dateFrom, dateTo, dateFilterType, updateFilters]);
 
     const handleDelete = async (id, invoiceNo) => {
         const confirmed = await showConfirm(`ต้องการลบใบกำกับภาษีเลขที่ ${invoiceNo} หรือไม่?`);
@@ -91,7 +91,8 @@ const InvoiceListPage = () => {
                 searchTerm,
                 status: statusFilter,
                 dateFrom,
-                dateTo
+                dateTo,
+                dateFilterType
             });
             const fullInvoices = await Promise.all(
                 allFilteredInvoices.map(inv => invoiceService.getInvoiceById(inv.id))

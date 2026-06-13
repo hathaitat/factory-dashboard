@@ -5,7 +5,6 @@ import { Search, Printer, Eye, FileSpreadsheet, TrendingUp, CheckCircle, Clock, 
 import { billingNoteService } from '../services/billingNoteService';
 import { companyService } from '../services/companyService';
 import { settingService } from '../services/settingService';
-import { documentNumberHelper } from '../utils/documentNumbering';
 import { useDialog } from '../contexts/DialogContext';
 import { getLocalDateString } from '../utils/dateUtils';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
@@ -38,14 +37,14 @@ const ReceiptListPage = () => {
         startItem,
         endItem,
         refresh
-    } = useServerPagination(billingNoteService.getBillingNotesPaginated, { searchTerm: '', dateFrom: '', dateTo: '', status: '' }, 50);
+    } = useServerPagination(billingNoteService.getBillingNotesPaginated, { searchTerm: '', dateFrom: '', dateTo: '', status: '', dateFilterType: 'date' }, 50);
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            updateFilters({ searchTerm, dateFrom, dateTo, status: statusFilter });
+            updateFilters({ searchTerm, dateFrom, dateTo, status: statusFilter, dateFilterType });
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchTerm, dateFrom, dateTo, statusFilter, updateFilters]);
+    }, [searchTerm, dateFrom, dateTo, statusFilter, dateFilterType, updateFilters]);
 
     useEffect(() => {
         loadData();
@@ -57,7 +56,7 @@ const ReceiptListPage = () => {
                 billingNoteService.getReceiptStats(),
                 settingService.getSetting('document_formats')
             ]);
-            
+
             setFormats(formatsSettings || { billing_note_prefix: 'BN', receipt_prefix: 'RE' });
             setKpis(stats);
         } catch (error) {
@@ -232,15 +231,15 @@ const ReceiptListPage = () => {
                 // === Totals section ===
                 const notesStartRow = r;
                 setCell(r, 0, `หมายเหตุ: ${bn.notes || ''}`, { font: normal(9), alignment: { horizontal: 'left', vertical: 'top', wrapText: true }, border: border('all') });
-                
+
                 setCell(r, 4, 'จำนวนเงินรวมทั้งสิ้น', { font: bold(11), alignment: alignR, border: border('all') });
                 setCell(r, 5, fmtNum(bn.totalAmount), { font: bold(11), alignment: alignR, border: border('all') });
-                
+
                 // Baht Text
                 r++;
                 setCell(r, 0, bn.bahtText ? `(${bn.bahtText})` : '', { font: bold(10), border: border('blr') });
-                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } }); 
-                
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+
                 // Merge notes cell
                 merges.push({ s: { r: notesStartRow, c: 0 }, e: { r: notesStartRow, c: 2 } });
                 merges.push({ s: { r: notesStartRow, c: 3 }, e: { r: r, c: 3 } }); // Space cell
@@ -282,12 +281,12 @@ const ReceiptListPage = () => {
     };
 
     const hasActiveFilters = !!(dateFrom || dateTo || statusFilter);
-    const clearFilters = () => { 
-        setDateFrom(''); 
-        setDateTo(''); 
-        setDateFilterType('date'); 
+    const clearFilters = () => {
+        setDateFrom('');
+        setDateTo('');
+        setDateFilterType('date');
         setStatusFilter('');
-        updateFilters({ dateFrom: '', dateTo: '', status: '' });
+        updateFilters({ dateFrom: '', dateTo: '', status: '', dateFilterType: 'date' });
     };
 
     return (
@@ -345,11 +344,11 @@ const ReceiptListPage = () => {
 
             <ListFilter
                 filters={[
-                    { 
-                        type: 'date-range', 
-                        dateFrom, 
-                        dateTo, 
-                        onDateFromChange: setDateFrom, 
+                    {
+                        type: 'date-range',
+                        dateFrom,
+                        dateTo,
+                        onDateFromChange: setDateFrom,
                         onDateToChange: setDateTo,
                         value: dateFilterType,
                         onChange: setDateFilterType,
@@ -362,87 +361,87 @@ const ReceiptListPage = () => {
 
             <div className="glass-panel overflow-x-auto p-0">
                 <div className="table-responsive-wrapper overflow-x-auto touch-pan-x">
-<table className="w-full border-collapse">
-                    <thead>
-                        <tr className="border-b border-border text-left">
-                            <th className="actions-column text-textMuted font-medium">จัดการ</th>
-                            <th className="px-6 py-5 text-textMuted font-medium">เลขที่ใบเสร็จ</th>
-                            <th className="px-6 py-5 text-textMuted font-medium">อ้างอิงใบวางบิล</th>
-                            <th className="px-6 py-5 text-textMuted font-medium">ชื่อลูกค้า</th>
-                            <th className="px-6 py-5 text-textMuted font-medium text-right">จำนวนเงินสุทธิ</th>
-                            <th className="px-6 py-5 text-textMuted font-medium text-center">สถานะบิล</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {isLoading ? (
-                            <tr>
-                                <td colSpan="6" className="p-12 text-center text-textMuted">
-                                    <div className="loading-spinner mx-auto mb-4"></div>
-                                    กำลังโหลดข้อมูล...
-                                </td>
+                    <table className="w-full border-collapse">
+                        <thead>
+                            <tr className="border-b border-border text-left">
+                                <th className="actions-column text-textMuted font-medium">จัดการ</th>
+                                <th className="px-6 py-5 text-textMuted font-medium">เลขที่ใบเสร็จ</th>
+                                <th className="px-6 py-5 text-textMuted font-medium">อ้างอิงใบวางบิล</th>
+                                <th className="px-6 py-5 text-textMuted font-medium">ชื่อลูกค้า</th>
+                                <th className="px-6 py-5 text-textMuted font-medium text-right">จำนวนเงินสุทธิ</th>
+                                <th className="px-6 py-5 text-textMuted font-medium text-center">สถานะบิล</th>
                             </tr>
-                        ) : paginatedData.length > 0 ? (
-                            paginatedData.map((bn) => (
-                                <tr key={bn.id} className="border-b border-border bg-cardBg" style={{ transition: 'background 0.2s' }}>
-                                    <td className="actions-column">
-                                        <div className="table-actions">
-                                            <Link
-                                                className="action-view"
-                                                to={`/dashboard/receipts/${bn.id}`}
-                                                target="_blank"
-                                                title="View Details"
-                                            >
-                                                <Eye size={18} />
-                                            </Link>
-                                            <Link
-                                                className="action-edit"
-                                                to={`/dashboard/billing-notes/${bn.id}/print-receipt`}
-                                                target="_blank"
-                                                title="Print Receipt"
-                                            >
-                                                <Printer size={18} />
-                                            </Link>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5 font-semibold text-primary text-lg font-mono">
-                                        <Link to={`/dashboard/receipts/${bn.id}`} className="text-primary no-underline">
-                                            {getReceiptNumber(bn.billingNoteNo, bn.date)}
-                                        </Link>
-                                    </td>
-                                    <td className="px-6 py-5 text-sm text-textMuted">{bn.billingNoteNo}</td>
-                                    <td className="px-6 py-5">
-                                        {bn.customer_id ? (
-                                            <Link 
-                                                to={`/dashboard/customers/${bn.customer_id}`} 
-                                                className="text-blue-500 no-underline"
-                                                onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
-                                                onMouseOut={(e) => e.target.style.textDecoration = 'none'}
-                                            >
-                                                {bn.customerName}
-                                            </Link>
-                                        ) : (
-                                            bn.customerName
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-5 text-right font-semibold text-emerald-500">
-                                        ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </td>
-                                    <td className="px-6 py-5 text-center">
-                                        <span className="rounded-full text-xs font-semibold px-3 py-1.5 whitespace-nowrap inline-flex gap-1" style={{ alignItems: 'center', background: bn.status === 'Draft' ? '#f3f4f6' : bn.status === 'Paid' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)', color: bn.status === 'Draft' ? '#6b7280' : bn.status === 'Paid' ? '#059669' : '#dc2626', border: bn.status === 'Draft' ? '1px solid #e5e7eb' : bn.status === 'Paid' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)' }}>
-                                            {bn.status === 'Draft' && <Clock size={14} />}
-                                            {bn.status === 'Paid' && <CheckCircle size={14} />}
-                                            {bn.status === 'Cancelled' && <XCircle size={14} />}
-                                            {bn.status === 'Draft' ? 'ฉบับร่าง' : 
-                                             bn.status === 'Paid' ? 'ชำระเงินแล้ว' : 'ยกเลิก'}
-                                        </span>
+                        </thead>
+                        <tbody>
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan="6" className="p-12 text-center text-textMuted">
+                                        <div className="loading-spinner mx-auto mb-4"></div>
+                                        กำลังโหลดข้อมูล...
                                     </td>
                                 </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="6" className="p-12 text-center text-textMuted">ไม่พบรายการใบเสร็จ</td>
-                            </tr>
-                        )}
+                            ) : paginatedData.length > 0 ? (
+                                paginatedData.map((bn) => (
+                                    <tr key={bn.id} className="border-b border-border bg-cardBg" style={{ transition: 'background 0.2s' }}>
+                                        <td className="actions-column">
+                                            <div className="table-actions">
+                                                <Link
+                                                    className="action-view"
+                                                    to={`/dashboard/receipts/${bn.id}`}
+                                                    target="_blank"
+                                                    title="View Details"
+                                                >
+                                                    <Eye size={18} />
+                                                </Link>
+                                                <Link
+                                                    className="action-edit"
+                                                    to={`/dashboard/billing-notes/${bn.id}/print-receipt`}
+                                                    target="_blank"
+                                                    title="Print Receipt"
+                                                >
+                                                    <Printer size={18} />
+                                                </Link>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5 font-semibold text-primary text-lg font-mono">
+                                            <Link to={`/dashboard/receipts/${bn.id}`} className="text-primary no-underline">
+                                                {getReceiptNumber(bn.billingNoteNo, bn.date)}
+                                            </Link>
+                                        </td>
+                                        <td className="px-6 py-5 text-sm text-textMuted">{bn.billingNoteNo}</td>
+                                        <td className="px-6 py-5">
+                                            {bn.customer_id ? (
+                                                <Link
+                                                    to={`/dashboard/customers/${bn.customer_id}`}
+                                                    className="text-blue-500 no-underline"
+                                                    onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                                                    onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+                                                >
+                                                    {bn.customerName}
+                                                </Link>
+                                            ) : (
+                                                bn.customerName
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-5 text-right font-semibold text-emerald-500">
+                                            ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </td>
+                                        <td className="px-6 py-5 text-center">
+                                            <span className="rounded-full text-xs font-semibold px-3 py-1.5 whitespace-nowrap inline-flex gap-1" style={{ alignItems: 'center', background: bn.status === 'Draft' ? '#f3f4f6' : bn.status === 'Paid' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)', color: bn.status === 'Draft' ? '#6b7280' : bn.status === 'Paid' ? '#059669' : '#dc2626', border: bn.status === 'Draft' ? '1px solid #e5e7eb' : bn.status === 'Paid' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)' }}>
+                                                {bn.status === 'Draft' && <Clock size={14} />}
+                                                {bn.status === 'Paid' && <CheckCircle size={14} />}
+                                                {bn.status === 'Cancelled' && <XCircle size={14} />}
+                                                {bn.status === 'Draft' ? 'ฉบับร่าง' :
+                                                    bn.status === 'Paid' ? 'ชำระเงินแล้ว' : 'ยกเลิก'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="6" className="p-12 text-center text-textMuted">ไม่พบรายการใบเสร็จ</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

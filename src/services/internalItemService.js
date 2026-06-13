@@ -188,26 +188,29 @@ export const internalItemService = {
 
     adjustStock: async (id, quantityChange) => {
         try {
-            const { data: item } = await supabase
-                .from('internal_items')
-                .select('current_stock')
-                .eq('id', id)
-                .single();
+            const { data, error } = await supabase.rpc('adjust_internal_stock', {
+                p_id: id,
+                p_delta: quantityChange,
+                p_allow_negative: false
+            });
 
-            if (!item) throw new Error('ไม่พบสินค้า');
+            if (error) {
+                // If the error message from postgres matches our RAISE EXCEPTION
+                if (error.message && error.message.includes('Insufficient stock')) {
+                    throw new Error('สต๊อกไม่เพียงพอ');
+                }
+                if (error.message && error.message.includes('Item not found')) {
+                    throw new Error('ไม่พบสินค้า');
+                }
+                throw error;
+            }
 
-            const newStock = item.current_stock + quantityChange;
-            if (newStock < 0) throw new Error('สต๊อกไม่เพียงพอ');
+            if (!data || data.length === 0) {
+                throw new Error('ไม่พบสินค้า');
+            }
 
-            const { data, error } = await supabase
-                .from('internal_items')
-                .update({ current_stock: newStock, updated_at: new Date().toISOString() })
-                .eq('id', id)
-                .select()
-                .single();
-
-            if (error) throw error;
-            return data;
+            // Return a mocked object of what the UI might expect, or fetch the full item if needed
+            return { id, current_stock: data[0].new_stock };
         } catch (error) {
             console.error('Error adjusting stock:', error);
             throw error;
@@ -216,16 +219,12 @@ export const internalItemService = {
 
     getLowStockItems: async () => {
         try {
-            const { data: allItems, error: err2 } = await supabase
-                .from('internal_items')
-                .select(`
-                    *,
-                    category:internal_categories(id, name, icon, color)
-                `)
-                .eq('status', 'active');
+            const { data, error } = await supabase
+                .from('view_low_stock_internal_items')
+                .select('*');
 
-            if (err2) throw err2;
-            return (allItems || []).filter(item => item.current_stock < 0 || (item.min_stock > 0 && item.current_stock <= item.min_stock));
+            if (error) throw error;
+            return data || [];
         } catch (error) {
             console.error('Error fetching low stock items:', error);
             return [];
@@ -266,54 +265,34 @@ export const internalItemService = {
 
     adjustStockWithLog: async (itemId, type, qty, unitCost, remark, performedBy, sourceType = 'manual', sourceId = null, referenceNo = null) => {
         try {
-            const { data: item } = await supabase
-                .from('internal_items')
-                .select('current_stock')
-                .eq('id', itemId)
-                .single();
+            const { error: rpcError } = await supabase.rpc('adjust_internal_stock_with_log', {
+                p_id: itemId,
+                p_type: type,
+                p_qty: parseFloat(qty) || 0,
+                p_unit_cost: parseFloat(unitCost) || 0,
+                p_remark: remark,
+                p_performed_by: performedBy || null,
+                p_source_type: sourceType,
+                p_source_id: sourceId,
+                p_reference_no: referenceNo
+            });
 
-            if (!item) throw new Error('ไม่พบสินค้า');
-
-            const qtyNum = parseInt(qty);
-            const previousStock = item.current_stock || 0;
-            const newStock = type === 'IN' ? previousStock + qtyNum : previousStock - qtyNum;
-            if (newStock < 0) throw new Error('สต๊อกไม่เพียงพอ');
-
-            // Update stock
-            const updatePayload = { 
-                current_stock: newStock, 
-                updated_at: new Date().toISOString(),
-                updated_by: performedBy || null
-            };
+            if (rpcError) {
+                if (rpcError.message && rpcError.message.includes('Insufficient stock')) {
+                    throw new Error('สต๊อกไม่เพียงพอ');
+                }
+                throw rpcError;
+            }
 
             // Update master unit_price if it's an IN transaction with a valid cost
             if (type === 'IN' && unitCost && parseFloat(unitCost) > 0) {
-                updatePayload.unit_price = parseFloat(unitCost);
+                await supabase
+                    .from('internal_items')
+                    .update({ unit_price: parseFloat(unitCost), updated_at: new Date().toISOString() })
+                    .eq('id', itemId);
             }
 
-            const { error: updateError } = await supabase
-                .from('internal_items')
-                .update(updatePayload)
-                .eq('id', itemId);
-            if (updateError) throw updateError;
-
-            // Log movement
-            const logEntry = {
-                item_id: itemId,
-                type,
-                qty: qtyNum,
-                previous_stock: previousStock,
-                new_stock: newStock,
-                unit_cost: unitCost || null,
-                source_type: sourceType,
-                source_id: sourceId,
-                reference_no: referenceNo,
-                remark,
-                performed_by: performedBy
-            };
-
-            await internalItemService.logMovement(logEntry);
-            return { previousStock, newStock };
+            return { success: true };
         } catch (error) {
             console.error('Error adjusting stock with log:', error);
             throw error;

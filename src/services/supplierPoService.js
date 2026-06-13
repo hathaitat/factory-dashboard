@@ -59,7 +59,7 @@ export const supplierPoService = {
     },
 
     // Server-Side Pagination
-    getSupplierPosPaginated: async ({ page = 1, limit = 50, searchTerm = '', dateFrom = '', dateTo = '' }) => {
+    getSupplierPosPaginated: async ({ page = 1, limit = 50, searchTerm = '', dateFrom = '', dateTo = '', dateFilterType = 'date' }) => {
         try {
             let query = supabase.from('supplier_pos').select(`
                 *,
@@ -72,11 +72,13 @@ export const supplierPoService = {
                 const safe = sanitizeSearchTerm(searchTerm);
                 if (safe) query = query.or(`po_number.ilike.%${safe}%,suppliers.name.ilike.%${safe}%`);
             }
+            
+            const targetColumn = dateFilterType === 'delivery_date' ? 'delivery_date' : 'po_date';
             if (dateFrom) {
-                query = query.gte('po_date', dateFrom);
+                query = query.gte(targetColumn, dateFrom);
             }
             if (dateTo) {
-                query = query.lte('po_date', dateTo);
+                query = query.lte(targetColumn, dateTo);
             }
 
             const from = (page - 1) * limit;
@@ -94,7 +96,7 @@ export const supplierPoService = {
         }
     },
 
-    exportSupplierPos: async ({ searchTerm = '', dateFrom = '', dateTo = '' }) => {
+    exportSupplierPos: async ({ searchTerm = '', dateFrom = '', dateTo = '', dateFilterType = 'date' }) => {
         try {
             let query = supabase.from('supplier_pos').select(`
                 *,
@@ -107,11 +109,13 @@ export const supplierPoService = {
                 const safe = sanitizeSearchTerm(searchTerm);
                 if (safe) query = query.or(`po_number.ilike.%${safe}%,suppliers.name.ilike.%${safe}%`);
             }
+            
+            const targetColumn = dateFilterType === 'delivery_date' ? 'delivery_date' : 'po_date';
             if (dateFrom) {
-                query = query.gte('po_date', dateFrom);
+                query = query.gte(targetColumn, dateFrom);
             }
             if (dateTo) {
-                query = query.lte('po_date', dateTo);
+                query = query.lte(targetColumn, dateTo);
             }
 
             const { data, error } = await query.order('created_at', { ascending: false });
@@ -125,29 +129,23 @@ export const supplierPoService = {
 
     getSupplierPoStats: async () => {
         try {
-            const [completedRes, partialRes, draftRes, cancelledRes] = await Promise.all([
-                supabase.from('supplier_pos').select('id', { count: 'exact', head: true }).eq('status', 'Completed'),
-                supabase.from('supplier_pos').select('id', { count: 'exact', head: true }).eq('status', 'Partial'),
-                supabase.from('supplier_pos').select('id', { count: 'exact', head: true }).eq('status', 'Draft'),
-                supabase.from('supplier_pos').select('id', { count: 'exact', head: true }).eq('status', 'Cancelled')
-            ]);
+            const { data, error } = await supabase.rpc('get_po_dashboard_stats');
             
-            const now = new Date();
-            now.setHours(0, 0, 0, 0);
-            
-            // For overdue we still need to fetch items that are draft/partial and have delivery_date
-            const { data: overdueData } = await supabase.from('supplier_pos').select('delivery_date').in('status', ['Draft', 'Partial']).not('delivery_date', 'is', null);
-            const overdue = (overdueData || []).filter(p => p.delivery_date && new Date(p.delivery_date) < now).length;
+            if (error) {
+                console.error('RPC Error getting PO stats, falling back...', error);
+                throw error;
+            }
 
             return {
-                completed: completedRes.count || 0,
-                partial: partialRes.count || 0,
-                draft: draftRes.count || 0,
-                cancelled: cancelledRes.count || 0,
-                overdue
+                completed: data.completed || 0,
+                partial: data.partial || 0,
+                draft: data.draft || 0,
+                cancelled: data.cancelled || 0,
+                overdue: data.overdue || 0
             };
         } catch (error) {
             console.error('Error getting supplier PO stats:', error);
+            // Fallback to 0 if RPC fails
             return { completed: 0, partial: 0, draft: 0, cancelled: 0, overdue: 0 };
         }
     },
@@ -249,7 +247,7 @@ export const supplierPoService = {
 
             if (items && items.length > 0) {
                 const itemsToInsert = items.map((item, index) => {
-                    const { raw_material_qty, sku, image_url, ...itemData } = item;
+                    const { raw_material_qty, sku, ...itemData } = item;
                     return {
                         ...itemData,
                         po_id: poResult.id,
@@ -282,65 +280,23 @@ export const supplierPoService = {
                     }
 
                     if (targetWarehouseId) {
-                        const { data: currentInventory } = await supabase
-                            .from('warehouse_inventory')
-                            .select('*')
-                            .eq('warehouse_id', targetWarehouseId);
-                        
-                        for (const item of items) {
-                            const rcvQty = item.received_quantity !== undefined ? Number(item.received_quantity) : Number(item.quantity);
-                            if (rcvQty <= 0) continue;
-                            
-                            const existingItem = (currentInventory || []).find(inv => normalizeStr(inv.product_name) === normalizeStr(item.description));
+                        const rcvItems = items.map(item => ({
+                            sku: item.sku || null,
+                            productName: item.description,
+                            unit: item.unit || 'PCS',
+                            quantity: item.received_quantity !== undefined ? Number(item.received_quantity) : Number(item.quantity)
+                        }));
 
-                            if (existingItem) {
-                                const newQty = Number(existingItem.quantity) + rcvQty;
-                                await supabase
-                                    .from('warehouse_inventory')
-                                    .update({ quantity: newQty, last_updated: new Date().toISOString() })
-                                    .eq('id', existingItem.id);
-                                
-                                await supabase.from('inventory_logs').insert([{
-                                    inventory_id: existingItem.id,
-                                    type: 'IN',
-                                    qty: rcvQty,
-                                    old_quantity: existingItem.quantity,
-                                    balance: newQty,
-                                    source_type: 'po',
-                                    source_id: poResult.id,
-                                    reference_no: poDetails.po_number || poResult.id,
-                                    remark: `รับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || poResult.id}`,
-                                    performed_by: poDetails.updated_by || poDetails.created_by_name || 'System'
-                                }]);
-                            } else {
-                                const { data: newItem } = await supabase
-                                    .from('warehouse_inventory')
-                                    .insert([{
-                                        warehouse_id: targetWarehouseId,
-                                        product_type: 'material',
-                                        product_name: item.description || 'Unknown Item',
-                                        quantity: rcvQty,
-                                        unit: item.unit || 'PCS',
-                                        min_stock: 0
-                                    }])
-                                    .select()
-                                    .single();
-                                
-                                if (newItem) {
-                                    await supabase.from('inventory_logs').insert([{
-                                        inventory_id: newItem.id,
-                                        type: 'IN',
-                                        qty: rcvQty,
-                                        old_quantity: 0,
-                                        balance: rcvQty,
-                                        source_type: 'po',
-                                        source_id: poResult.id,
-                                        reference_no: poDetails.po_number || poResult.id,
-                                        remark: `เพิ่มรายการใหม่และรับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || poResult.id}`,
-                                        performed_by: poDetails.updated_by || poDetails.created_by_name || 'System'
-                                    }]);
-                                }
-                            }
+                        if (rcvItems.length > 0) {
+                            const { error: rpcError } = await supabase.rpc('batch_receive_po_stock', {
+                                p_warehouse_id: targetWarehouseId,
+                                p_items: rcvItems,
+                                p_performed_by: poDetails.updated_by || poDetails.created_by_name || 'System',
+                                p_po_id: poResult.id,
+                                p_po_number: poDetails.po_number || poResult.id
+                            });
+
+                            if (rpcError) throw rpcError;
                         }
                     }
                 }
@@ -389,7 +345,7 @@ export const supplierPoService = {
                 // Insert new items
                 if (items.length > 0) {
                     const itemsToInsert = items.map((item, index) => {
-                        const { raw_material_qty, sku, image_url, ...itemData } = item;
+                        const { raw_material_qty, sku, ...itemData } = item;
                         return {
                             ...itemData,
                             po_id: id,
@@ -422,88 +378,39 @@ export const supplierPoService = {
                         }
 
                         if (targetWarehouseId) {
-                            const { data: currentInventory } = await supabase
-                                .from('warehouse_inventory')
-                                .select('*')
-                                .eq('warehouse_id', targetWarehouseId);
-                            
                             const { data: supplierProducts } = await supabase
                                 .from('supplier_products')
                                 .select('id, sku')
                                 .eq('supplier_id', poDetails.supplier_id);
 
+                            const diffItems = [];
                             for (const item of items) {
                                 const newRcvQty = item.received_quantity !== undefined ? Number(item.received_quantity) : 0;
-                                
-                                // Find old received quantity
                                 const oldItem = (oldPo?.items || []).find(old => normalizeStr(old.description) === normalizeStr(item.description));
                                 const oldRcvQty = oldItem && oldItem.received_quantity !== undefined ? Number(oldItem.received_quantity) : 0;
-                                
                                 const diffRcvQty = newRcvQty - oldRcvQty;
                                 
-                                if (diffRcvQty <= 0) continue; // Skip if no new goods received
-
-                                const supplierProduct = supplierProducts?.find(p => p.id === item.supplier_product_id);
-                                const itemSku = item.sku || (supplierProduct ? supplierProduct.sku : null);
-                                const matchColumn = itemSku ? 'sku' : 'product_name';
-                                const matchValue = itemSku || item.description;
-
-                                const existingItems = (currentInventory || []).filter(inv => inv[matchColumn] === matchValue);
-                                let existingItem = null;
-                                if (existingItems.length > 0) {
-                                    existingItem = existingItems.find(inv => normalizeStr(inv.product_name) === normalizeStr(item.description));
-                                    if (!existingItem) existingItem = existingItems[0];
-                                }
-
-                                if (existingItem) {
-                                    const newQty = Number(existingItem.quantity) + diffRcvQty;
-                                    await supabase
-                                        .from('warehouse_inventory')
-                                        .update({ quantity: newQty, last_updated: new Date().toISOString() })
-                                        .eq('id', existingItem.id);
-                                    
-                                    await warehouseService.logMovement({
-                                        inventory_id: existingItem.id,
-                                        action: 'IN',
-                                        quantity_change: diffRcvQty,
-                                        previous_quantity: existingItem.quantity,
-                                        new_quantity: newQty,
-                                        source_type: 'po',
-                                        source_id: id,
-                                        reference_no: poDetails.po_number || id,
-                                        remark: `รับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || id} (เพิ่มเติม)`,
-                                        performed_by: poDetails.updated_by || poDetails.created_by_name || 'System'
+                                if (diffRcvQty > 0) {
+                                    const supplierProduct = supplierProducts?.find(p => p.id === item.supplier_product_id);
+                                    const itemSku = item.sku || (supplierProduct ? supplierProduct.sku : null);
+                                    diffItems.push({
+                                        sku: itemSku,
+                                        productName: item.description,
+                                        unit: item.unit || 'PCS',
+                                        quantity: diffRcvQty
                                     });
-                                } else {
-                                    const { data: newItem } = await supabase
-                                        .from('warehouse_inventory')
-                                        .insert([{
-                                            warehouse_id: targetWarehouseId,
-                                            sku: itemSku,
-                                            product_type: 'material',
-                                            product_name: item.description || 'Unknown Item',
-                                            quantity: diffRcvQty,
-                                            unit: item.unit || 'PCS',
-                                            min_stock: 0
-                                        }])
-                                        .select()
-                                        .single();
-                                    
-                                    if (newItem) {
-                                        await warehouseService.logMovement({
-                                            inventory_id: newItem.id,
-                                            action: 'IN',
-                                            quantity_change: diffRcvQty,
-                                            previous_quantity: 0,
-                                            new_quantity: diffRcvQty,
-                                            source_type: 'po',
-                                            source_id: id,
-                                            reference_no: poDetails.po_number || id,
-                                            remark: `เพิ่มรายการใหม่และรับสินค้าจากใบสั่งซื้อเลขที่ ${poDetails.po_number || id} (เพิ่มเติม)`,
-                                            performed_by: poDetails.updated_by || poDetails.created_by_name || 'System'
-                                        });
-                                    }
                                 }
+                            }
+
+                            if (diffItems.length > 0) {
+                                const { error: rpcError } = await supabase.rpc('batch_receive_po_stock', {
+                                    p_warehouse_id: targetWarehouseId,
+                                    p_items: diffItems,
+                                    p_performed_by: poDetails.updated_by || poDetails.created_by_name || 'System',
+                                    p_po_id: id,
+                                    p_po_number: poDetails.po_number || id
+                                });
+                                if (rpcError) throw rpcError;
                             }
                         }
                     }
@@ -531,69 +438,16 @@ export const supplierPoService = {
                 throw new Error('ไม่สามารถลบใบสั่งซื้อที่อยู่ในสถานะรับสินค้าบางส่วนหรือเสร็จสมบูรณ์ได้ กรุณาใช้การยกเลิกแทน');
             }
 
-            // Subcontracting Return Check (Return stock if it was deducted during PO creation)
-            if (po) {
-                const searchRemarkPattern1 = `%PO: ${po.po_number})%`;
-                const searchRemarkPattern2 = `%PO: ${po.id})%`;
-                
-                const { data: logs1 } = await supabase
-                    .from('inventory_logs')
-                    .select('*')
-                    .ilike('remark', searchRemarkPattern1);
-                    
-                const { data: logs2 } = await supabase
-                    .from('inventory_logs')
-                    .select('*')
-                    .ilike('remark', searchRemarkPattern2);
-                    
-                const allLogs = [...(logs1 || []), ...(logs2 || [])];
-                const subcontractLogs = Array.from(new Map(allLogs.map(item => [item.id, item])).values());
-
-                if (subcontractLogs && subcontractLogs.length > 0) {
-                    for (const log of subcontractLogs) {
-                        const returnRemark = `คืนสต็อกเนื่องจากการลบใบสั่งจ้างผลิต (PO: ${po.po_number || po.id})`;
-                        const { data: existingReturn } = await supabase
-                            .from('inventory_logs')
-                            .select('id')
-                            .eq('inventory_id', log.inventory_id)
-                            .eq('remark', returnRemark)
-                            .maybeSingle();
-
-                        if (!existingReturn) {
-                            const { data: currentItem } = await supabase
-                                .from('warehouse_inventory')
-                                .select('quantity')
-                                .eq('id', log.inventory_id)
-                                .single();
-                                
-                            if (currentItem) {
-                                const newQty = Number(currentItem.quantity) + Number(log.qty);
-                                
-                                // Update inventory
-                                await supabase
-                                    .from('warehouse_inventory')
-                                    .update({
-                                        quantity: newQty,
-                                        last_updated: new Date().toISOString()
-                                    })
-                                    .eq('id', log.inventory_id);
-                                    
-                                // Insert IN log
-                                await supabase.from('inventory_logs').insert([{
-                                    inventory_id: log.inventory_id,
-                                    type: 'IN',
-                                    qty: Number(log.qty),
-                                    old_quantity: Number(currentItem.quantity),
-                                    balance: newQty,
-                                    source_type: 'po',
-                                    source_id: po.id,
-                                    reference_no: po.po_number || 'N/A',
-                                    remark: returnRemark
-                                }]);
-                            }
-                        }
-                    }
-                }
+            // Subcontracting Return Check via RPC
+            if (po && po.delivery_warehouse_id) {
+                const { error: rpcError } = await supabase.rpc('batch_cancel_po_stock', {
+                    p_warehouse_id: po.delivery_warehouse_id,
+                    p_items: [],
+                    p_performed_by: 'System',
+                    p_po_id: po.id,
+                    p_po_number: po.po_number || po.id
+                });
+                if (rpcError) throw rpcError;
             }
 
             const { error } = await supabase
@@ -622,143 +476,29 @@ export const supplierPoService = {
             if (poError) throw poError;
             if (po.status === 'Cancelled') throw new Error('ใบสั่งซื้อนี้ถูกยกเลิกไปแล้ว');
 
-            // 2. If it has received items (status is Completed or Partial), check if we have enough stock to return
-            const hasReceivedItems = (po.status === 'Completed' || po.status === 'Partial') && po.items && po.items.length > 0;
-            if (hasReceivedItems) {
-                const targetWarehouseId = po.delivery_warehouse_id;
-                if (!targetWarehouseId) throw new Error('ไม่พบข้อมูลคลังสินค้าที่จัดส่ง');
+            // 2 & 3. Batch cancel received items and subcontract returns via RPC
+            const targetWarehouseId = po.delivery_warehouse_id || null;
+            if (targetWarehouseId) {
+                const itemsToDeduct = (po.items || []).filter(item => Number(item.received_quantity || 0) > 0);
+                const cancelItems = itemsToDeduct.map(item => ({
+                    sku: item.sku || null,
+                    productName: item.description,
+                    quantity: Number(item.received_quantity || 0)
+                }));
 
-                // Get current inventory
-                const { data: currentInventory } = await supabase
-                    .from('warehouse_inventory')
-                    .select('*')
-                    .eq('warehouse_id', targetWarehouseId);
+                const { error: rpcError } = await supabase.rpc('batch_cancel_po_stock', {
+                    p_warehouse_id: targetWarehouseId,
+                    p_items: cancelItems,
+                    p_performed_by: updatedBy || 'System',
+                    p_po_id: po.id,
+                    p_po_number: po.po_number || po.id
+                });
 
-                // Filter items that have actually been received (> 0)
-                const itemsToDeduct = po.items.filter(item => Number(item.received_quantity || 0) > 0);
-
-                if (itemsToDeduct.length > 0) {
-                    // Validation Loop
-                    for (const item of itemsToDeduct) {
-                        const existingItem = (currentInventory || []).find(inv => 
-                            normalizeStr(inv.product_name) === normalizeStr(item.description)
-                        );
-
-                        const qtyToDeduct = Number(item.received_quantity || 0);
-
-                        if (!existingItem || Number(existingItem.quantity) < qtyToDeduct) {
-                            throw new Error(`สต็อกสินค้า "${item.description}" ไม่เพียงพอสำหรับการยกเลิก (ต้องการหักออก ${qtyToDeduct} แต่มีในคลัง ${existingItem?.quantity || 0})`);
-                        }
+                if (rpcError) {
+                    if (rpcError.message && rpcError.message.includes('ถูกใช้งานไปแล้วจนยอดคงเหลือติดลบ')) {
+                        throw new Error(rpcError.message);
                     }
-
-                    // Deduction Loop
-                    for (const item of itemsToDeduct) {
-                        const existingItem = currentInventory.find(inv => normalizeStr(inv.product_name) === normalizeStr(item.description));
-                        const qtyToDeduct = Number(item.received_quantity || 0);
-                        const newQty = Number(existingItem.quantity) - qtyToDeduct;
-                        const { error: updateError } = await supabase
-                            .from('warehouse_inventory')
-                            .update({
-                                quantity: newQty,
-                                last_updated: new Date().toISOString()
-                            })
-                            .eq('id', existingItem.id);
-                            
-                        if (updateError) throw updateError;
-
-                        // Log the cancellation movement
-                        await supabase.from('inventory_logs').insert([{
-                            inventory_id: existingItem.id,
-                            type: 'OUT',
-                            qty: qtyToDeduct,
-                            old_quantity: existingItem.quantity,
-                            balance: newQty,
-                            source_type: 'po',
-                            source_id: id,
-                            reference_no: po.po_number || 'N/A',
-                            remark: `หักสต็อกออกเนื่องจากการยกเลิกใบสั่งซื้อเลขที่ ${po.po_number || id}`
-                        }]);
-                    }
-                }
-            }
-
-            // 3. Subcontracting Return Check
-            // Find any inventory logs that deducted stock for this subcontract PO
-            // Using only English characters to avoid any Thai text encoding issues in PostgREST
-            const searchRemarkPattern1 = `%PO: ${po.po_number})%`;
-            const searchRemarkPattern2 = `%PO: ${po.id})%`;
-            
-            const { data: logs1 } = await supabase
-                .from('inventory_logs')
-                .select('*')
-                .ilike('remark', searchRemarkPattern1);
-                
-            const { data: logs2 } = await supabase
-                .from('inventory_logs')
-                .select('*')
-                .ilike('remark', searchRemarkPattern2);
-                
-            // Combine and remove duplicates
-            const allLogs = [...(logs1 || []), ...(logs2 || [])];
-            const subcontractLogs = Array.from(new Map(allLogs.map(item => [item.id, item])).values());
-            
-            console.log('--- CANCEL PO LOGS ---', { 
-                poId: po.id, 
-                poNum: po.po_number,
-                pattern1: searchRemarkPattern1, 
-                pattern2: searchRemarkPattern2, 
-                logs1Count: logs1?.length || 0,
-                logs2Count: logs2?.length || 0,
-                subcontractLogs
-            });
-
-            if (subcontractLogs && subcontractLogs.length > 0) {
-                // For each deduction, we must RETURN the stock
-                for (const log of subcontractLogs) {
-                    // Check if it's already returned to avoid double returning
-                    const returnRemark = `คืนสต็อกเนื่องจากการยกเลิกใบสั่งจ้างผลิต (PO: ${po.po_number || po.id})`;
-                    const { data: existingReturn } = await supabase
-                        .from('inventory_logs')
-                        .select('id')
-                        .eq('inventory_id', log.inventory_id)
-                        .eq('remark', returnRemark)
-                        .maybeSingle(); // maybeSingle instead of single to handle 0 results without throwing
-
-                    if (!existingReturn) {
-                        const { data: currentItem } = await supabase
-                            .from('warehouse_inventory')
-                            .select('quantity')
-                            .eq('id', log.inventory_id)
-                            .single();
-                            
-                        if (currentItem) {
-                            const newQty = Number(currentItem.quantity) + Number(log.qty);
-                            
-                            // Update inventory
-                            await supabase
-                                .from('warehouse_inventory')
-                                .update({
-                                    quantity: newQty,
-                                    last_updated: new Date().toISOString(),
-                                    updated_by: updatedBy || null
-                                })
-                                .eq('id', log.inventory_id);
-                                
-                            // Insert IN log
-                            const finalRemark = returnRemark + (updatedBy ? ` (โดย ${updatedBy})` : '');
-                            await supabase.from('inventory_logs').insert([{
-                                inventory_id: log.inventory_id,
-                                type: 'IN',
-                                qty: Number(log.qty),
-                                old_quantity: Number(currentItem.quantity),
-                                balance: newQty,
-                                source_type: 'po',
-                                source_id: po.id,
-                                reference_no: po.po_number || 'N/A',
-                                remark: finalRemark
-                            }]);
-                        }
-                    }
+                    throw rpcError;
                 }
             }
 

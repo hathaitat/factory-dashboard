@@ -104,93 +104,13 @@ export const warehouseService = {
                 throw new Error('ไม่สามารถลบคลังหลักได้');
             }
 
-            // 1. Get all inventory in the warehouse to delete
-            const { data: sourceInventory, error: fetchSourceErr } = await supabase
-                .from('warehouse_inventory')
-                .select('*')
-                .eq('warehouse_id', id);
-            
-            if (fetchSourceErr) throw fetchSourceErr;
+            const { error: rpcError } = await supabase.rpc('transfer_warehouse_inventory', {
+                p_source_id: id,
+                p_target_id: targetWarehouseId || null,
+                p_performed_by: 'System'
+            });
 
-            if (sourceInventory && sourceInventory.length > 0) {
-                // 2. Get all inventory in target warehouse to check duplicates
-                const { data: targetInventory, error: fetchTargetErr } = await supabase
-                    .from('warehouse_inventory')
-                    .select('*')
-                    .eq('warehouse_id', targetWarehouseId);
-                
-                if (fetchTargetErr) throw fetchTargetErr;
-
-                for (const item of sourceInventory) {
-                    const match = targetInventory.find(t => 
-                        (item.sku && t.sku === item.sku) || 
-                        (!item.sku && t.product_name === item.product_name)
-                    );
-
-                    if (match) {
-                        // Duplicate item: add quantity to target, delete source item
-                        const newQty = Number(match.quantity) + Number(item.quantity);
-                        
-                        // Update target item
-                        const { error: updateTargetErr } = await supabase
-                            .from('warehouse_inventory')
-                            .update({ quantity: newQty, last_updated: new Date().toISOString() })
-                            .eq('id', match.id);
-                        
-                        if (updateTargetErr) throw updateTargetErr;
-
-                        // Log movement in target item
-                        if (Number(item.quantity) !== 0) {
-                            await warehouseService.logMovement({
-                                inventory_id: match.id,
-                                action: 'IN',
-                                quantity_change: Math.abs(Number(item.quantity)),
-                                previous_quantity: match.quantity,
-                                new_quantity: newQty,
-                                source_type: 'warehouse_transfer',
-                                remark: `รับโอนสินค้าจากคลังที่ถูกลบ`
-                            });
-                        }
-
-                        // Delete source item
-                        const { error: deleteSourceErr } = await supabase
-                            .from('warehouse_inventory')
-                            .delete()
-                            .eq('id', item.id);
-                        
-                        if (deleteSourceErr) throw deleteSourceErr;
-                    } else {
-                        // Non-duplicate item: simply change warehouse_id to target
-                        const { error: transferErr } = await supabase
-                            .from('warehouse_inventory')
-                            .update({ warehouse_id: targetWarehouseId, last_updated: new Date().toISOString() })
-                            .eq('id', item.id);
-                        
-                        if (transferErr) throw transferErr;
-
-                        // Log movement for transfer
-                        if (Number(item.quantity) !== 0) {
-                            await warehouseService.logMovement({
-                                inventory_id: item.id,
-                                action: 'IN',
-                                quantity_change: 0,
-                                previous_quantity: item.quantity,
-                                new_quantity: item.quantity,
-                                source_type: 'warehouse_transfer',
-                                remark: `โอนย้ายคลังสินค้า (เปลี่ยนคลังเนื่องจากคลังเดิมถูกลบ)`
-                            });
-                        }
-                    }
-                }
-            }
-
-            // 3. Delete the warehouse
-            const { error: deleteWhErr } = await supabase
-                .from('warehouses')
-                .delete()
-                .eq('id', id);
-
-            if (deleteWhErr) throw deleteWhErr;
+            if (rpcError) throw rpcError;
             return true;
         } catch (error) {
             console.error('Error deleting and transferring warehouse:', error);
@@ -358,15 +278,14 @@ export const warehouseService = {
 
     logMovement: async (logData) => {
         try {
-            console.log('Logging movement for:', logData.inventory_id);
             const { error } = await supabase
                 .from('inventory_logs')
                 .insert([{
                     inventory_id: logData.inventory_id,
-                    type: logData.action || logData.type || 'ADJUST',
-                    qty: logData.quantity_change || logData.quantity || logData.qty,
-                    old_quantity: logData.previous_quantity || 0,
-                    balance: logData.new_quantity || 0,
+                    type: logData.type ?? logData.action ?? 'ADJUST',
+                    qty: logData.qty ?? logData.quantity_change ?? logData.quantity ?? 0,
+                    old_quantity: logData.old_quantity ?? logData.previous_quantity ?? 0,
+                    balance: logData.balance ?? logData.new_quantity ?? 0,
                     source_type: logData.source_type || 'manual',
                     source_id: logData.source_id || null,
                     reference_no: logData.reference_no || '',
@@ -375,24 +294,6 @@ export const warehouseService = {
                 }]);
 
             if (error) {
-                // Fallback to remark if performed_by column doesn't exist
-                if (error.code === 'PGRST204' || error.message?.includes('column "performed_by" of relation "inventory_logs" does not exist')) {
-                    console.warn('performed_by column missing, falling back to remark');
-                    await supabase
-                        .from('inventory_logs')
-                        .insert([{
-                            inventory_id: logData.inventory_id,
-                            type: logData.action || logData.type || 'ADJUST',
-                            qty: logData.quantity_change || logData.quantity || logData.qty,
-                            old_quantity: logData.previous_quantity || 0,
-                            balance: logData.new_quantity || 0,
-                            source_type: logData.source_type || 'manual',
-                            source_id: logData.source_id || null,
-                            reference_no: logData.reference_no || '',
-                            remark: `${logData.remark}${logData.performed_by ? ` (โดย ${logData.performed_by})` : ''}`
-                        }]);
-                    return;
-                }
                 console.error('Insert Error:', error);
                 throw error;
             }
@@ -402,49 +303,44 @@ export const warehouseService = {
         }
     },
 
-    adjustStock: async (id, type, qty, remark, performedBy) => {
+    adjustStock: async (id, type, qty, remark, performedBy, sourceType = 'manual', sourceId = null, referenceNo = null) => {
         try {
-            // Get current quantity
-            const { data: item, error: fetchError } = await supabase
-                .from('warehouse_inventory')
-                .select('quantity')
-                .eq('id', id)
-                .single();
-            
-            if (fetchError) throw fetchError;
-
-            const oldQty = Number(item.quantity);
             const change = Number(qty);
-            const newQty = type === 'IN' ? oldQty + change : oldQty - change;
+            const delta = type === 'IN' ? change : -change;
 
-
-
-            // Update inventory
-            const { data: updatedItem, error: updateError } = await supabase
-                .from('warehouse_inventory')
-                .update({ 
-                    quantity: newQty, 
-                    last_updated: new Date().toISOString(),
-                    updated_by: performedBy || null
-                })
-                .eq('id', id)
-                .select()
-                .single();
+            // Use RPC for atomic update to prevent race conditions
+            const { data, error: rpcError } = await supabase.rpc('adjust_warehouse_stock', {
+                p_id: id,
+                p_delta: delta,
+                p_updated_by: performedBy || null
+            });
             
-            if (updateError) throw updateError;
+            if (rpcError) {
+                console.error('RPC Error adjusting stock:', rpcError);
+                throw rpcError;
+            }
+
+            if (!data || data.length === 0) {
+                throw new Error('ไม่พบข้อมูลสินค้านี้ในระบบ');
+            }
+
+            const { old_quantity, new_quantity } = data[0];
 
             // Log movement
             await warehouseService.logMovement({
                 inventory_id: id,
-                action: type,
-                quantity_change: change,
-                previous_quantity: oldQty,
-                new_quantity: newQty,
+                type: type,
+                qty: change,
+                old_quantity: old_quantity,
+                balance: new_quantity,
                 remark: remark,
-                performed_by: performedBy
+                performed_by: performedBy,
+                source_type: sourceType,
+                source_id: sourceId,
+                reference_no: referenceNo
             });
 
-            return updatedItem;
+            return { id, quantity: new_quantity };
         } catch (error) {
             console.error('Error adjusting stock:', error);
             throw error;
@@ -479,39 +375,15 @@ export const warehouseService = {
         }
     },
 
-    updateInventoryItem: async (id, inventoryData) => {
+    updateInventoryItem: async (id, inventoryData, performedBy = 'System') => {
         try {
-            // Get previous quantity for logging
-            const { data: prevItem } = await supabase
-                .from('warehouse_inventory')
-                .select('quantity')
-                .eq('id', id)
-                .single();
-
-            inventoryData.last_updated = new Date().toISOString();
-            const { data, error } = await supabase
-                .from('warehouse_inventory')
-                .update(inventoryData)
-                .eq('id', id)
-                .select()
-                .single();
+            const { data, error } = await supabase.rpc('update_warehouse_inventory_with_log', {
+                p_id: id,
+                p_inventory_data: inventoryData,
+                p_performed_by: performedBy
+            });
 
             if (error) throw error;
-
-            // Log the change if quantity was updated
-            if (prevItem && Number(prevItem.quantity) !== Number(data.quantity)) {
-                const diff = Number(data.quantity) - Number(prevItem.quantity);
-                await warehouseService.logMovement({
-                    inventory_id: data.id,
-                    action: diff > 0 ? 'IN' : 'OUT',
-                    quantity_change: Math.abs(diff),
-                    previous_quantity: prevItem.quantity,
-                    new_quantity: data.quantity,
-                    source_type: 'manual',
-                    remark: 'ปรับปรุงข้อมูลสินค้า (Manual Update)'
-                });
-            }
-
             return data;
         } catch (error) {
             console.error('Error updating inventory item:', error);
@@ -557,90 +429,15 @@ export const warehouseService = {
 
     deductStockForInvoice: async (warehouseId, items, performedBy, invoiceNo) => {
         try {
-            const warnings = [];
-            for (const item of items) {
-                // If product doesn't have SKU, try to deduct by name, otherwise skip or handle differently
-                const matchColumn = item.sku ? 'sku' : 'product_name';
-                const matchValue = item.sku || item.productName;
+            const { data, error } = await supabase.rpc('batch_deduct_warehouse_stock', {
+                p_warehouse_id: warehouseId,
+                p_items: items,
+                p_performed_by: performedBy || 'System',
+                p_invoice_no: invoiceNo || ''
+            });
 
-                // Find inventory item
-                let { data: invItems, error: fetchError } = await supabase
-                    .from('warehouse_inventory')
-                    .select('*')
-                    .eq('warehouse_id', warehouseId)
-                    .eq(matchColumn, matchValue);
-
-                let invItem = null;
-                if (invItems && invItems.length > 0) {
-                    const norm = str => (str || '').toString().trim().toLowerCase();
-                    invItem = invItems.find(i => norm(i.product_name) === norm(item.productName));
-                    if (!invItem) {
-                        invItem = invItems[0]; // Fallback to same SKU but different name
-                    }
-                }
-
-                if (fetchError && fetchError.code !== 'PGRST116') {
-                    throw fetchError;
-                }
-
-                if (!invItem) {
-                    // Item not found, auto-create it as per requirement 3.2
-                    const newInv = {
-                        warehouse_id: warehouseId,
-                        sku: item.sku || null,
-                        product_name: item.productName,
-                        product_type: 'finished', // Assume finished product for invoices
-                        quantity: 0,
-                        unit: item.unit || 'ชิ้น',
-                        min_stock: 10,
-                        last_updated: new Date().toISOString()
-                    };
-                    
-                    const { data: created, error: createError } = await supabase
-                        .from('warehouse_inventory')
-                        .insert([newInv])
-                        .select()
-                        .single();
-
-                    if (createError) throw createError;
-                    invItem = created;
-                    warnings.push(`สร้างสินค้ารหัส ${item.sku || item.productName} อัตโนมัติในคลังกระจายสินค้า เนื่องจากไม่พบในระบบ`);
-                }
-
-                // Deduct stock
-                const oldQty = Number(invItem.quantity);
-                const change = Number(item.quantity);
-                const newQty = oldQty - change;
-
-                if (newQty < 0) {
-                    warnings.push(`สต็อกสินค้า ${item.productName} ติดลบ (ยอดคงเหลือ: ${newQty})`);
-                }
-
-                const { error: updateError } = await supabase
-                    .from('warehouse_inventory')
-                    .update({ 
-                        quantity: newQty, 
-                        last_updated: new Date().toISOString(),
-                        updated_by: performedBy || null
-                    })
-                    .eq('id', invItem.id);
-
-                if (updateError) throw updateError;
-
-                // Log movement
-                await warehouseService.logMovement({
-                    inventory_id: invItem.id,
-                    action: 'OUT',
-                    quantity_change: change,
-                    previous_quantity: oldQty,
-                    new_quantity: newQty,
-                    source_type: 'invoice',
-                    reference_no: invoiceNo || '',
-                    remark: `ตัดสต็อกสำหรับใบกำกับภาษี ${invoiceNo || ''}`,
-                    performed_by: performedBy
-                });
-            }
-            return { success: true, warnings };
+            if (error) throw error;
+            return { success: true, warnings: data.warnings || [] };
         } catch (error) {
             console.error('Error deducting stock for invoice:', error);
             throw error;
@@ -649,66 +446,14 @@ export const warehouseService = {
 
     returnStockForInvoice: async (warehouseId, items, performedBy, invoiceNo) => {
         try {
-            for (const item of items) {
-                const matchColumn = item.sku ? 'sku' : 'product_name';
-                const matchValue = item.sku || item.productName;
+            const { data, error } = await supabase.rpc('batch_return_warehouse_stock', {
+                p_warehouse_id: warehouseId,
+                p_items: items,
+                p_performed_by: performedBy || 'System',
+                p_invoice_no: invoiceNo || ''
+            });
 
-                // Find inventory item
-                const { data: invItems, error: fetchError } = await supabase
-                    .from('warehouse_inventory')
-                    .select('*')
-                    .eq('warehouse_id', warehouseId)
-                    .eq(matchColumn, matchValue);
-
-                let invItem = null;
-                if (invItems && invItems.length > 0) {
-                    const norm = str => (str || '').toString().trim().toLowerCase();
-                    invItem = invItems.find(i => norm(i.product_name) === norm(item.productName));
-                    if (!invItem) {
-                        invItem = invItems[0]; // Fallback to same SKU but different name
-                    }
-                }
-
-                if (fetchError && fetchError.code !== 'PGRST116') {
-                    throw fetchError;
-                }
-
-                if (!invItem) {
-                    // If not found during return, we probably don't need to return it, or we could create it.
-                    // Let's create it just in case, though it's weird to return something that never existed.
-                    console.warn(`Product ${matchValue} not found during stock return. Skipping.`);
-                    continue;
-                }
-
-                // Return stock
-                const oldQty = Number(invItem.quantity);
-                const change = Number(item.quantity);
-                const newQty = oldQty + change;
-
-                const { error: updateError } = await supabase
-                    .from('warehouse_inventory')
-                    .update({ 
-                        quantity: newQty, 
-                        last_updated: new Date().toISOString(),
-                        updated_by: performedBy || null
-                    })
-                    .eq('id', invItem.id);
-
-                if (updateError) throw updateError;
-
-                // Log movement
-                await warehouseService.logMovement({
-                    inventory_id: invItem.id,
-                    action: 'IN',
-                    quantity_change: change,
-                    previous_quantity: oldQty,
-                    new_quantity: newQty,
-                    source_type: 'invoice',
-                    reference_no: invoiceNo || '',
-                    remark: `คืนสต็อกเนื่องจากยกเลิกใบกำกับภาษี ${invoiceNo || ''}`,
-                    performed_by: performedBy
-                });
-            }
+            if (error) throw error;
             return { success: true };
         } catch (error) {
             console.error('Error returning stock for invoice:', error);

@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "echo \"UAT testing is managed manually. Please check UAT_TEST_SCRIPT.md for instructions.\" && exit 0",
     "supa:login": "supabase login",
-    "supa:link": "supabase link --project-ref ahhosopeejidjzsfxpts",
+    "supa:link:dev": "supabase link --project-ref vpiwrwplzyymwovitjwj",
+    "supa:link:prod": "supabase link --project-ref ahhosopeejidjzsfxpts",
     "migrate": "supabase db push"
   },
   "dependencies": {

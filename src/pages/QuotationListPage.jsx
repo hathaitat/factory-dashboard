@@ -34,14 +34,15 @@ const QuotationListPage = () => {
         startItem,
         endItem,
         refresh
-    } = useServerPagination(quotationService.getQuotationsPaginated, { searchTerm: '', dateFrom: '', dateTo: '' }, 50);
+    } = useServerPagination(quotationService.getQuotationsPaginated, { searchTerm: '', dateFrom: '', dateTo: '', dateFilterType: 'date' }, 50);
 
+    // Debounce search and filter
     useEffect(() => {
         const timer = setTimeout(() => {
-            updateFilters({ searchTerm, dateFrom, dateTo });
+            updateFilters({ searchTerm, dateFrom, dateTo, dateFilterType });
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchTerm, dateFrom, dateTo, updateFilters]);
+    }, [searchTerm, dateFrom, dateTo, dateFilterType, updateFilters]);
 
     useEffect(() => {
         loadKpis();
@@ -108,9 +109,9 @@ const QuotationListPage = () => {
     const hasActiveFilters = !!(dateFrom || dateTo);
     const clearFilters = () => { 
         setDateFrom(''); 
-        setDateTo(''); 
-        setDateFilterType('date'); 
-        updateFilters({ dateFrom: '', dateTo: '' });
+        setDateTo('');
+        setDateFilterType('date');
+        updateFilters({ dateFrom: '', dateTo: '', dateFilterType: 'date' });
     };
 
     const getStatusBlock = (status) => {

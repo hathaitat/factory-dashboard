@@ -50,7 +50,7 @@ export const invoiceService = {
     },
 
     // Server-Side Pagination for Invoices
-    getInvoicesPaginated: async ({ page = 1, limit = 50, searchTerm = '', dateFrom = '', dateTo = '', status = '' }) => {
+    getInvoicesPaginated: async ({ page = 1, limit = 50, searchTerm = '', dateFrom = '', dateTo = '', status = '', dateFilterType = 'date' }) => {
         try {
             let query = supabase
                 .from('invoices')
@@ -66,8 +66,10 @@ export const invoiceService = {
                 if (safe) query = query.or(`invoice_no.ilike.%${safe}%,reference_no.ilike.%${safe}%`);
             }
             if (status) query = query.eq('status', status);
-            if (dateFrom) query = query.gte('date', dateFrom);
-            if (dateTo) query = query.lte('date', dateTo);
+            
+            const targetColumn = dateFilterType === 'dueDate' ? 'due_date' : 'date';
+            if (dateFrom) query = query.gte(targetColumn, dateFrom);
+            if (dateTo) query = query.lte(targetColumn, dateTo);
 
             const from = (page - 1) * limit;
             const to = from + limit - 1;
@@ -89,7 +91,7 @@ export const invoiceService = {
         }
     },
 
-    exportInvoices: async ({ searchTerm = '', dateFrom = '', dateTo = '', status = '' }) => {
+    exportInvoices: async ({ searchTerm = '', dateFrom = '', dateTo = '', status = '', dateFilterType = 'date' }) => {
         try {
             let query = supabase
                 .from('invoices')
@@ -104,8 +106,10 @@ export const invoiceService = {
                 if (safe) query = query.or(`invoice_no.ilike.%${safe}%,reference_no.ilike.%${safe}%`);
             }
             if (status) query = query.eq('status', status);
-            if (dateFrom) query = query.gte('date', dateFrom);
-            if (dateTo) query = query.lte('date', dateTo);
+            
+            const targetColumn = dateFilterType === 'dueDate' ? 'due_date' : 'date';
+            if (dateFrom) query = query.gte(targetColumn, dateFrom);
+            if (dateTo) query = query.lte(targetColumn, dateTo);
 
             const { data, error } = await query
                 .order('date', { ascending: false })
@@ -243,6 +247,7 @@ export const invoiceService = {
                 updatedBy: inv.updated_by,
                 items: items.map(item => ({
                     id: item.id,
+                    sku: item.sku,
                     productName: item.product_name,
                     quantity: Number(item.quantity),
                     unit: item.unit,
@@ -293,6 +298,7 @@ export const invoiceService = {
             // 2. Insert Items
             const dbItems = items.map((item, index) => ({
                 invoice_id: inv.id,
+                sku: item.sku || null,
                 product_name: item.productName,
                 quantity: item.quantity,
                 unit: item.unit,
@@ -350,6 +356,7 @@ export const invoiceService = {
                 .eq('invoice_id', id);
 
             const mappedOldItems = (oldItemsData || []).map(item => ({
+                sku: item.sku,
                 productName: item.product_name,
                 quantity: item.quantity
             }));
@@ -392,23 +399,8 @@ export const invoiceService = {
                 updated_by: invoiceData.updatedBy || null
             };
 
-            const { error: invError } = await supabase
-                .from('invoices')
-                .update(dbInv)
-                .eq('id', id);
-
-            if (invError) throw invError;
-
-            // 2. Sync Items (Delete and Re-insert is simplest for now)
-            const { error: delError } = await supabase
-                .from('invoice_items')
-                .delete()
-                .eq('invoice_id', id);
-
-            if (delError) throw delError;
-
             const dbItems = items.map((item, index) => ({
-                invoice_id: id,
+                sku: item.sku || null,
                 product_name: item.productName,
                 quantity: item.quantity,
                 unit: item.unit,
@@ -417,11 +409,13 @@ export const invoiceService = {
                 sort_order: index
             }));
 
-            const { error: itemsError } = await supabase
-                .from('invoice_items')
-                .insert(dbItems);
+            const { error: rpcError } = await supabase.rpc('update_invoice_with_items', {
+                p_invoice_id: id,
+                p_invoice_data: dbInv,
+                p_items: dbItems
+            });
 
-            if (itemsError) throw itemsError;
+            if (rpcError) throw rpcError;
 
             // 3. Auto Stock Handling (Return Old, Deduct New)
             const defaultWarehouseId = await settingService.getSetting('default_distribution_warehouse_id');
@@ -441,14 +435,32 @@ export const invoiceService = {
 
                 // If the new status is NOT Cancelled, deduct the new stock
                 if (invoiceData.status !== 'Cancelled') {
-                    const deductionResult = await warehouseService.deductStockForInvoice(
-                        defaultWarehouseId,
-                        items,
-                        invoiceData.updatedBy || 'System',
-                        invoiceData.invoiceNo
-                    );
-                    if (deductionResult.warnings && deductionResult.warnings.length > 0) {
-                        deductionWarnings = deductionResult.warnings;
+                    try {
+                        const deductionResult = await warehouseService.deductStockForInvoice(
+                            defaultWarehouseId,
+                            items,
+                            invoiceData.updatedBy || 'System',
+                            invoiceData.invoiceNo
+                        );
+                        if (deductionResult.warnings && deductionResult.warnings.length > 0) {
+                            deductionWarnings = deductionResult.warnings;
+                        }
+                    } catch (deductError) {
+                        // Compensation: Revert Step 1 (re-deduct old stock) if step 2 fails
+                        console.error('Stock deduction failed, rolling back step 1...');
+                        if (oldInv && oldInv.status !== 'Cancelled') {
+                            try {
+                                await warehouseService.deductStockForInvoice(
+                                    defaultWarehouseId,
+                                    mappedOldItems,
+                                    'System (Rollback)',
+                                    invoiceData.invoiceNo
+                                );
+                            } catch (rollbackErr) {
+                                console.error('CRITICAL: Rollback also failed! Data inconsistency detected:', rollbackErr);
+                            }
+                        }
+                        throw deductError; // Rethrow to abort the invoice update
                     }
                 }
             }
@@ -486,6 +498,7 @@ export const invoiceService = {
                 const { data: oldItems } = await supabase.from('invoice_items').select('*').eq('invoice_id', id);
                 if (oldItems && oldItems.length > 0) {
                     const mappedOldItems = oldItems.map(item => ({
+                        sku: item.sku,
                         productName: item.product_name,
                         quantity: item.quantity
                     }));
@@ -540,6 +553,7 @@ export const invoiceService = {
                 const { data: oldItems } = await supabase.from('invoice_items').select('*').eq('invoice_id', id);
                 if (oldItems && oldItems.length > 0) {
                     const mappedOldItems = oldItems.map(item => ({
+                        sku: item.sku,
                         productName: item.product_name,
                         quantity: item.quantity
                     }));
@@ -576,11 +590,17 @@ export const invoiceService = {
                 totalSalesThisMonth: 0,
                 pendingAmount: 0,
                 invoiceCountThisMonth: 0,
-                totalPaidThisMonth: 0
+                totalPaidThisMonth: 0,
+                monthCount: 0,
+                pendingCount: 0,
+                paidCount: 0,
+                totalCount: 0
             };
 
             data.forEach(inv => {
                 if (inv.status === 'Cancelled') return;
+
+                stats.totalCount += 1;
 
                 const invDate = new Date(inv.date);
                 const isCurrentMonth = invDate.getMonth() === currentMonth && invDate.getFullYear() === currentYear;
@@ -588,20 +608,26 @@ export const invoiceService = {
                 if (isCurrentMonth) {
                     stats.totalSalesThisMonth += Number(inv.grand_total || 0);
                     stats.invoiceCountThisMonth += 1;
+                    stats.monthCount += 1;
                     if (inv.status === 'Paid') {
                         stats.totalPaidThisMonth += Number(inv.grand_total || 0);
                     }
                 }
 
-                if (inv.status === 'Unpaid' || inv.status === 'Overdue' || inv.status === 'Draft') {
+                if (inv.status === 'Paid') {
+                    stats.paidCount += 1;
+                }
+
+                if (inv.status === 'Unpaid' || inv.status === 'Overdue' || inv.status === 'Draft' || inv.status === 'Sent' || inv.status === 'Pending') {
                     stats.pendingAmount += Number(inv.grand_total || 0);
+                    stats.pendingCount += 1;
                 }
             });
 
             return stats;
         } catch (error) {
             console.error('Error fetching invoice stats:', error);
-            return { totalSalesThisMonth: 0, pendingAmount: 0, invoiceCountThisMonth: 0, totalPaidThisMonth: 0 };
+            return { totalSalesThisMonth: 0, pendingAmount: 0, invoiceCountThisMonth: 0, totalPaidThisMonth: 0, monthCount: 0, pendingCount: 0, paidCount: 0, totalCount: 0 };
         }
     },
 

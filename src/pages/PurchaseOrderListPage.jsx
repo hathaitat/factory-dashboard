@@ -35,7 +35,7 @@ const PurchaseOrderListPage = () => {
         startItem,
         endItem,
         refresh
-    } = useServerPagination(purchaseOrderService.getPurchaseOrdersPaginated, { searchTerm: '', status: '', dateFrom: '', dateTo: '' }, 50);
+    } = useServerPagination(purchaseOrderService.getPurchaseOrdersPaginated, { searchTerm: '', status: '', dateFrom: '', dateTo: '', dateFilterType: 'issue_date' }, 50);
 
     useEffect(() => {
         const loadKPIs = async () => {
@@ -55,16 +55,16 @@ const PurchaseOrderListPage = () => {
         setStatusFilter('');
         setDateFrom('');
         setDateTo('');
-        updateFilters({ status: '', dateFrom: '', dateTo: '' });
+        updateFilters({ status: '', dateFrom: '', dateTo: '', dateFilterType: 'issue_date' });
     };
 
     // Debounce filters
     useEffect(() => {
         const timer = setTimeout(() => {
-            updateFilters({ searchTerm, status: statusFilter, dateFrom, dateTo });
+            updateFilters({ searchTerm, status: statusFilter, dateFrom, dateTo, dateFilterType });
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchTerm, statusFilter, dateFrom, dateTo, updateFilters]);
+    }, [searchTerm, statusFilter, dateFrom, dateTo, dateFilterType, updateFilters]);
 
     const handleDelete = async (id, poNumber) => {
         const confirmed = await showConfirm(`ต้องการลบใบสั่งซื้อเลขที่ ${poNumber} หรือไม่?`);
@@ -86,7 +86,8 @@ const PurchaseOrderListPage = () => {
                 searchTerm,
                 status: statusFilter,
                 dateFrom,
-                dateTo
+                dateTo,
+                dateFilterType
             });
 
             const dataToExport = exportData.map(po => ({

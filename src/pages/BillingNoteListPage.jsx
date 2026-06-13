@@ -36,14 +36,15 @@ const BillingNoteListPage = () => {
         startItem,
         endItem,
         refresh
-    } = useServerPagination(billingNoteService.getBillingNotesPaginated, { searchTerm: '', dateFrom: '', dateTo: '' }, 50);
+    } = useServerPagination(billingNoteService.getBillingNotesPaginated, { searchTerm: '', dateFrom: '', dateTo: '', dateFilterType: 'date' }, 50);
 
+    // Debounce filters
     useEffect(() => {
         const timer = setTimeout(() => {
-            updateFilters({ searchTerm, dateFrom, dateTo });
+            updateFilters({ searchTerm, dateFrom, dateTo, dateFilterType });
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchTerm, dateFrom, dateTo, updateFilters]);
+    }, [searchTerm, dateFrom, dateTo, dateFilterType, updateFilters]);
 
     useEffect(() => {
         loadKpis();
@@ -77,7 +78,8 @@ const BillingNoteListPage = () => {
             const exportData = await billingNoteService.exportBillingNotes({
                 searchTerm,
                 dateFrom,
-                dateTo
+                dateTo,
+                dateFilterType
             });
             const bnIds = exportData.map(bn => bn.id);
             const fullBNs = [];
@@ -271,9 +273,9 @@ const BillingNoteListPage = () => {
     const hasActiveFilters = !!(dateFrom || dateTo);
     const clearFilters = () => { 
         setDateFrom(''); 
-        setDateTo(''); 
-        setDateFilterType('date'); 
-        updateFilters({ dateFrom: '', dateTo: '' });
+        setDateFrom('');
+        setDateTo('');
+        updateFilters({ dateFrom: '', dateTo: '', dateFilterType: 'date' });
     };
 
     return (

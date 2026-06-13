@@ -58,7 +58,7 @@ export const purchaseOrderService = {
     },
 
     // Server-Side Pagination for Purchase Orders
-    async getPurchaseOrdersPaginated({ page = 1, limit = 50, searchTerm = '', dateFrom = '', dateTo = '', status = '' }) {
+    async getPurchaseOrdersPaginated({ page = 1, limit = 50, searchTerm = '', dateFrom = '', dateTo = '', status = '', dateFilterType = 'issue_date' }) {
         try {
             let query = supabase
                 .from('purchase_orders')
@@ -83,11 +83,26 @@ export const purchaseOrderService = {
 
             if (searchTerm) {
                 const safe = sanitizeSearchTerm(searchTerm);
-                if (safe) query = query.or(`po_number.ilike.%${safe}%`);
+                if (safe) {
+                    const { data: customers } = await supabase
+                        .from('customers')
+                        .select('id')
+                        .ilike('name', `%${safe}%`);
+
+                    let orQuery = `po_number.ilike.%${safe}%`;
+                    if (customers && customers.length > 0) {
+                        const ids = customers.map(c => c.id).join(',');
+                        orQuery += `,customer_id.in.(${ids})`;
+                    }
+                    query = query.or(orQuery);
+                }
             }
             if (status) query = query.eq('status', status);
-            if (dateFrom) query = query.gte('issue_date', dateFrom);
-            if (dateTo) query = query.lte('issue_date', dateTo);
+            
+            // Map the frontend dateFilterType to the correct database column
+            const targetColumn = dateFilterType === 'due_date' ? 'due_date' : 'issue_date';
+            if (dateFrom) query = query.gte(targetColumn, dateFrom);
+            if (dateTo) query = query.lte(targetColumn, dateTo);
 
             const from = (page - 1) * limit;
             const to = from + limit - 1;
@@ -108,7 +123,7 @@ export const purchaseOrderService = {
         }
     },
 
-    async exportPurchaseOrders({ searchTerm = '', dateFrom = '', dateTo = '', status = '' }) {
+    async exportPurchaseOrders({ searchTerm = '', dateFrom = '', dateTo = '', status = '', dateFilterType = 'issue_date' }) {
         try {
             let query = supabase
                 .from('purchase_orders')
@@ -132,11 +147,25 @@ export const purchaseOrderService = {
 
             if (searchTerm) {
                 const safe = sanitizeSearchTerm(searchTerm);
-                if (safe) query = query.or(`po_number.ilike.%${safe}%`);
+                if (safe) {
+                    const { data: customers } = await supabase
+                        .from('customers')
+                        .select('id')
+                        .ilike('name', `%${safe}%`);
+
+                    let orQuery = `po_number.ilike.%${safe}%`;
+                    if (customers && customers.length > 0) {
+                        const ids = customers.map(c => c.id).join(',');
+                        orQuery += `,customer_id.in.(${ids})`;
+                    }
+                    query = query.or(orQuery);
+                }
             }
             if (status) query = query.eq('status', status);
-            if (dateFrom) query = query.gte('issue_date', dateFrom);
-            if (dateTo) query = query.lte('issue_date', dateTo);
+            
+            const targetColumn = dateFilterType === 'due_date' ? 'due_date' : 'issue_date';
+            if (dateFrom) query = query.gte(targetColumn, dateFrom);
+            if (dateTo) query = query.lte(targetColumn, dateTo);
 
             const { data, error } = await query
                 .order('issue_date', { ascending: false })

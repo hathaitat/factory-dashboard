@@ -30,12 +30,33 @@ const InternalRequisitionTab = () => {
             const activeItems = items.filter(i => i.status === 'active');
             const totalVal = activeItems.reduce((sum, i) => sum + (i.current_stock * i.unit_price), 0);
 
+            // Calculate monthly approved value
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            let monthlyApprovedValue = 0;
+
+            requisitions.forEach(req => {
+                const reqDate = new Date(req.date || req.created_at);
+                if (reqDate.getMonth() === currentMonth && reqDate.getFullYear() === currentYear) {
+                    if (req.items) {
+                        req.items.forEach(item => {
+                            const approvedQty = Number(item.approved_quantity) || 0;
+                            const price = Number(item.unit_price) || 0;
+                            monthlyApprovedValue += (approvedQty * price);
+                        });
+                    }
+                }
+            });
+
             setStats({
                 totalItems: activeItems.length,
                 lowStockItems: lowStock,
                 recentRequisitions: requisitions.slice(0, 5),
                 rawRequisitions: requisitions,
-                totalValue: totalVal
+                totalValue: totalVal,
+                totalRequisitionsCount: requisitions.length,
+                monthlyApprovedValue: monthlyApprovedValue
             });
         } catch (err) {
             showError('ไม่สามารถโหลดข้อมูลสถิติได้');
@@ -49,14 +70,14 @@ const InternalRequisitionTab = () => {
     return (
         <div className="tab-content-container">
             {/* Quick Stats */}
-            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+            <div className="grid-mobile-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                 <div className="glass-panel p-6 flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                         <Package size={24} />
                     </div>
                     <div>
-                        <div className="text-textMuted text-sm">รายการของใช้ทั้งหมด</div>
-                        <div className="text-2xl font-bold text-textMain">{stats.totalItems.toLocaleString()} รายการ</div>
+                        <div className="text-textMuted text-sm">ของใช้ทั้งหมด</div>
+                        <div className="text-2xl font-bold text-textMain">{stats.totalItems.toLocaleString()} <span className="text-sm font-normal text-textMuted">รายการ</span></div>
                     </div>
                 </div>
                 <div className="glass-panel p-6 flex items-center gap-4" style={{ border: stats.lowStockItems.length > 0 ? '1px solid #ef444433' : undefined }}>
@@ -65,7 +86,7 @@ const InternalRequisitionTab = () => {
                     </div>
                     <div>
                         <div className="text-textMuted text-sm">สินค้าใกล้หมด</div>
-                        <div className={`text-2xl font-bold ${stats.lowStockItems.length > 0 ? 'text-[#ef4444]' : 'text-textMain'}`}>{stats.lowStockItems.length} รายการ</div>
+                        <div className={`text-2xl font-bold ${stats.lowStockItems.length > 0 ? 'text-[#ef4444]' : 'text-textMain'}`}>{stats.lowStockItems.length} <span className="text-sm font-normal text-textMuted">รายการ</span></div>
                     </div>
                 </div>
                 <div className="glass-panel p-6 flex items-center gap-4">
@@ -77,17 +98,34 @@ const InternalRequisitionTab = () => {
                         <div className="text-2xl font-bold text-textMain">฿{stats.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     </div>
                 </div>
+                <div className="glass-panel p-6 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-[#f59e0b]/10 text-[#f59e0b] flex items-center justify-center">
+                        <ShoppingCart size={24} />
+                    </div>
+                    <div>
+                        <div className="text-textMuted text-sm">จำนวนที่เปิดเบิก</div>
+                        <div className="text-2xl font-bold text-textMain">{stats.totalRequisitionsCount?.toLocaleString() || 0} <span className="text-sm font-normal text-textMuted">ครั้ง</span></div>
+                    </div>
+                </div>
+                <div className="glass-panel p-6 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-[#8b5cf6]/10 text-[#8b5cf6] flex items-center justify-center">
+                        <TrendingUp size={24} />
+                    </div>
+                    <div>
+                        <div className="text-textMuted text-sm">มูลค่าที่ให้ของไป (เดือนนี้)</div>
+                        <div className="text-2xl font-bold text-textMain">฿{stats.monthlyApprovedValue?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</div>
+                    </div>
+                </div>
             </div>
 
             {/* Trend Chart */}
             <CustomLineChart
                 title="แนวโน้มการเบิกและสั่งซื้อของใช้"
                 metrics={[
-                    { id: 'purchase_amount', label: 'ยอดสั่งซื้อ (฿)', data: stats.rawRequisitions.filter(r => r.type === 'purchase'), dateField: 'date', valueField: 'total_amount', color: '#3b82f6', valuePrefix: '฿' },
-                    { id: 'withdraw_count', label: 'จำนวนการเบิก (ครั้ง)', data: stats.rawRequisitions.filter(r => r.type === 'withdraw'), dateField: 'date', color: '#f59e0b', yAxisId: 'right', valueSuffix: ' ครั้ง' },
-                    { id: 'requisition_total', label: 'ยอดรวมทั้งหมด (฿)', data: stats.rawRequisitions, dateField: 'date', valueField: 'total_amount', color: '#10b981', valuePrefix: '฿' }
+                    { id: 'withdraw_count', label: 'จำนวนการเบิก (ครั้ง)', data: stats.rawRequisitions, dateField: 'date', color: '#f59e0b', yAxisId: 'right', valueSuffix: ' ครั้ง' },
+                    { id: 'purchase_amount', label: 'ยอดขอเบิกทั้งหมด (฿)', data: stats.rawRequisitions, dateField: 'date', valueField: 'total_amount', color: '#3b82f6', valuePrefix: '฿' }
                 ]}
-                defaultMetric="purchase_amount"
+                defaultMetric="withdraw_count"
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

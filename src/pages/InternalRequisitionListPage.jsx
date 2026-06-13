@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Plus, Search, Eye, Edit, Trash2, Calendar, Clock } from 'lucide-react';
+import { ShoppingCart, Plus, Search, Eye, Edit, Trash2, Calendar, Clock, Printer } from 'lucide-react';
 import { internalRequisitionService } from '../services/internalRequisitionService';
 import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -144,7 +144,8 @@ const InternalRequisitionListPage = ({ embedded = false }) => {
                                         <td className="actions-column">
                                             <div className="table-actions">
                                                 <button onClick={() => navigate(`/dashboard/internal-requisitions/${req.id}`)} className="action-view" title="ดูรายละเอียด"><Eye size={16} /></button>
-                                                {req.status === 'Draft' && hasPermission('internal_items', 'edit') && (
+                                                <button onClick={() => navigate(`/dashboard/internal-requisitions/${req.id}/print`)} className="flex items-center justify-center p-1.5 text-[#3b82f6] hover:bg-[#3b82f6]/10 rounded-md transition-colors" title="พิมพ์ใบเบิก"><Printer size={16} /></button>
+                                                {(req.status === 'Draft' || req.status === 'Partial') && hasPermission('internal_items', 'edit') && (
                                                     <button onClick={() => navigate(`/dashboard/internal-requisitions/${req.id}/edit`)} className="action-edit" title="แก้ไข"><Edit size={16} /></button>
                                                 )}
                                                 {req.status === 'Draft' && hasPermission('internal_items', 'delete') && (

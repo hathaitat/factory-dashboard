@@ -59,6 +59,7 @@ const InternalItemListPage = React.lazy(() => import('./pages/InternalItemListPa
 const InternalRequisitionListPage = React.lazy(() => import('./pages/InternalRequisitionListPage'));
 const InternalRequisitionFormPage = React.lazy(() => import('./pages/InternalRequisitionFormPage'));
 const InternalRequisitionDetailPage = React.lazy(() => import('./pages/InternalRequisitionDetailPage'));
+const InternalRequisitionPrintPage = React.lazy(() => import('./pages/InternalRequisitionPrintPage'));
 const InternalItemHistoryPage = React.lazy(() => import('./pages/InternalItemHistoryPage'));
 // Loading fallback component
 const PageLoader = () => (
@@ -268,6 +269,9 @@ function App() {
                   </Route>
                   <Route element={<PermissionRoute module="supplier_pos" action="view" />}>
                     <Route path="/dashboard/supplier-pos/:id/print" element={<SupplierPoPrintPage />} />
+                  </Route>
+                  <Route element={<PermissionRoute module="internal_requisitions" action="view" />}>
+                    <Route path="/dashboard/internal-requisitions/:id/print" element={<InternalRequisitionPrintPage />} />
                   </Route>
                   <Route element={<PermissionRoute module="customers" action="view" />}>
                     <Route path="/dashboard/customers/:id/print-product-history" element={<CustomerProductHistoryPrint />} />

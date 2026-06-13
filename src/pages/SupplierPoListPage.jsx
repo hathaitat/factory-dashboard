@@ -38,14 +38,15 @@ const SupplierPoListPage = () => {
         startItem,
         endItem,
         refresh
-    } = useServerPagination(supplierPoService.getSupplierPosPaginated, { searchTerm: '', dateFrom: '', dateTo: '' }, 50);
+    } = useServerPagination(supplierPoService.getSupplierPosPaginated, { searchTerm: '', dateFrom: '', dateTo: '', dateFilterType: 'date' }, 50);
 
+    // Debounce filters
     useEffect(() => {
         const timer = setTimeout(() => {
-            updateFilters({ searchTerm, dateFrom, dateTo });
+            updateFilters({ searchTerm, dateFrom, dateTo, dateFilterType });
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchTerm, dateFrom, dateTo, updateFilters]);
+    }, [searchTerm, dateFrom, dateTo, dateFilterType, updateFilters]);
 
     const toggleRow = (id) => {
         const newExpanded = new Set(expandedRows);
@@ -103,7 +104,7 @@ const SupplierPoListPage = () => {
     const exportToExcel = async () => {
         setIsExporting(true);
         try {
-            const data = await supplierPoService.exportSupplierPos({ searchTerm, dateFrom, dateTo });
+            const data = await supplierPoService.exportSupplierPos({ searchTerm, dateFrom, dateTo, dateFilterType });
             const dataToExport = data.map(po => ({
                 'เลขที่ PO': po.po_number,
                 'วันที่สั่งซื้อ': po.date || po.po_date,

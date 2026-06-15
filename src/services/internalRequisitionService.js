@@ -93,18 +93,29 @@ export const internalRequisitionService = {
                 if (itemsError) throw itemsError;
             }
 
-            // 🚀 Trigger LINE Notification (Non-blocking)
+            // 🚀 Trigger LINE Notification (Bypass CORS Preflight completely)
             try {
-                supabase.functions.invoke('line-notify-requisition', {
-                    body: {
+                const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/req-webhook`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                    body: JSON.stringify({
                         requisition_number: req.requisition_number,
                         requested_by: req.requested_by || req.created_by,
                         items_count: items?.length || 0,
                         total_amount: req.total_amount || 0
-                    }
-                }).catch(err => console.error('Background LINE Notify Error:', err));
+                    })
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`เซิร์ฟเวอร์ตอบกลับ Error ${response.status}: ${errText}`);
+                }
             } catch (notifyErr) {
-                console.error('Failed to invoke line-notify-requisition:', notifyErr);
+                console.error('Failed to fetch req-webhook:', notifyErr);
+                throw new Error('แจ้งเตือน LINE ไม่สำเร็จ: ' + (notifyErr.message || 'Unknown Error'));
             }
 
             return req;

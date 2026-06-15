@@ -15,6 +15,7 @@ serve(async (req) => {
     let isWebhook = false;
     let replyToken = '';
     let shouldProcess = true; // default true for cron triggers
+    let customMessage = '';
 
     // Check if it's a POST request and has a JSON body
     if (req.method === 'POST') {
@@ -33,6 +34,13 @@ serve(async (req) => {
                 shouldProcess = true;
                 replyToken = event.replyToken;
                 break;
+              } else if (text === 'id' || text === 'ไอดี') {
+                // Return Group ID or User ID
+                const sourceId = event.source.groupId || event.source.userId;
+                customMessage = `รหัสสำหรับกลุ่ม/แชทนี้คือ:\n${sourceId}`;
+                replyToken = event.replyToken;
+                shouldProcess = false; // Don't fetch DB
+                break;
               }
             }
           }
@@ -44,10 +52,17 @@ serve(async (req) => {
       }
     }
 
-    // If it's a webhook but doesn't match our criteria, just return 200 OK immediately
-    if (isWebhook && !shouldProcess) {
+    // If it's a webhook but doesn't match our criteria and has no custom message, just return 200 OK immediately
+    if (isWebhook && !shouldProcess && !customMessage) {
       return new Response("OK", { status: 200 })
     }
+
+    let message = ''
+
+    // If we have a custom message (like replying with ID), skip DB fetch
+    if (customMessage) {
+      message = customMessage;
+    } else {
 
     // 1. Initialize Supabase Client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
@@ -87,7 +102,6 @@ serve(async (req) => {
 
     const totalLate = (lateClientPos?.length || 0) + (lateSupplierPos?.length || 0)
 
-    let message = ''
     if (totalLate === 0) {
       message = "✅ อัปเดตงานประจำวัน: ไม่พบงานล่าช้าในระบบวันนี้ครับ 🎉"
     } else {
@@ -140,17 +154,19 @@ serve(async (req) => {
 
       message += `\nกรุณาติดตามสถานะด้วยครับ/ค่ะ 🙏`
     }
+    } // End of customMessage check
 
     // 4. Send message to LINE Messaging API
     if (!LINE_CHANNEL_ACCESS_TOKEN) {
       throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not set in environment variables.')
     }
 
-    // Determine API Endpoint based on if we have a replyToken
-    const lineApiUrl = replyToken 
-      ? 'https://api.line.me/v2/bot/message/reply' 
-      : 'https://api.line.me/v2/bot/message/broadcast';
+    const lineGroupIdsRaw = Deno.env.get('LINE_GROUP_IDS') ?? '';
+    const lineGroupIds = lineGroupIdsRaw.split(',').map(id => id.trim()).filter(id => id);
 
+    // Determine API Endpoint
+    let lineApiUrl = 'https://api.line.me/v2/bot/message/broadcast';
+    
     const lineBody: any = {
       messages: [
         {
@@ -161,7 +177,12 @@ serve(async (req) => {
     };
 
     if (replyToken) {
+      lineApiUrl = 'https://api.line.me/v2/bot/message/reply';
       lineBody.replyToken = replyToken;
+    } else if (lineGroupIds.length > 0) {
+      // If we have group IDs configured and it's not a direct reply, use multicast
+      lineApiUrl = 'https://api.line.me/v2/bot/message/multicast';
+      lineBody.to = lineGroupIds;
     }
 
     const lineResponse = await fetch(lineApiUrl, {

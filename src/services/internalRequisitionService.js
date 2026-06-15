@@ -93,6 +93,20 @@ export const internalRequisitionService = {
                 if (itemsError) throw itemsError;
             }
 
+            // 🚀 Trigger LINE Notification (Non-blocking)
+            try {
+                supabase.functions.invoke('line-notify-requisition', {
+                    body: {
+                        requisition_number: req.requisition_number,
+                        requested_by: req.requested_by || req.created_by,
+                        items_count: items?.length || 0,
+                        total_amount: req.total_amount || 0
+                    }
+                }).catch(err => console.error('Background LINE Notify Error:', err));
+            } catch (notifyErr) {
+                console.error('Failed to invoke line-notify-requisition:', notifyErr);
+            }
+
             return req;
         } catch (error) {
             console.error('Error creating requisition:', error);

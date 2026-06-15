@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Activity, Settings, LogOut, Users, Building, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle, Truck, Package, ChevronDown, ChevronUp, ChevronRight, Bell, ArrowRight, History as HistoryIcon } from 'lucide-react';
+import { LayoutDashboard, Activity, Settings, LogOut, Users, Building, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle, Truck, Package, ChevronDown, ChevronUp, ChevronRight, Bell, ArrowRight, History as HistoryIcon, Search } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { internalRequisitionService } from '../services/internalRequisitionService';
 import { companyService } from '../services/companyService';
@@ -194,6 +194,13 @@ const DashboardLayout = () => {
                             <span>ใบสั่งซื้อจากผู้ขาย (Vendor PO)</span>
                         </NavLink>
                     )}
+                    {hasPermission('overview', 'view') && (
+                        <NavLink to="/dashboard/duplicate-finder" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                            <Search size={20} className="text-[#f43f5e]" />
+                            <span>จับผิดข้อมูลซ้ำ (Duplicate Finder)</span>
+                        </NavLink>
+                    )}
+
                     {/* COLLAPSIBLE GROUPS */}
 
                     {/* 1. Warehouse & Production */}

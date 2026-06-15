@@ -61,6 +61,7 @@ const InternalRequisitionFormPage = React.lazy(() => import('./pages/InternalReq
 const InternalRequisitionDetailPage = React.lazy(() => import('./pages/InternalRequisitionDetailPage'));
 const InternalRequisitionPrintPage = React.lazy(() => import('./pages/InternalRequisitionPrintPage'));
 const InternalItemHistoryPage = React.lazy(() => import('./pages/InternalItemHistoryPage'));
+const DuplicateFinderPage = React.lazy(() => import('./pages/DuplicateFinderPage'));
 // Loading fallback component
 const PageLoader = () => (
   <div className="flex justify-center items-center h-screen text-textMuted bg-main">
@@ -253,6 +254,7 @@ function App() {
                     </Route>
                     <Route element={<PermissionRoute module="overview" action="view" />}>
                       <Route path="guide" element={<GuidePage />} />
+                      <Route path="duplicate-finder" element={<DuplicateFinderPage />} />
                     </Route>
                   </Route>
 

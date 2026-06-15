@@ -164,40 +164,65 @@ serve(async (req) => {
     const lineGroupIdsRaw = Deno.env.get('LINE_GROUP_IDS') ?? '';
     const lineGroupIds = lineGroupIdsRaw.split(',').map(id => id.trim()).filter(id => id);
 
-    // Determine API Endpoint
-    let lineApiUrl = 'https://api.line.me/v2/bot/message/broadcast';
-    
-    const lineBody: any = {
-      messages: [
-        {
-          type: 'text',
-          text: message
-        }
-      ]
-    };
+    const messages = [
+      {
+        type: 'text',
+        text: message
+      }
+    ];
 
     if (replyToken) {
-      lineApiUrl = 'https://api.line.me/v2/bot/message/reply';
-      lineBody.replyToken = replyToken;
+      const lineResponse = await fetch('https://api.line.me/v2/bot/message/reply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+        },
+        body: JSON.stringify({
+          replyToken: replyToken,
+          messages: messages
+        })
+      });
+      if (!lineResponse.ok) {
+        throw new Error(`LINE Reply Error: ${await lineResponse.text()}`);
+      }
     } else if (lineGroupIds.length > 0) {
-      // If we have group IDs configured and it's not a direct reply, use multicast
-      lineApiUrl = 'https://api.line.me/v2/bot/message/multicast';
-      lineBody.to = lineGroupIds;
-    }
+      // LINE Multicast API only supports userIds. For groups, we MUST loop and use Push API.
+      const pushPromises = lineGroupIds.map(groupId => {
+        return fetch('https://api.line.me/v2/bot/message/push', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+          },
+          body: JSON.stringify({
+            to: groupId,
+            messages: messages
+          })
+        });
+      });
 
-    const lineResponse = await fetch(lineApiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
-      },
-      body: JSON.stringify(lineBody)
-    })
-
-    if (!lineResponse.ok) {
-      const errorText = await lineResponse.text()
-      console.error('LINE API Error:', errorText)
-      throw new Error(`Failed to send LINE message: ${errorText}`)
+      const responses = await Promise.all(pushPromises);
+      for (const res of responses) {
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('LINE Push API Error:', errorText);
+          throw new Error(`Failed to send LINE message: ${errorText}`);
+        }
+      }
+    } else {
+      // Fallback to broadcast
+      const lineResponse = await fetch('https://api.line.me/v2/bot/message/broadcast', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
+        },
+        body: JSON.stringify({ messages: messages })
+      });
+      if (!lineResponse.ok) {
+        throw new Error(`LINE Broadcast Error: ${await lineResponse.text()}`);
+      }
     }
 
     return new Response(

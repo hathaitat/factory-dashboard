@@ -105,7 +105,9 @@ export const internalRequisitionService = {
                         requisition_number: req.requisition_number,
                         requested_by: req.requested_by || req.created_by,
                         items_count: items?.length || 0,
-                        total_amount: req.total_amount || 0
+                        total_amount: req.total_amount || 0,
+                        action_type: 'create',
+                        items_detail: items?.map(item => `- ${item.item_name} (x${item.quantity})`).join('\n') || ''
                     })
                 });
 
@@ -168,6 +170,24 @@ export const internalRequisitionService = {
                         .update({ status: 'Completed' })
                         .eq('id', id);
                     requisitionData.status = 'Completed';
+                }
+                // 🚀 Trigger LINE Notification for Update
+                try {
+                    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/req-webhook`;
+                    fetch(url, { // Fire and forget
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({
+                            requisition_number: requisitionData.requisition_number || id,
+                            requested_by: requisitionData.requested_by || requisitionData.updated_by || 'ไม่ระบุ',
+                            items_count: itemsToInsert?.length || 0,
+                            total_amount: requisitionData.total_amount || 0,
+                            action_type: 'update',
+                            items_detail: itemsToInsert?.map(item => `- ${item.item_name} (x${item.quantity})`).join('\n') || ''
+                        })
+                    }).catch(console.error);
+                } catch (notifyErr) {
+                    console.error('Failed to trigger update webhook:', notifyErr);
                 }
                 
                 return { id, ...requisitionData };

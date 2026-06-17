@@ -81,7 +81,7 @@ const CustomerDetailPage = () => {
             // Process POs
             (allPOs || []).forEach(po => {
                 if (po.status === 'Cancelled') return;
-                const date = new Date(po.issue_date || po.created_at);
+                const date = new Date(po.due_date || po.issue_date || po.created_at);
                 const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                 if (!monthlyMap[key]) {
                     monthlyMap[key] = { month: key, pos: [], invoices: [], totalPOAmount: 0, totalInvAmount: 0 };

@@ -18,7 +18,7 @@ const PurchaseOrderListPage = () => {
     const [isExporting, setIsExporting] = useState(false);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
-    const [dateFilterType, setDateFilterType] = useState('issue_date');
+    const [dateFilterType, setDateFilterType] = useState('due_date');
     const [statusFilter, setStatusFilter] = useState('');
     const [kpis, setKpis] = useState({ waiting: 0, progressing: 0, completed: 0, overdue: 0 });
 
@@ -35,7 +35,7 @@ const PurchaseOrderListPage = () => {
         startItem,
         endItem,
         refresh
-    } = useServerPagination(purchaseOrderService.getPurchaseOrdersPaginated, { searchTerm: '', status: '', dateFrom: '', dateTo: '', dateFilterType: 'issue_date' }, 50);
+    } = useServerPagination(purchaseOrderService.getPurchaseOrdersPaginated, { searchTerm: '', status: '', dateFrom: '', dateTo: '', dateFilterType: 'due_date' }, 50);
 
     useEffect(() => {
         const loadKPIs = async () => {
@@ -55,7 +55,7 @@ const PurchaseOrderListPage = () => {
         setStatusFilter('');
         setDateFrom('');
         setDateTo('');
-        updateFilters({ status: '', dateFrom: '', dateTo: '', dateFilterType: 'issue_date' });
+        updateFilters({ status: '', dateFrom: '', dateTo: '', dateFilterType: 'due_date' });
     };
 
     // Debounce filters

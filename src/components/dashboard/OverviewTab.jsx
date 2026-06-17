@@ -67,8 +67,8 @@ const OverviewTab = () => {
                 const monthlyInvoiceCount = monthlyInvoices.length;
 
                 const monthlyPOs = (purchaseOrders || []).filter(po => {
-                    if (!po.issue_date) return false;
-                    const d = new Date(po.issue_date);
+                    if (!po.due_date) return false;
+                    const d = new Date(po.due_date);
                     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
                 });
                 const monthlyPOCount = monthlyPOs.length;
@@ -199,8 +199,8 @@ const OverviewTab = () => {
                 title="แนวโน้มและสถิติภาพรวม"
                 metrics={[
                     { id: 'sales', label: 'ยอดขาย (Invoices)', data: data.rawInvoices, dateField: 'date', valueField: 'grandTotal', color: '#10b981', valuePrefix: '฿' },
-                    { id: 'po_amount', label: 'รายการใบสั่งซื้อ (Purchase Orders)', data: data.rawPurchaseOrders, dateField: 'issue_date', valueField: 'grand_total', color: '#3b82f6', valuePrefix: '฿' },
-                    { id: 'supplier_po', label: 'ใบสั่งซื้อผู้ขาย (Vendor PO)', data: data.rawSupplierPOs, dateField: 'date', valueField: 'grand_total', color: '#8b5cf6', valuePrefix: '฿' },
+                    { id: 'po_amount', label: 'รายการใบสั่งซื้อ (Purchase Orders)', data: data.rawPurchaseOrders, dateField: 'due_date', valueField: 'grand_total', color: '#3b82f6', valuePrefix: '฿' },
+                    { id: 'supplier_po', label: 'ใบสั่งซื้อผู้ขาย (Supplier PO)', data: data.rawSupplierPOs, dateField: 'date', valueField: 'grand_total', color: '#8b5cf6', valuePrefix: '฿' },
                     { id: 'stock_movement', label: 'การเคลื่อนไหวสต็อก (Qty)', data: data.rawInventoryLogs, dateField: 'date', valueField: 'qty', color: '#ec4899', yAxisId: 'right', valueSuffix: ' ชิ้น' },
                     { id: 'customer_growth', label: 'ลูกค้าใหม่ (สะสม)', data: data.rawCustomers, dateField: 'createdAt', color: '#f59e0b', yAxisId: 'right', valueSuffix: ' ราย' },
                     { id: 'supplier_growth', label: 'Supplier ใหม่ (สะสม)', data: data.rawSuppliers, dateField: 'createdAt', color: '#14b8a6', yAxisId: 'right', valueSuffix: ' ราย' },

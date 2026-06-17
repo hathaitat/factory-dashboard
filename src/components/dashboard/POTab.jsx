@@ -42,8 +42,8 @@ const POTab = () => {
                 const today = new Date(now.setHours(0, 0, 0, 0));
 
                 const monthly = (purchaseOrders || []).filter(po => {
-                    if (!po.issue_date) return false;
-                    const d = new Date(po.issue_date);
+                    if (!po.due_date) return false;
+                    const d = new Date(po.due_date);
                     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
                 });
 
@@ -284,14 +284,14 @@ const POTab = () => {
             <CustomLineChart
                 title="แนวโน้มใบสั่งซื้อ (PO)"
                 metrics={[
-                    { id: 'po_amount', label: 'ยอดสั่งซื้อ (มูลค่า)', data: data.rawPOs, dateField: 'issue_date', valueField: 'grand_total', color: '#3b82f6', valuePrefix: '฿' },
-                    { id: 'po_count', label: 'จำนวนใบสั่งซื้อ (ใบ)', data: data.rawPOs, dateField: 'issue_date', valueField: null, color: '#8b5cf6', valueSuffix: ' ใบ', chartType: 'line', yAxisId: 'right' }
+                    { id: 'po_amount', label: 'ยอดสั่งซื้อ (มูลค่า)', data: data.rawPOs, dateField: 'due_date', valueField: 'grand_total', color: '#3b82f6', valuePrefix: '฿' },
+                    { id: 'po_count', label: 'จำนวนใบสั่งซื้อ (ใบ)', data: data.rawPOs, dateField: 'due_date', valueField: null, color: '#8b5cf6', valueSuffix: ' ใบ', chartType: 'line', yAxisId: 'right' }
                 ]}
                 defaultMetric="po_amount"
                 enableGroupBy={true}
                 groupByData={data.rawPOs.map(po => ({ ...po, customerName: po.customers?.name || 'ไม่ระบุ' }))}
                 groupByField="customerName"
-                groupByDateField="issue_date"
+                groupByDateField="due_date"
                 groupByValueField="grand_total"
                 groupByPrefix="฿"
                 allGroups={data.allCustomerNames}

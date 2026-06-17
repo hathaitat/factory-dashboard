@@ -52,7 +52,6 @@ export const supplierProductService = {
             const dbData = {
                 supplier_id: productData.supplierId,
                 name: productData.name,
-                sku: productData.sku || null,
                 unit: productData.unit,
                 price: productData.price
             };
@@ -85,7 +84,6 @@ export const supplierProductService = {
         try {
             const dbData = {
                 name: productData.name,
-                sku: productData.sku || null,
                 unit: productData.unit,
                 price: productData.price
             };

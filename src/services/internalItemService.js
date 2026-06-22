@@ -248,6 +248,34 @@ export const internalItemService = {
         }
     },
 
+    getMonthlyIssuedValue: async () => {
+        try {
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+            
+            // Get all OUT transactions for the current month
+            const { data, error } = await supabase
+                .from('internal_item_logs')
+                .select('qty, unit_cost')
+                .eq('type', 'OUT')
+                .gte('created_at', startOfMonth);
+                
+            if (error) throw error;
+            
+            // Calculate total value based on actual qty and unit_cost recorded at the time of withdrawal
+            const totalValue = data.reduce((sum, log) => {
+                const qty = Number(log.qty) || 0;
+                const cost = Number(log.unit_cost) || 0;
+                return sum + (qty * cost);
+            }, 0);
+            
+            return totalValue;
+        } catch (error) {
+            console.error('Error fetching monthly issued value:', error);
+            return 0;
+        }
+    },
+
     logMovement: async (logData) => {
         try {
             const { data, error } = await supabase
@@ -284,14 +312,7 @@ export const internalItemService = {
                 throw rpcError;
             }
 
-            // Update master unit_price if it's an IN transaction with a valid cost
-            if (type === 'IN' && unitCost && parseFloat(unitCost) > 0) {
-                await supabase
-                    .from('internal_items')
-                    .update({ unit_price: parseFloat(unitCost), updated_at: new Date().toISOString() })
-                    .eq('id', itemId);
-            }
-
+            // MAC (Moving Average Cost) is now calculated inside the RPC automatically
             return { success: true };
         } catch (error) {
             console.error('Error adjusting stock with log:', error);

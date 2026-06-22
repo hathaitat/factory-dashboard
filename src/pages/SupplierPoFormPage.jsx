@@ -42,7 +42,7 @@ const SupplierPoFormPage = () => {
         delivery_warehouse_id: '',
         date: new Date().toISOString().split('T')[0],
         delivery_date: '',
-        credit_term: 'เครดิต 30 วัน',
+        credit_term: '',
         reference_doc: '',
         remark: '',
         purchased_by: '',
@@ -52,6 +52,7 @@ const SupplierPoFormPage = () => {
         vat_rate: 7,
         vat_amount: 0,
         grand_total: 0,
+        receive_remark: '',
         created_by_name: '',
         updated_by: ''
     });
@@ -189,7 +190,19 @@ const SupplierPoFormPage = () => {
 
     const handleSupplierChange = async (e) => {
         const vendorId = e.target.value;
-        setFormData(prev => ({ ...prev, supplier_id: vendorId }));
+        
+        // Find selected supplier to auto-fill credit term
+        const selectedSupplier = suppliers.find(s => String(s.id) === String(vendorId));
+        let newCreditTerm = '';
+        if (selectedSupplier) {
+            newCreditTerm = selectedSupplier.creditTerm === 0 ? 'เงินสด' : `เครดิต ${selectedSupplier.creditTerm} วัน`;
+        }
+
+        setFormData(prev => ({ 
+            ...prev, 
+            supplier_id: vendorId,
+            credit_term: selectedSupplier ? newCreditTerm : prev.credit_term
+        }));
         setIsDirty(true);
 
         if (!vendorId) {
@@ -614,6 +627,19 @@ const SupplierPoFormPage = () => {
                                 className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border"
                             />
                         </div>
+                        {isReceiveMode && (
+                            <div>
+                                <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>เลขที่ใบส่งของ / หมายเหตุรับของ</label>
+                                <input
+                                    type="text"
+                                    name="receive_remark"
+                                    value={formData.receive_remark || ''}
+                                    onChange={handleChange}
+                                    placeholder="เช่น ใบส่งของ DO-1234"
+                                    className="glass-input w-full p-2.5 bg-main rounded-lg text-main border border-border"
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 

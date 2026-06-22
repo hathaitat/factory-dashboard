@@ -238,7 +238,7 @@ const WarehouseListPage = () => {
                     <div className="glass-panel p-6 mb-6" style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
                         <div className="min-w-[250px]" style={{ flex: '1' }}>
                             <div className="mb-4 flex gap-2">
-                                <span className="text-white rounded-xl" style={{ fontSize: '0.75rem', background: activeWarehouse.type === 'supplier' ? '#f59e0b' : '#10b981', padding: '0.3rem 0.8rem' }}>
+                                <span className="text-white rounded-xl whitespace-nowrap inline-block" style={{ fontSize: '0.75rem', background: activeWarehouse.type === 'supplier' ? '#f59e0b' : '#10b981', padding: '0.3rem 0.8rem' }}>
                                     {activeWarehouse.type === 'supplier' ? 'คลังผู้ขาย' : 'คลังของเรา'}
                                 </span>
                                 {activeWarehouse.code && <span className="text-sm text-textMuted" style={{ alignSelf: 'center' }}>รหัส: {activeWarehouse.code}</span>}

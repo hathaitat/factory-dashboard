@@ -326,11 +326,14 @@ export const purchaseOrderService = {
         if (poError) throw poError;
 
         if (items && items.length > 0) {
-            const itemsToInsert = items.map((item, index) => ({
-                ...item,
-                po_id: po.id,
-                sort_order: index
-            }));
+            const itemsToInsert = items.map((item, index) => {
+                const { delivered_quantity, remaining_quantity, ...cleanItem } = item;
+                return {
+                    ...cleanItem,
+                    po_id: po.id,
+                    sort_order: index
+                };
+            });
 
             const { error: itemsError } = await supabase
                 .from('purchase_order_items')
@@ -370,7 +373,8 @@ export const purchaseOrderService = {
             if (items.length > 0) {
                 const itemsToInsert = items.map((item, index) => {
                     // Remove id and created_at so Supabase generates new ones for re-inserted items
-                    const { id: _itemId, created_at: _createdAt, ...cleanItem } = item;
+                    // Also remove frontend-only fields
+                    const { id: _itemId, created_at: _createdAt, delivered_quantity, remaining_quantity, ...cleanItem } = item;
                     return {
                         ...cleanItem,
                         po_id: id,

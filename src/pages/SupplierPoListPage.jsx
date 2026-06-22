@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Plus, Search, Edit, Trash2, FileSpreadsheet, Eye, Printer, FileText, Clock, XCircle, Calendar, ShoppingCart, Copy, ChevronDown, ChevronRight } from 'lucide-react';
 import { supplierPoService } from '../services/supplierPoService';
+import { supplierService } from '../services/supplierService';
 import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
 import PageHeader from '../components/PageHeader';
@@ -20,8 +21,10 @@ const SupplierPoListPage = () => {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [dateFilterType, setDateFilterType] = useState('date');
+    const [supplierId, setSupplierId] = useState('');
     const [expandedRows, setExpandedRows] = useState(new Set());
     const [isExporting, setIsExporting] = useState(false);
+    const [suppliers, setSuppliers] = useState([]);
 
     const [kpis, setKpis] = useState({ completed: 0, partial: 0, draft: 0, cancelled: 0, overdue: 0 });
 
@@ -38,15 +41,15 @@ const SupplierPoListPage = () => {
         startItem,
         endItem,
         refresh
-    } = useServerPagination(supplierPoService.getSupplierPosPaginated, { searchTerm: '', dateFrom: '', dateTo: '', dateFilterType: 'date' }, 50);
+    } = useServerPagination(supplierPoService.getSupplierPosPaginated, { searchTerm: '', dateFrom: '', dateTo: '', dateFilterType: 'date', supplierId: '' }, 50);
 
     // Debounce filters
     useEffect(() => {
         const timer = setTimeout(() => {
-            updateFilters({ searchTerm, dateFrom, dateTo, dateFilterType });
+            updateFilters({ searchTerm, dateFrom, dateTo, dateFilterType, supplierId });
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchTerm, dateFrom, dateTo, dateFilterType, updateFilters]);
+    }, [searchTerm, dateFrom, dateTo, dateFilterType, supplierId, updateFilters]);
 
     const toggleRow = (id) => {
         const newExpanded = new Set(expandedRows);
@@ -57,7 +60,17 @@ const SupplierPoListPage = () => {
 
     useEffect(() => {
         loadStats();
+        loadSuppliers();
     }, []);
+
+    const loadSuppliers = async () => {
+        try {
+            const data = await supplierService.getSuppliers();
+            setSuppliers(data || []);
+        } catch (error) {
+            console.error('Error loading suppliers:', error);
+        }
+    };
 
     const loadStats = async () => {
         try {
@@ -104,7 +117,7 @@ const SupplierPoListPage = () => {
     const exportToExcel = async () => {
         setIsExporting(true);
         try {
-            const data = await supplierPoService.exportSupplierPos({ searchTerm, dateFrom, dateTo, dateFilterType });
+            const data = await supplierPoService.exportSupplierPos({ searchTerm, dateFrom, dateTo, dateFilterType, supplierId });
             const dataToExport = data.map(po => ({
                 'เลขที่ PO': po.po_number,
                 'วันที่สั่งซื้อ': po.date || po.po_date,
@@ -137,9 +150,9 @@ const SupplierPoListPage = () => {
         return styles[status] || styles.Draft;
     };
 
-    const clearFilters = () => { setDateFrom(''); setDateTo(''); setDateFilterType('date'); };
+    const clearFilters = () => { setDateFrom(''); setDateTo(''); setDateFilterType('date'); setSupplierId(''); };
 
-    const hasActiveFilters = dateFrom || dateTo;
+    const hasActiveFilters = dateFrom || dateTo || supplierId;
 
     return (
         <div className="px-4">
@@ -200,6 +213,16 @@ const SupplierPoListPage = () => {
 
             <ListFilter
                 filters={[
+                    {
+                        type: 'select',
+                        label: 'ผู้ขาย (Supplier)',
+                        value: supplierId,
+                        onChange: setSupplierId,
+                        options: [
+                            { value: '', label: 'ผู้ขายทั้งหมด' },
+                            ...suppliers.map(s => ({ value: s.id, label: s.name }))
+                        ]
+                    },
                     {
                         type: 'date-range',
                         dateFrom,

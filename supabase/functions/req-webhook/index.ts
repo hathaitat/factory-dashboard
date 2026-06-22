@@ -28,13 +28,15 @@ serve(async (req) => {
         requisition_number: url.searchParams.get('requisition_number'),
         requested_by: url.searchParams.get('requested_by'),
         items_count: url.searchParams.get('items_count'),
-        total_amount: url.searchParams.get('total_amount')
+        total_amount: url.searchParams.get('total_amount'),
+        action_type: url.searchParams.get('action_type') || 'create',
+        items_detail: url.searchParams.get('items_detail') || ''
       };
     } else {
       return new Response('Method Not Allowed', { status: 405, headers: corsHeaders });
     }
 
-    const { requisition_number, requested_by, items_count, total_amount } = payload
+    const { requisition_number, requested_by, items_count, total_amount, action_type, items_detail } = payload
 
     if (!requisition_number) {
       return new Response(JSON.stringify({ error: 'Missing requisition_number' }), {
@@ -44,7 +46,15 @@ serve(async (req) => {
     }
 
     const formattedAmount = Number(total_amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const message = `📝 มีการเปิดใบเบิก/สั่งซื้อใหม่\nเลขที่: ${requisition_number}\nผู้ขอ: ${requested_by || 'ไม่ระบุ'}\nรายการ: ${items_count || 0} ชิ้น\nยอดรวม: ฿${formattedAmount}\n\nกรุณาตรวจสอบในระบบครับ 🙏`;
+    
+    const actionText = action_type === 'update' ? 'มีการแก้ไข' : 'มีการเปิด';
+    let message = `📝 ${actionText}ใบเบิก/สั่งซื้อ${action_type === 'update' ? '' : 'ใหม่'}\nเลขที่: ${requisition_number}\nผู้ขอ: ${requested_by || 'ไม่ระบุ'}\nจำนวนรายการ: ${items_count || 0} ชิ้น\nยอดรวม: ฿${formattedAmount}`;
+
+    if (items_detail) {
+      message += `\n\n📌 รายการสิ่งของ:\n${items_detail}`;
+    }
+
+    message += `\n\nกรุณาตรวจสอบในระบบครับ 🙏`;
 
     if (!LINE_CHANNEL_ACCESS_TOKEN) {
       throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not set.')
@@ -52,6 +62,9 @@ serve(async (req) => {
 
     const lineGroupIdsRaw = Deno.env.get('LINE_GROUP_IDS') ?? '';
     const lineGroupIds = lineGroupIdsRaw.split(',').map(id => id.trim()).filter(id => id);
+    if (!lineGroupIds.includes('C72b77235c2ffadc9e7a5106ed98ed977')) {
+      lineGroupIds.push('C72b77235c2ffadc9e7a5106ed98ed977');
+    }
 
     const messages = [{ type: 'text', text: message }];
 

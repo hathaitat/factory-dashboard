@@ -556,7 +556,7 @@ const SettingsPage = () => {
                                             {wh.code && <div className="text-sm text-textMuted">รหัส: {wh.code}</div>}
                                         </td>
                                         <td className="p-4">
-                                            <span className="text-sm text-white rounded-xl" style={{ background: wh.type === 'supplier' ? '#f59e0b' : '#10b981', padding: '0.2rem 0.6rem' }}>
+                                            <span className="text-sm text-white rounded-xl whitespace-nowrap inline-block" style={{ background: wh.type === 'supplier' ? '#f59e0b' : '#10b981', padding: '0.2rem 0.6rem' }}>
                                                 {wh.type === 'supplier' ? 'คลังผู้ขาย' : 'คลังของเรา'}
                                             </span>
                                         </td>

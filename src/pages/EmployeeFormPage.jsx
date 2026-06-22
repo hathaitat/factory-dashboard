@@ -649,13 +649,13 @@ const EmployeeFormPage = () => {
 
                                 {/* Second Half */}
                                 {groupedLogs[monthKey].second.length > 0 && (
-                                    <div className="glass-panel p-[0] border-[1px solid rgba(139, 92, 246, 0.1)]">
+                                    <div className="glass-panel p-0 border border-violet-500/10">
                                         <div className="bg-[rgba(139, 92, 246, 0.05)] p-[1rem 1.5rem] flex justify-between items-center border-b border-border">
                                             <div className="flex items-center gap-[0.75rem]">
                                                 <span className="text-main">งวดวันที่ 16 - สิ้นเดือน</span>
                                                 <button
                                                     onClick={() => exportTimesheetToExcel(monthKey, groupedLogs[monthKey].second, '16-end')}
-                                                    className="p-1 rounded border-[1px solid rgba(16, 185, 129, 0.2)] bg-[rgba(16, 185, 129, 0.05)] text-emerald-500 cursor-pointer flex"
+                                                    className="p-1 rounded border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 cursor-pointer flex"
                                                     title="Export Excel งวดนี้"
                                                 >
                                                     <FileSpreadsheet size={14} />
@@ -729,13 +729,13 @@ const EmployeeFormPage = () => {
 
                                 {/* First Half */}
                                 {groupedLogs[monthKey].first.length > 0 && (
-                                    <div className="glass-panel p-[0] border-[1px solid rgba(139, 92, 246, 0.1)]">
+                                    <div className="glass-panel p-0 border border-violet-500/10">
                                         <div className="bg-[rgba(139, 92, 246, 0.05)] p-[1rem 1.5rem] flex justify-between items-center border-b border-border">
                                             <div className="flex items-center gap-[0.75rem]">
                                                 <span className="text-main">งวดวันที่ 1 - 15</span>
                                                 <button
                                                     onClick={() => exportTimesheetToExcel(monthKey, groupedLogs[monthKey].first, '01-15')}
-                                                    className="p-1 rounded border-[1px solid rgba(16, 185, 129, 0.2)] bg-[rgba(16, 185, 129, 0.05)] text-emerald-500 cursor-pointer flex"
+                                                    className="p-1 rounded border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 cursor-pointer flex"
                                                     title="Export Excel งวดนี้"
                                                 >
                                                     <FileSpreadsheet size={14} />

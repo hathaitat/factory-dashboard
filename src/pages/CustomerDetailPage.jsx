@@ -368,7 +368,7 @@ const CustomerDetailPage = () => {
                     {hasPermission('customers', 'edit') && (
                         <button
                             onClick={() => navigate(`/dashboard/customers/${id}/edit`)}
-                            className="p-[0.6rem 1rem] rounded-lg border border-border bg-card-hover text-main cursor-pointer flex items-center gap-2"
+                            className="px-4 py-2.5 rounded-lg border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 text-blue-500 cursor-pointer flex items-center gap-2 font-medium transition-all duration-200 shadow-sm"
                         >
                             <Edit size={18} /> แก้ไข
                         </button>
@@ -650,19 +650,19 @@ const CustomerDetailPage = () => {
                         <>
                             {/* Summary Cards */}
                             <div className="grid-mobile-stack grid gap-4 mb-6">
-                                <div className="glass-panel p-6 text-center bg-[linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.05))] border-[1px solid rgba(16, 185, 129, 0.1)]">
+                                <div className="glass-panel p-6 text-center bg-[linear-gradient(135deg,rgba(16,185,129,0.05),rgba(5,150,105,0.05))] border border-emerald-500/10">
                                     <div className="text-muted text-[0.95rem] mb-2 font-medium">ยอดซื้อรวมทั้งหมด</div>
                                     <div className="text-[1.75rem] text-emerald-500">
                                         ฿{historyData.reduce((sum, m) => sum + m.totalInvAmount, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </div>
                                 </div>
-                                <div className="glass-panel p-6 text-center bg-[linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(37, 99, 235, 0.05))] border-[1px solid rgba(59, 130, 246, 0.1)]">
+                                <div className="glass-panel p-6 text-center bg-[linear-gradient(135deg,rgba(59,130,246,0.05),rgba(37,99,235,0.05))] border border-blue-500/10">
                                     <div className="text-muted text-[0.95rem] mb-2 font-medium">จำนวน PO ทั้งหมด</div>
                                     <div className="text-[1.75rem] text-blue-500">
                                         {historyData.reduce((sum, m) => sum + m.pos.length, 0)} <span className="text-base font-medium">ฉบับ</span>
                                     </div>
                                 </div>
-                                <div className="glass-panel p-6 text-center bg-[linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(217, 119, 6, 0.05))] border-[1px solid rgba(245, 158, 11, 0.1)]">
+                                <div className="glass-panel p-6 text-center bg-[linear-gradient(135deg,rgba(245,158,11,0.05),rgba(217,119,6,0.05))] border border-amber-500/10">
                                     <div className="text-muted text-[0.95rem] mb-2 font-medium">จำนวน INV ทั้งหมด</div>
                                     <div className="text-[1.75rem] text-amber-500">
                                         {historyData.reduce((sum, m) => sum + m.invoices.length, 0)} <span className="text-base font-medium">ฉบับ</span>
@@ -798,13 +798,13 @@ const CustomerDetailPage = () => {
                             <div className="flex justify-end gap-4 mb-6">
                                 <button
                                     onClick={exportProductHistoryToExcel}
-                                    className="p-[0.6rem 1.2rem] rounded-lg border-[1px solid #10b981] bg-[rgba(16, 185, 129, 0.05)] text-emerald-500 cursor-pointer flex items-center gap-2 font-medium"
+                                    className="py-2.5 px-5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 cursor-pointer flex items-center gap-2 font-medium"
                                 >
                                     <FileSpreadsheet size={18} /> Export Excel
                                 </button>
                                 <button
                                     onClick={() => window.open(`/dashboard/customers/${id}/print-product-history`, '_blank')}
-                                    className="p-[0.6rem 1.2rem] rounded-lg border-[1px solid #3b82f6] bg-[rgba(59, 130, 246, 0.05)] text-blue-500 cursor-pointer flex items-center gap-2 font-medium"
+                                    className="py-2.5 px-5 rounded-lg border border-blue-500/20 bg-blue-500/5 text-blue-500 cursor-pointer flex items-center gap-2 font-medium"
                                 >
                                     <Printer size={18} /> พิมพ์รายงานทั้งหมด
                                 </button>
@@ -840,7 +840,7 @@ const CustomerDetailPage = () => {
                                                         exportMonthlyProductToExcel(monthData);
                                                     }}
                                                     title="Export Excel เดือนนี้"
-                                                    className="p-1.5 rounded-md border-[1px solid rgba(16, 185, 129, 0.2)] bg-[rgba(16, 185, 129, 0.05)] text-[var(--success)] cursor-pointer flex items-center"
+                                                    className="p-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/5 text-[var(--success)] cursor-pointer flex items-center"
                                                 >
                                                     <FileSpreadsheet size={14} />
                                                 </button>
@@ -850,7 +850,7 @@ const CustomerDetailPage = () => {
                                                         window.open(`/dashboard/customers/${id}/print-product-history?month=${monthData.month}`, '_blank');
                                                     }}
                                                     title="พิมพ์รายงานเดือนนี้"
-                                                    className="p-1.5 rounded-md border-[1px solid rgba(59, 130, 246, 0.2)] bg-[rgba(59, 130, 246, 0.05)] text-blue-500 cursor-pointer flex items-center"
+                                                    className="p-1.5 rounded-md border border-blue-500/20 bg-blue-500/5 text-blue-500 cursor-pointer flex items-center"
                                                 >
                                                     <Printer size={14} />
                                                 </button>

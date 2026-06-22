@@ -59,7 +59,7 @@ export const supplierPoService = {
     },
 
     // Server-Side Pagination
-    getSupplierPosPaginated: async ({ page = 1, limit = 50, searchTerm = '', dateFrom = '', dateTo = '', dateFilterType = 'date' }) => {
+    getSupplierPosPaginated: async ({ page = 1, limit = 50, searchTerm = '', dateFrom = '', dateTo = '', dateFilterType = 'date', supplierId = '' }) => {
         try {
             let query = supabase.from('supplier_pos').select(`
                 *,
@@ -70,7 +70,7 @@ export const supplierPoService = {
 
             if (searchTerm) {
                 const safe = sanitizeSearchTerm(searchTerm);
-                if (safe) query = query.or(`po_number.ilike.%${safe}%,suppliers.name.ilike.%${safe}%`);
+                if (safe) query = query.or(`po_number.ilike.%${safe}%,remark.ilike.%${safe}%`);
             }
             
             const targetColumn = dateFilterType === 'delivery_date' ? 'delivery_date' : 'po_date';
@@ -79,6 +79,9 @@ export const supplierPoService = {
             }
             if (dateTo) {
                 query = query.lte(targetColumn, dateTo);
+            }
+            if (supplierId) {
+                query = query.eq('supplier_id', supplierId);
             }
 
             const from = (page - 1) * limit;
@@ -89,14 +92,29 @@ export const supplierPoService = {
                 .range(from, to);
 
             if (error) throw error;
-            return { data, total: count };
+
+            // Client-side filter for supplier name (PostgREST cannot filter foreign tables in .or())
+            let filteredData = data;
+            let filteredTotal = count;
+            if (searchTerm) {
+                const safeLower = (searchTerm || '').trim().toLowerCase();
+                if (safeLower) {
+                    filteredData = (data || []).filter(po =>
+                        (po.po_number || '').toLowerCase().includes(safeLower) ||
+                        (po.remark || '').toLowerCase().includes(safeLower) ||
+                        (po.suppliers?.name || '').toLowerCase().includes(safeLower) ||
+                        (po.suppliers?.code || '').toLowerCase().includes(safeLower)
+                    );
+                }
+            }
+            return { data: filteredData, total: filteredTotal };
         } catch (error) {
             console.error('Error fetching paginated supplier POs:', error);
             return { data: [], total: 0, error };
         }
     },
 
-    exportSupplierPos: async ({ searchTerm = '', dateFrom = '', dateTo = '', dateFilterType = 'date' }) => {
+    exportSupplierPos: async ({ searchTerm = '', dateFrom = '', dateTo = '', dateFilterType = 'date', supplierId = '' }) => {
         try {
             let query = supabase.from('supplier_pos').select(`
                 *,
@@ -107,7 +125,7 @@ export const supplierPoService = {
 
             if (searchTerm) {
                 const safe = sanitizeSearchTerm(searchTerm);
-                if (safe) query = query.or(`po_number.ilike.%${safe}%,suppliers.name.ilike.%${safe}%`);
+                if (safe) query = query.or(`po_number.ilike.%${safe}%,remark.ilike.%${safe}%`);
             }
             
             const targetColumn = dateFilterType === 'delivery_date' ? 'delivery_date' : 'po_date';
@@ -116,6 +134,9 @@ export const supplierPoService = {
             }
             if (dateTo) {
                 query = query.lte(targetColumn, dateTo);
+            }
+            if (supplierId) {
+                query = query.eq('supplier_id', supplierId);
             }
 
             const { data, error } = await query.order('created_at', { ascending: false });
@@ -207,7 +228,7 @@ export const supplierPoService = {
     // Create supplier PO
     createSupplierPo: async (poData) => {
         try {
-            const { items, sync_products, ...poDetails } = poData;
+            const { items, sync_products, receive_remark, ...poDetails } = poData;
 
             // Ensure we have a PO number
             if (!poDetails.po_number) {
@@ -312,7 +333,7 @@ export const supplierPoService = {
     // Update supplier PO
     updateSupplierPo: async (id, poData) => {
         try {
-            const { items, sync_products, ...poDetails } = poData;
+            const { items, sync_products, receive_remark, ...poDetails } = poData;
             poDetails.updated_at = new Date().toISOString();
 
             // Get the old PO to check previous status and previous items for inventory diff calculation
@@ -403,12 +424,13 @@ export const supplierPoService = {
                             }
 
                             if (diffItems.length > 0) {
+                                const poRef = receive_remark ? `${poDetails.po_number || id} (ใบส่งของ: ${receive_remark})` : (poDetails.po_number || id);
                                 const { error: rpcError } = await supabase.rpc('batch_receive_po_stock', {
                                     p_warehouse_id: targetWarehouseId,
                                     p_items: diffItems,
                                     p_performed_by: poDetails.updated_by || poDetails.created_by_name || 'System',
                                     p_po_id: id,
-                                    p_po_number: poDetails.po_number || id
+                                    p_po_number: poRef
                                 });
                                 if (rpcError) throw rpcError;
                             }

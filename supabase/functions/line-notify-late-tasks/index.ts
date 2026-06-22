@@ -163,6 +163,9 @@ serve(async (req) => {
 
     const lineGroupIdsRaw = Deno.env.get('LINE_GROUP_IDS') ?? '';
     const lineGroupIds = lineGroupIdsRaw.split(',').map(id => id.trim()).filter(id => id);
+    if (!lineGroupIds.includes('C72b77235c2ffadc9e7a5106ed98ed977')) {
+      lineGroupIds.push('C72b77235c2ffadc9e7a5106ed98ed977');
+    }
 
     const messages = [
       {

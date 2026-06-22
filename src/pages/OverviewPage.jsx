@@ -16,6 +16,7 @@ const CustomerTab = lazy(() => import('../components/dashboard/CustomerTab'));
 const EmployeeTab = lazy(() => import('../components/dashboard/EmployeeTab'));
 const CalendarTab = lazy(() => import('../components/dashboard/CalendarTab'));
 const SupplierTab = lazy(() => import('../components/dashboard/SupplierTab'));
+const SupplierPoTab = lazy(() => import('../components/dashboard/SupplierPoTab'));
 const WarehouseTab = lazy(() => import('../components/dashboard/WarehouseTab'));
 const InternalRequisitionTab = lazy(() => import('../components/dashboard/InternalRequisitionTab'));
 
@@ -34,6 +35,7 @@ const TABS = [
     { id: 'invoice', label: 'ใบกำกับภาษี', icon: FileText, module: 'invoices', action: 'view' },
     { id: 'billing', label: 'ใบวางบิล', icon: FileText, module: 'billing', action: 'view' },
     { id: 'receipt', label: 'ใบเสร็จ', icon: Receipt, module: 'billing', action: 'view' },
+    { id: 'supplier_po', label: 'ใบสั่งซื้อผู้ขาย', icon: ShoppingCart, module: 'supplier_pos', action: 'view' },
     { id: 'customer', label: 'ลูกค้า', icon: Users, module: 'customers', action: 'view' },
     { id: 'supplier', label: 'ผู้ขาย', icon: Truck, module: 'suppliers', action: 'view' },
     { id: 'warehouse', label: 'คลังสินค้า', icon: Package, module: 'warehouses', action: 'view' },
@@ -64,8 +66,10 @@ const OverviewPage = () => {
             case 'invoice': return <InvoiceTab />;
             case 'billing': return <BillingNoteTab />;
             case 'receipt': return <ReceiptTab />;
+            case 'supplier_po': return <SupplierPoTab />;
             case 'customer': return <CustomerTab />;
             case 'supplier': return <SupplierTab />;
+
             case 'warehouse': return <WarehouseTab />;
             case 'employee': return <EmployeeTab />;
             case 'internal': return <InternalRequisitionTab />;

@@ -15,6 +15,7 @@ const InternalRequisitionTab = () => {
         totalValue: 0
     });
     const [isLoading, setIsLoading] = useState(true);
+    const [groupByMode, setGroupByMode] = useState('category'); // 'category' | 'item'
 
     useEffect(() => { loadStats(); }, []);
 
@@ -46,6 +47,8 @@ const InternalRequisitionTab = () => {
                     });
                 }
             });
+
+            const allItemNames = Array.from(new Set(flatRequisitionItems.map(i => i.item_name))).filter(Boolean);
 
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -81,6 +84,7 @@ const InternalRequisitionTab = () => {
                 monthlyApprovedValue: monthlyApprovedValue,
                 flatRequisitionItems: flatRequisitionItems,
                 allCategoryNames: categories ? categories.map(c => c.name) : [],
+                allItemNames: allItemNames,
                 topRequestedItems: topRequestedItems
             });
         } catch (err) {
@@ -144,6 +148,22 @@ const InternalRequisitionTab = () => {
             </div>
 
             {/* Trend Chart */}
+            <div className="mb-4 flex justify-end">
+                <div className="bg-background/50 rounded-lg p-1 inline-flex border border-border">
+                    <button 
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${groupByMode === 'category' ? 'bg-primary text-white' : 'text-textMuted hover:text-textMain'}`}
+                        onClick={() => setGroupByMode('category')}
+                    >
+                        แยกตามหมวดหมู่
+                    </button>
+                    <button 
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${groupByMode === 'item' ? 'bg-primary text-white' : 'text-textMuted hover:text-textMain'}`}
+                        onClick={() => setGroupByMode('item')}
+                    >
+                        แยกตามรายการสินค้า
+                    </button>
+                </div>
+            </div>
             <CustomLineChart
                 title="แนวโน้มการเบิกและสั่งซื้อของใช้"
                 metrics={[
@@ -152,13 +172,13 @@ const InternalRequisitionTab = () => {
                 ]}
                 defaultMetric="withdraw_count"
                 enableGroupBy={true}
-                groupByLabel="หมวดหมู่"
+                groupByLabel={groupByMode === 'category' ? "หมวดหมู่" : "รายการสินค้า"}
                 groupByData={stats.flatRequisitionItems || []}
-                groupByField="categoryName"
+                groupByField={groupByMode === 'category' ? "categoryName" : "item_name"}
                 groupByDateField="date"
-                groupByValueField="amount"
-                groupByPrefix="฿"
-                allGroups={stats.allCategoryNames || []}
+                groupByValueField={groupByMode === 'category' ? "amount" : "quantity"}
+                groupByPrefix={groupByMode === 'category' ? "฿" : ""}
+                allGroups={groupByMode === 'category' ? stats.allCategoryNames : stats.allItemNames}
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

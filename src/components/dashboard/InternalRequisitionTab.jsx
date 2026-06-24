@@ -149,15 +149,15 @@ const InternalRequisitionTab = () => {
 
             {/* Trend Chart */}
             <div className="mb-4 flex justify-end">
-                <div className="bg-background/50 rounded-lg p-1 inline-flex border border-border">
+                <div className="segmented-control">
                     <button 
-                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${groupByMode === 'category' ? 'bg-primary text-white' : 'text-textMuted hover:text-textMain'}`}
+                        className={`segmented-button ${groupByMode === 'category' ? 'active' : ''}`}
                         onClick={() => setGroupByMode('category')}
                     >
                         แยกตามหมวดหมู่
                     </button>
                     <button 
-                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${groupByMode === 'item' ? 'bg-primary text-white' : 'text-textMuted hover:text-textMain'}`}
+                        className={`segmented-button ${groupByMode === 'item' ? 'active' : ''}`}
                         onClick={() => setGroupByMode('item')}
                     >
                         แยกตามรายการสินค้า

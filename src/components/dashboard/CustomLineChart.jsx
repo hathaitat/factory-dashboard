@@ -71,14 +71,25 @@ const CustomLineChart = ({
         } else if (period === 'weekly') {
             startDate.setDate(now.getDate() - (7 * 11)); // Last 12 weeks
             startDate.setHours(0, 0, 0, 0);
+            // endDate = end of current week (Saturday)
+            const dayOfWeek = now.getDay(); // 0=Sun, 6=Sat
+            endDate = new Date(now);
+            endDate.setDate(now.getDate() + (6 - dayOfWeek));
+            endDate.setHours(23, 59, 59, 999);
         } else if (period === 'monthly') {
             startDate.setMonth(now.getMonth() - 11); // Last 12 months
             startDate.setDate(1);
             startDate.setHours(0, 0, 0, 0);
+            // endDate = last day of current month
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            endDate.setHours(23, 59, 59, 999);
         } else if (period === 'yearly') {
             startDate.setFullYear(now.getFullYear() - 4); // Last 5 years
             startDate.setMonth(0, 1);
             startDate.setHours(0, 0, 0, 0);
+            // endDate = Dec 31 of current year
+            endDate = new Date(now.getFullYear(), 11, 31);
+            endDate.setHours(23, 59, 59, 999);
         } else if (period === 'custom') {
             startDate = customStartDate ? new Date(customStartDate) : new Date(now.getFullYear(), now.getMonth(), 1);
             endDate = customEndDate ? new Date(customEndDate) : new Date();
@@ -312,10 +323,14 @@ const CustomLineChart = ({
 
     const renderCustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
+            const validPayload = payload.filter(entry => entry.value && entry.value !== 0);
+            
+            if (validPayload.length === 0) return null;
+
             return (
                 <div style={{ background: 'rgba(17, 24, 39, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', fontSize: '0.85rem', minWidth: '200px' }}>
                     <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600', color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.4rem' }}>{label}</p>
-                    {payload.map((entry, index) => {
+                    {validPayload.map((entry, index) => {
                         const config = finalChartObj.configs.find(c => c.id === entry.dataKey);
                         if (!config) return null;
 

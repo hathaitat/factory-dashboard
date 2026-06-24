@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.3.19] - 2026-06-24 - "Chart Date Bounds Full Period Fix"
+
+### Fixed
+- **กราฟรายเดือน/รายสัปดาห์/รายปี แสดงข้อมูลไม่ครบเดือน**:
+  - แก้ไข `dateBounds` ใน `CustomLineChart.jsx` ที่ใช้ `endDate = วันนี้` ทำให้ข้อมูลของเดือนปัจจุบันแสดงไม่ครบ (เช่น PO ที่มี due_date หลังวันนี้แต่ยังอยู่ในเดือนเดียวกันจะไม่ถูกนับ)
+  - **Monthly**: `endDate` เปลี่ยนเป็นวันสุดท้ายของเดือนปัจจุบัน
+  - **Weekly**: `endDate` เปลี่ยนเป็นวันเสาร์ของสัปดาห์ปัจจุบัน
+  - **Yearly**: `endDate` เปลี่ยนเป็น 31 ธ.ค. ของปีปัจจุบัน
+  - ผลกระทบ: ทุก Tab ที่ใช้ `CustomLineChart` (ภาพรวม, PO, Invoice, Billing Note, Receipt, Supplier PO, ลูกค้า, ผู้ขาย, คลังสินค้า, ของใช้ฯ)
+
+## [1.3.18] - 2026-06-23 - "Toggle Switcher CSS Refactoring"
+
+### Improved
+- **Premium Segmented Control Styling**:
+  - Replaced the clunky, thick-bordered toggle buttons for grouping filters ("แยกตามหมวดหมู่" and "แยกตามรายการสินค้า") on the Internal Requisition tab with a premium segmented control look.
+  - Implemented `.segmented-control` and `.segmented-button` classes in `src/index.css` featuring a soft pill design (`border-radius: 30px`), glassmorphism backdrop-blur, smooth transitions, and glowing shadow on the active item.
+
 ## [1.3.17] - 2026-06-06 - "Print Margins and Alignment Fix"
 
 ### Updated & Fixed

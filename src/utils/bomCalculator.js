@@ -16,7 +16,16 @@ export const calculateSubcontractTotal = (items, inventoryBomRules, subcontractI
 
             if (matchingRule) {
                 const ratio = Number(matchingRule.raw_material_qty) / Number(matchingRule.finished_product_qty);
-                calculationDetails.push(`${it.description || 'สินค้า'} (${it.quantity || 0} x ${ratio.toFixed(4)})`);
+                const exactRawQty = (it.quantity || 0) * ratio;
+                
+                let roundingText = '';
+                if (matchingRule.rounding_mode === 'up' && currentRawQty !== exactRawQty) {
+                    roundingText = ` ปัดขึ้นเป็น ${currentRawQty}`;
+                } else if (matchingRule.rounding_mode === 'down' && currentRawQty !== exactRawQty) {
+                    roundingText = ` ปัดลงเป็น ${currentRawQty}`;
+                }
+                
+                calculationDetails.push(`${it.description || 'สินค้า'} (${it.quantity || 0} x ${ratio.toFixed(4)} = ${exactRawQty.toFixed(4)}${roundingText})`);
             } else {
                 const selectedProduct = supplierProducts.find(p => p.id === it.supplier_product_id);
                 if (selectedProduct && selectedProduct.raw_material_ratio > 0) {

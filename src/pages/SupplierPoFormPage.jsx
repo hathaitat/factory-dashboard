@@ -1,7 +1,7 @@
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Save, X, Plus, Trash2, ArrowLeft, Image as ImageIcon, Building2, AlertTriangle, User } from 'lucide-react';
+import { Save, X, Plus, Trash2, ArrowLeft, Image as ImageIcon, Building2, AlertTriangle, User, Calculator } from 'lucide-react';
 import { supplierPoService } from '../services/supplierPoService';
 import { supplierService } from '../services/supplierService';
 import { supplierProductService } from '../services/supplierProductService';
@@ -58,7 +58,7 @@ const SupplierPoFormPage = () => {
     });
 
     const [items, setItems] = useState([
-        { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, received_quantity: 0, received_this_round: 0, previous_received: 0, unit: 'PCS', unit_price: 0, amount: 0, due_date: '', raw_material_qty: '' }
+        { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, received_quantity: 0, received_this_round: 0, previous_received: 0, unit: 'PCS', unit_price: 0, amount: 0, due_date: '', raw_material_qty: '', show_calculator: false, calc_pcs: '', calc_weight_per_pcs: '', calc_unit: 'เส้น' }
     ]);
 
     const [isLoading, setIsLoading] = useState(true);
@@ -283,7 +283,13 @@ const SupplierPoFormPage = () => {
             // Apply rule
             if (matchingRule) {
                 const ratio = Number(matchingRule.raw_material_qty) / Number(matchingRule.finished_product_qty);
-                item.raw_material_qty = ((parseFloat(item.quantity) || 0) * ratio).toFixed(4);
+                let rawQty = (parseFloat(item.quantity) || 0) * ratio;
+                if (matchingRule.rounding_mode === 'up') {
+                    rawQty = Math.ceil(rawQty);
+                } else if (matchingRule.rounding_mode === 'down') {
+                    rawQty = Math.floor(rawQty);
+                }
+                item.raw_material_qty = rawQty.toFixed(4);
             } else if (item.supplier_product_id && (field === 'description' || field === 'quantity')) {
                 // If the product has a legacy raw_material_ratio fallback
                 const selectedProduct = supplierProducts.find(p => p.id === item.supplier_product_id);
@@ -322,7 +328,7 @@ const SupplierPoFormPage = () => {
     };
 
     const addItem = () => {
-        setItems([...items, { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, received_quantity: 0, previous_received: 0, unit: 'PCS', unit_price: 0, amount: 0, due_date: '' }]);
+        setItems([...items, { id: Date.now(), supplier_product_id: '', description: '', note: '', image_url: '', quantity: 1, received_quantity: 0, previous_received: 0, unit: 'PCS', unit_price: 0, amount: 0, due_date: '', show_calculator: false, calc_pcs: '', calc_weight_per_pcs: '', calc_unit: 'เส้น' }]);
         setIsDirty(true);
     };
 
@@ -378,6 +384,19 @@ const SupplierPoFormPage = () => {
             syncProducts = await showConfirm(confirmMsg);
         }
 
+        if (subcontractInventoryId && !isEdit && Number(subcontractQty) > 0) {
+            const isConfirmed = await showConfirm(`⚠️ โปรดยืนยันยอดเบิกวัตถุดิบ\n\nระบบจะทำการตัดสต็อกวัตถุดิบจำนวน: ${subcontractQty} ออกจากคลังโดยอัตโนมัติ\n\nหากยอดนี้ยังไม่ถูกต้อง กรุณากด "ยกเลิก" เพื่อกลับไปแก้ไขตัวเลขในช่อง "จำนวนที่ต้องการเบิกใช้" ให้ถูกต้องก่อนบันทึก`);
+            if (!isConfirmed) {
+                // Scroll to the subcontractQty input field
+                const subcontractInput = document.getElementById('subcontract-qty-input');
+                if (subcontractInput) {
+                    subcontractInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    subcontractInput.focus();
+                }
+                return;
+            }
+        }
+
         setIsSaving(true);
         try {
             // Auto-detect status if receiving goods
@@ -408,7 +427,7 @@ const SupplierPoFormPage = () => {
                 status: finalStatus,
                 sync_products: syncProducts,
                 items: validItems.map(item => {
-                    const { id, previous_received, received_this_round, raw_material_qty, ...rest } = item;
+                    const { id, previous_received, received_this_round, raw_material_qty, show_calculator, calc_pcs, calc_weight_per_pcs, ...rest } = item;
                     return {
                         ...rest,
                         supplier_product_id: rest.supplier_product_id || null, // null if custom item
@@ -524,6 +543,7 @@ const SupplierPoFormPage = () => {
                             <div style={{ flex: 1 }}>
                                 <label className="text-sm text-textMuted mb-2" style={{ display: 'block' }}>จำนวนที่ต้องการเบิกใช้</label>
                                 <input
+                                    id="subcontract-qty-input"
                                     type="number"
                                     min="0.01"
                                     step="0.01"
@@ -768,6 +788,119 @@ const SupplierPoFormPage = () => {
                                                 className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border text-right"
                                                 required
                                             />
+                                            
+                                            <div className="mt-2 text-right">
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => handleItemChange(index, 'show_calculator', !item.show_calculator)}
+                                                    className="text-[0.7rem] text-[#8b5cf6] cursor-pointer bg-transparent border-none hover:underline inline-flex items-center gap-1"
+                                                >
+                                                    <Calculator size={12} /> {item.show_calculator ? 'ปิดเครื่องคิดเลข' : 'คำนวณจากจำนวนเส้น'}
+                                                </button>
+                                            </div>
+                                            
+                                            {item.show_calculator && (
+                                                <div className="p-2.5 bg-[#8b5cf6]/10 rounded border border-[#8b5cf6]/30 mt-2 shadow-sm text-left animate-in fade-in slide-in-from-top-1">
+                                                    <div className="text-[0.7rem] text-textMuted mb-1 font-medium">หน่วยที่จะแปลงเข้าคลัง (เช่น เส้น, แผ่น)</div>
+                                                    <input 
+                                                        type="text" 
+                                                        value={item.calc_unit || 'เส้น'}
+                                                        onChange={e => {
+                                                            const unit = e.target.value;
+                                                            handleItemChange(index, 'calc_unit', unit);
+                                                            if (item.calc_pcs && item.calc_weight_per_pcs && unit) {
+                                                                const calcNote = `[CONVERT: ${item.calc_pcs} ${unit} @ ${item.calc_weight_per_pcs} ${item.unit || 'KG'}/${unit}]`;
+                                                                const currentNote = items[index].note || '';
+                                                                const regex1 = /\[CONVERT:\s*[\d.]+\s*[^\s@]+\s*@\s*[\d.]+\s*[^\s\/]+\/[^\s]+\]/i;
+                                                                const regex2 = /\[\d+(\.\d+)?\s*PCS\s*@\s*\d+(\.\d+)?\s*KG\/เส้น\]/;
+                                                                let newNote = currentNote;
+                                                                if (regex1.test(currentNote)) {
+                                                                    newNote = currentNote.replace(regex1, calcNote);
+                                                                } else if (regex2.test(currentNote)) {
+                                                                    newNote = currentNote.replace(regex2, calcNote);
+                                                                } else {
+                                                                    newNote = currentNote ? `${currentNote}\n${calcNote}` : calcNote;
+                                                                }
+                                                                handleItemChange(index, 'note', newNote);
+                                                            }
+                                                        }}
+                                                        placeholder="เช่น เส้น, แผ่น"
+                                                        className="w-full p-1.5 text-[0.75rem] rounded bg-main border border-border mb-2"
+                                                    />
+
+                                                    <div className="text-[0.7rem] text-textMuted mb-1 font-medium">จำนวนชิ้น ({item.calc_unit || 'เส้น'})</div>
+                                                    <input 
+                                                        type="number" 
+                                                        min="0"
+                                                        value={item.calc_pcs || ''}
+                                                        onChange={e => {
+                                                            const pcs = e.target.value;
+                                                            const weight = item.calc_weight_per_pcs || '';
+                                                            const unit = item.calc_unit || 'เส้น';
+                                                            handleItemChange(index, 'calc_pcs', pcs);
+                                                            if (pcs && weight) {
+                                                                const totalKg = (pcs * weight).toFixed(2);
+                                                                handleItemChange(index, 'quantity', totalKg);
+                                                                // Update note
+                                                                const calcNote = `[CONVERT: ${pcs} ${unit} @ ${weight} ${item.unit || 'KG'}/${unit}]`;
+                                                                const currentNote = items[index].note || '';
+                                                                const regex1 = /\[CONVERT:\s*[\d.]+\s*[^\s@]+\s*@\s*[\d.]+\s*[^\s\/]+\/[^\s]+\]/i;
+                                                                const regex2 = /\[\d+(\.\d+)?\s*PCS\s*@\s*\d+(\.\d+)?\s*KG\/เส้น\]/;
+                                                                let newNote = currentNote;
+                                                                if (regex1.test(currentNote)) {
+                                                                    newNote = currentNote.replace(regex1, calcNote);
+                                                                } else if (regex2.test(currentNote)) {
+                                                                    newNote = currentNote.replace(regex2, calcNote);
+                                                                } else {
+                                                                    newNote = currentNote ? `${currentNote}\n${calcNote}` : calcNote;
+                                                                }
+                                                                handleItemChange(index, 'note', newNote);
+                                                            }
+                                                        }}
+                                                        placeholder="ระบุจำนวน"
+                                                        className="w-full p-1.5 text-[0.75rem] rounded bg-main border border-border mb-2"
+                                                    />
+                                                    
+                                                    <div className="text-[0.7rem] text-textMuted mb-1 font-medium">น้ำหนักต่อ 1 {item.calc_unit || 'เส้น'} ({item.unit || 'KG'}/{item.calc_unit || 'เส้น'})</div>
+                                                    <input 
+                                                        type="number" 
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={item.calc_weight_per_pcs || ''}
+                                                        onChange={e => {
+                                                            const weight = e.target.value;
+                                                            const pcs = item.calc_pcs || '';
+                                                            const unit = item.calc_unit || 'เส้น';
+                                                            handleItemChange(index, 'calc_weight_per_pcs', weight);
+                                                            if (pcs && weight) {
+                                                                const totalKg = (pcs * weight).toFixed(2);
+                                                                handleItemChange(index, 'quantity', totalKg);
+                                                                // Update note
+                                                                const calcNote = `[CONVERT: ${pcs} ${unit} @ ${weight} ${item.unit || 'KG'}/${unit}]`;
+                                                                const currentNote = items[index].note || '';
+                                                                const regex1 = /\[CONVERT:\s*[\d.]+\s*[^\s@]+\s*@\s*[\d.]+\s*[^\s\/]+\/[^\s]+\]/i;
+                                                                const regex2 = /\[\d+(\.\d+)?\s*PCS\s*@\s*\d+(\.\d+)?\s*KG\/เส้น\]/;
+                                                                let newNote = currentNote;
+                                                                if (regex1.test(currentNote)) {
+                                                                    newNote = currentNote.replace(regex1, calcNote);
+                                                                } else if (regex2.test(currentNote)) {
+                                                                    newNote = currentNote.replace(regex2, calcNote);
+                                                                } else {
+                                                                    newNote = currentNote ? `${currentNote}\n${calcNote}` : calcNote;
+                                                                }
+                                                                handleItemChange(index, 'note', newNote);
+                                                            }
+                                                        }}
+                                                        placeholder="เช่น 24"
+                                                        className="w-full p-1.5 text-[0.75rem] rounded bg-main border border-border mb-2"
+                                                    />
+                                                    
+                                                    <div className="text-[0.8rem] font-medium text-primary text-right border-t border-border/50 pt-2 mt-1 flex justify-between items-center">
+                                                        <span className="text-[0.7rem] text-textMuted">รวมสั่ง ({item.unit || 'KG'}):</span>
+                                                        <span>{item.calc_pcs && item.calc_weight_per_pcs ? (item.calc_pcs * item.calc_weight_per_pcs).toFixed(2) : 0} {item.unit || 'KG'}</span>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </td>
                                         {(formData.status === 'Completed' || formData.status === 'Partial' || isReceiveMode) && (
                                             <td className="px-6 py-3.5" style={{ verticalAlign: 'top' }}>

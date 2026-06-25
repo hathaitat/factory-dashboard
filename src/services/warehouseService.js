@@ -189,13 +189,14 @@ export const warehouseService = {
         }
     },
 
-    saveInventoryBomRule: async (inventoryId, supplierProductId, rawQty, finishedQty) => {
+    saveInventoryBomRule: async (inventoryId, supplierProductId, rawQty, finishedQty, roundingMode = 'exact') => {
         try {
             const payload = {
                 inventory_id: inventoryId,
                 supplier_product_id: supplierProductId,
                 raw_material_qty: rawQty,
                 finished_product_qty: finishedQty,
+                rounding_mode: roundingMode,
                 updated_at: new Date().toISOString()
             };
 

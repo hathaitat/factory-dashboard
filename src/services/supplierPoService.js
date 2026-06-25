@@ -4,6 +4,38 @@ import { warehouseService } from './warehouseService';
 
 const normalizeStr = (str) => (str || '').trim().toLowerCase();
 
+// Helper to extract Pieces conversion from note/description
+const parsePcsConversion = (note, defaultQty, defaultUnit) => {
+    if (!note) return { quantity: defaultQty, unit: defaultUnit };
+    
+    // Support the new format [CONVERT: 10 แผ่น @ 24 KG/แผ่น]
+    const convertMatch = note.match(/\[CONVERT:\s*([\d.]+)\s*([^\s@]+)\s*@\s*([\d.]+)\s*([^\s\/]+)\/\2\]/i);
+    if (convertMatch) {
+        const weightPerPcs = parseFloat(convertMatch[3]);
+        const targetUnit = convertMatch[2];
+        if (weightPerPcs > 0 && defaultQty > 0) {
+            return {
+                quantity: Number((defaultQty / weightPerPcs).toFixed(4)),
+                unit: targetUnit
+            };
+        }
+    }
+    
+    // Fallback to legacy format: [31 PCS @ 24 KG/เส้น]
+    const legacyMatch = note.match(/\[([\d.]+)\s*PCS\s*@\s*([\d.]+)\s*KG\/เส้น\]/i);
+    if (legacyMatch) {
+        const weightPerPcs = parseFloat(legacyMatch[2]);
+        if (weightPerPcs > 0 && defaultQty > 0) {
+            return {
+                quantity: Number((defaultQty / weightPerPcs).toFixed(4)),
+                unit: 'เส้น'
+            };
+        }
+    }
+    
+    return { quantity: defaultQty, unit: defaultUnit };
+};
+
 export const supplierPoService = {
     _syncItemsToSupplierProducts: async (supplierId, items) => {
         if (!supplierId || !items || items.length === 0) return;
@@ -268,7 +300,7 @@ export const supplierPoService = {
 
             if (items && items.length > 0) {
                 const itemsToInsert = items.map((item, index) => {
-                    const { raw_material_qty, sku, ...itemData } = item;
+                    const { raw_material_qty, sku, show_calculator, calc_pcs, calc_weight_per_pcs, calc_unit, ...itemData } = item;
                     return {
                         ...itemData,
                         po_id: poResult.id,
@@ -301,12 +333,16 @@ export const supplierPoService = {
                     }
 
                     if (targetWarehouseId) {
-                        const rcvItems = items.map(item => ({
-                            sku: item.sku || null,
-                            productName: item.description,
-                            unit: item.unit || 'PCS',
-                            quantity: item.received_quantity !== undefined ? Number(item.received_quantity) : Number(item.quantity)
-                        }));
+                        const rcvItems = items.map(item => {
+                            const rcvQtyKg = item.received_quantity !== undefined ? Number(item.received_quantity) : Number(item.quantity);
+                            const parsed = parsePcsConversion(item.note, rcvQtyKg, item.unit || 'PCS');
+                            return {
+                                sku: item.sku || null,
+                                productName: item.description,
+                                unit: parsed.unit,
+                                quantity: parsed.quantity
+                            };
+                        });
 
                         if (rcvItems.length > 0) {
                             const { error: rpcError } = await supabase.rpc('batch_receive_po_stock', {
@@ -366,7 +402,7 @@ export const supplierPoService = {
                 // Insert new items
                 if (items.length > 0) {
                     const itemsToInsert = items.map((item, index) => {
-                        const { raw_material_qty, sku, ...itemData } = item;
+                        const { raw_material_qty, sku, show_calculator, calc_pcs, calc_weight_per_pcs, calc_unit, ...itemData } = item;
                         return {
                             ...itemData,
                             po_id: id,
@@ -414,11 +450,12 @@ export const supplierPoService = {
                                 if (diffRcvQty > 0) {
                                     const supplierProduct = supplierProducts?.find(p => p.id === item.supplier_product_id);
                                     const itemSku = item.sku || (supplierProduct ? supplierProduct.sku : null);
+                                    const parsed = parsePcsConversion(item.note, diffRcvQty, item.unit || 'PCS');
                                     diffItems.push({
                                         sku: itemSku,
                                         productName: item.description,
-                                        unit: item.unit || 'PCS',
-                                        quantity: diffRcvQty
+                                        unit: parsed.unit,
+                                        quantity: parsed.quantity
                                     });
                                 }
                             }
@@ -502,11 +539,15 @@ export const supplierPoService = {
             const targetWarehouseId = po.delivery_warehouse_id || null;
             if (targetWarehouseId) {
                 const itemsToDeduct = (po.items || []).filter(item => Number(item.received_quantity || 0) > 0);
-                const cancelItems = itemsToDeduct.map(item => ({
-                    sku: item.sku || null,
-                    productName: item.description,
-                    quantity: Number(item.received_quantity || 0)
-                }));
+                const cancelItems = itemsToDeduct.map(item => {
+                    const parsed = parsePcsConversion(item.note, Number(item.received_quantity || 0), item.unit || 'PCS');
+                    return {
+                        sku: item.sku || null,
+                        productName: item.description,
+                        quantity: parsed.quantity,
+                        unit: parsed.unit
+                    };
+                });
 
                 const { error: rpcError } = await supabase.rpc('batch_cancel_po_stock', {
                     p_warehouse_id: targetWarehouseId,
@@ -599,8 +640,12 @@ export const supplierPoService = {
                     if (invFetchError) throw invFetchError;
 
                     for (const item of po.items) {
-                        const qtyToAdd = Number(item.quantity) - Number(item.received_quantity || 0);
-                        if (qtyToAdd <= 0) continue;
+                        const qtyToAddOriginal = Number(item.quantity) - Number(item.received_quantity || 0);
+                        if (qtyToAddOriginal <= 0) continue;
+                        
+                        const parsed = parsePcsConversion(item.note, qtyToAddOriginal, item.unit || 'PCS');
+                        const qtyToAdd = parsed.quantity;
+                        const finalUnit = parsed.unit;
 
                         const existingItem = (currentInventory || []).find(inv => 
                             normalizeStr(inv.product_name) === normalizeStr(item.description)
@@ -650,7 +695,7 @@ export const supplierPoService = {
                                     product_type: 'material',
                                     product_name: item.description || 'Unknown Item',
                                     quantity: qtyToAdd,
-                                    unit: item.unit || 'PCS',
+                                    unit: finalUnit,
                                     min_stock: 0
                                 }])
                                 .select()

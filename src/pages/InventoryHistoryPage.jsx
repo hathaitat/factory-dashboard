@@ -9,7 +9,7 @@ import { supplierPoService } from '../services/supplierPoService';
 import { userService } from '../services/userService';
 import { useDialog } from '../contexts/DialogContext';
 import PageHeader from '../components/PageHeader';
-import { Plus, Save, X, Trash2 } from 'lucide-react';
+import { Plus, Save, X, Trash2, Calculator } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -37,7 +37,7 @@ const InventoryHistoryPage = () => {
     const [bomRules, setBomRules] = useState([]);
     const [supplierProducts, setSupplierProducts] = useState([]);
     const [showBomModal, setShowBomModal] = useState(false);
-    const [newBomRule, setNewBomRule] = useState({ supplier_product_id: '', raw_material_qty: '', finished_product_qty: '' });
+    const [newBomRule, setNewBomRule] = useState({ supplier_product_id: '', raw_material_qty: '', finished_product_qty: '', rounding_mode: 'exact' });
 
     useEffect(() => {
         loadData();
@@ -137,11 +137,12 @@ const InventoryHistoryPage = () => {
                 id,
                 newBomRule.supplier_product_id,
                 newBomRule.raw_material_qty,
-                newBomRule.finished_product_qty
+                newBomRule.finished_product_qty,
+                newBomRule.rounding_mode || 'exact'
             );
             showAlert('บันทึกการตั้งค่าสูตรการผลิตเรียบร้อยแล้ว');
             setShowBomModal(false);
-            setNewBomRule({ supplier_product_id: '', raw_material_qty: '', finished_product_qty: '' });
+            setNewBomRule({ supplier_product_id: '', raw_material_qty: '', finished_product_qty: '', rounding_mode: 'exact' });
 
             // Reload rules
             const rulesData = await warehouseService.getInventoryBomRules(id);
@@ -544,6 +545,19 @@ const InventoryHistoryPage = () => {
                                         required
                                     />
                                 </div>
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-sm text-textMuted mb-2">การปัดเศษเมื่อนำไปคำนวณวัตถุดิบ (Rounding Mode)</label>
+                                <select
+                                    value={newBomRule.rounding_mode || 'exact'}
+                                    onChange={e => setNewBomRule({ ...newBomRule, rounding_mode: e.target.value })}
+                                    className="glass-input w-full p-3" style={{ background: 'var(--bg-main)' }}
+                                >
+                                    <option value="exact">ตามทศนิยม (Exact)</option>
+                                    <option value="up">ปัดขึ้นเสมอ (Round Up)</option>
+                                    <option value="down">ปัดลงเสมอ (Round Down)</option>
+                                </select>
                             </div>
 
                             <div className="p-4 rounded-lg mb-6 text-sm text-violet-500 flex gap-2" style={{ background: 'rgba(139, 92, 246, 0.05)', alignItems: 'flex-start' }}>

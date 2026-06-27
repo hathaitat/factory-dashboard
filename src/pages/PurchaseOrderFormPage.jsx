@@ -45,7 +45,7 @@ const PurchaseOrderFormPage = () => {
     });
 
     const [items, setItems] = useState([
-        { product_name: '', quantity: 1, unit: '', price_per_unit: 0, amount: 0 }
+        { product_name: '', quantity: 1, unit: '', price_per_unit: 0, amount: 0, due_date: '' }
     ]);
 
     useEffect(() => {
@@ -135,12 +135,12 @@ const PurchaseOrderFormPage = () => {
     };
 
     const handleAddItem = () => {
-        setItems([...items, { product_name: '', quantity: 1, unit: '', price_per_unit: 0, amount: 0 }]);
+        setItems([...items, { product_name: '', quantity: 1, unit: '', price_per_unit: 0, amount: 0, due_date: '' }]);
     };
 
     const handleRemoveItem = (index) => {
         const newItems = items.filter((_, i) => i !== index);
-        setItems(newItems.length > 0 ? newItems : [{ product_name: '', quantity: 1, unit: '', price_per_unit: 0, amount: 0 }]);
+        setItems(newItems.length > 0 ? newItems : [{ product_name: '', quantity: 1, unit: '', price_per_unit: 0, amount: 0, due_date: '' }]);
     };
 
     const handleItemChange = (index, field, value) => {
@@ -441,9 +441,10 @@ const PurchaseOrderFormPage = () => {
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr className="border-b border-border text-left">
-                                    <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '40%' }}>รายละเอียดสินค้า</th>
-                                    <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '15%' }}>จำนวน</th>
-                                    <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '15%' }}>หน่วย</th>
+                                    <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '35%' }}>รายละเอียดสินค้า</th>
+                                    <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '15%' }}>วันกำหนดส่ง <span style={{ fontSize: '0.75rem' }}>(ย่อย)</span></th>
+                                    <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '10%' }}>จำนวน</th>
+                                    <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '10%' }}>หน่วย</th>
                                     <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '15%' }}>ราคา/หน่วย <span style={{ fontSize: '0.75rem' }}>(ถ้ามี)</span></th>
                                     <th className="px-6 py-4 text-textMuted font-medium text-right" style={{ width: '15%' }}>จำนวนเงิน</th>
                                     <th className="p-4" style={{ width: '50px' }}></th>
@@ -451,7 +452,7 @@ const PurchaseOrderFormPage = () => {
                             </thead>
                             <tbody>
                                 {items.map((item, index) => (
-                                    <tr key={index} className="border-b border-border">
+                                    <tr key={index} className="border-b border-border" style={{ verticalAlign: 'top' }}>
                                         <td className="px-6 py-3">
                                             <div className="relative" style={{ display: 'flex', alignItems: 'center' }}>
                                                 <input
@@ -471,7 +472,7 @@ const PurchaseOrderFormPage = () => {
                                                         }
                                                     }}
                                                     placeholder="พิมพ์ชื่อสินค้า..."
-                                                    className="glass-panel w-full p-2 bg-cardHover rounded text-main border border-border" style={{ paddingRight: '2rem' }}
+                                                    className="glass-panel w-full p-2 bg-cardHover rounded text-main border border-border" style={{ paddingRight: '2rem', height: '42px' }}
                                                 />
                                                 {item.product_name && (
                                                     <button
@@ -495,11 +496,21 @@ const PurchaseOrderFormPage = () => {
                                         </td>
                                         <td className="px-6 py-3">
                                             <input
+                                                type="date"
+                                                value={item.due_date || ''}
+                                                onChange={e => handleItemChange(index, 'due_date', e.target.value)}
+                                                className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
+                                                style={{ height: '42px' }}
+                                            />
+                                        </td>
+                                        <td className="px-6 py-3">
+                                            <input
                                                 type="number"
                                                 required
                                                 value={item.quantity}
                                                 onChange={e => handleItemChange(index, 'quantity', e.target.value)}
                                                 className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
+                                                style={{ height: '42px' }}
                                             />
                                             {isEdit && item.delivered_quantity !== undefined && (
                                                 <div className="mt-1 text-xs">
@@ -517,6 +528,7 @@ const PurchaseOrderFormPage = () => {
                                                 onChange={e => handleItemChange(index, 'unit', e.target.value)}
                                                 placeholder="ชิ้น/กก."
                                                 className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
+                                                style={{ height: '42px' }}
                                             />
                                         </td>
                                         <td className="px-6 py-3">
@@ -525,12 +537,13 @@ const PurchaseOrderFormPage = () => {
                                                 value={item.price_per_unit}
                                                 onChange={e => handleItemChange(index, 'price_per_unit', e.target.value)}
                                                 className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
+                                                style={{ height: '42px' }}
                                             />
                                         </td>
-                                        <td className="px-6 py-3 text-right font-medium">
+                                        <td className="px-6 py-3 text-right font-medium" style={{ paddingTop: '1.2rem' }}>
                                             ฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
-                                        <td className="p-3">
+                                        <td className="p-3" style={{ paddingTop: '1rem' }}>
                                             <button
                                                 type="button"
                                                 onClick={() => handleRemoveItem(index)}

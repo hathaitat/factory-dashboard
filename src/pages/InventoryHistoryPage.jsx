@@ -39,6 +39,11 @@ const InventoryHistoryPage = () => {
     const [showBomModal, setShowBomModal] = useState(false);
     const [newBomRule, setNewBomRule] = useState({ supplier_product_id: '', raw_material_qty: '', finished_product_qty: '', rounding_mode: 'exact' });
 
+    // Move Warehouse state
+    const [warehouses, setWarehouses] = useState([]);
+    const [showMoveModal, setShowMoveModal] = useState(false);
+    const [targetWarehouseId, setTargetWarehouseId] = useState('');
+
     useEffect(() => {
         loadData();
     }, [id]);
@@ -60,9 +65,11 @@ const InventoryHistoryPage = () => {
             const pItems = await supplierPoService.getPendingItems();
             setPendingItems(pItems || []);
 
-            // Load BOM Rules and Products
             const rulesData = await warehouseService.getInventoryBomRules(id);
             setBomRules(rulesData || []);
+
+            const whs = await warehouseService.getWarehouses();
+            setWarehouses(whs || []);
 
             const { supplierProductService } = await import('../services/supplierProductService');
             const prods = await supplierProductService.getAllProducts();
@@ -166,7 +173,38 @@ const InventoryHistoryPage = () => {
             setBomRules(rulesData || []);
         } catch (error) {
             console.error('Error deleting BOM rule:', error);
-            showError('เกิดข้อผิดพลาดในการลบสูตรการผลิต');
+            showError('เกิดข้อผิดพลาดในการลบสูตร');
+        }
+    };
+
+    const handleMoveSubmit = async (e) => {
+        e.preventDefault();
+        if (!targetWarehouseId) {
+            showError('กรุณาเลือกคลังสินค้าปลายทาง');
+            return;
+        }
+
+        const isConfirmed = await showConfirm('คุณต้องการย้ายสินค้าไปยังคลังที่เลือกใช่หรือไม่? (หากปลายทางมีสินค้านี้อยู่แล้ว ระบบจะรวมยอดและลบรายการนี้ทิ้ง)');
+        if (!isConfirmed) return;
+
+        setIsSaving(true);
+        try {
+            const result = await warehouseService.moveInventoryItem(id, targetWarehouseId, currentUser?.fullName || 'system');
+            showAlert('ย้ายคลังสินค้าสำเร็จ');
+            setShowMoveModal(false);
+            
+            if (result?.action === 'merged') {
+                // If it was merged, the original ID was deleted, navigate to the target inventory
+                navigate(`/dashboard/inventory/${result.target_inventory_id}`);
+            } else {
+                // It was just moved, reload the current page
+                loadData();
+            }
+        } catch (error) {
+            console.error('Error moving inventory item:', error);
+            showError(error.message || 'เกิดข้อผิดพลาดในการย้ายคลัง');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -215,6 +253,14 @@ const InventoryHistoryPage = () => {
                             className="btn-primary px-5 py-2.5 flex items-center gap-2"
                         >
                             <Plus size={18} /> ปรับสต็อก
+                        </button>
+                    )}
+                    {hasPermission('warehouses', 'edit') && (
+                        <button
+                            onClick={() => setShowMoveModal(true)}
+                            className="btn-secondary px-5 py-2.5 text-blue-500 flex items-center gap-2" style={{ borderColor: '#3b82f6' }}
+                        >
+                            <ArrowUpRight size={18} /> ย้ายคลัง
                         </button>
                     )}
                     {hasPermission('warehouses', 'edit') && logs.length === 0 && (
@@ -571,6 +617,50 @@ const InventoryHistoryPage = () => {
 
                             <button type="submit" disabled={isSaving} className="btn-primary w-full p-3">
                                 {isSaving ? 'กำลังบันทึก...' : 'บันทึกสูตรการผลิต'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {showMoveModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+                    <div className="bg-main w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in zoom-in-95">
+                        <div className="p-6 border-b border-border flex justify-between items-center bg-cardHover/50">
+                            <h3 className="m-0 flex items-center gap-2 text-blue-500">
+                                <ArrowUpRight size={20} /> ย้ายคลังสินค้ารายตัว
+                            </h3>
+                            <button onClick={() => setShowMoveModal(false)} className="bg-transparent border-none text-textMuted cursor-pointer hover:text-red-500 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleMoveSubmit} className="p-6">
+                            <div className="mb-4 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 text-sm text-blue-500">
+                                เลือกคลังสินค้าปลายทางที่คุณต้องการย้าย <strong>{item.product_name}</strong> ไป<br/><br/>
+                                <span className="text-[0.75rem]">
+                                    *หากปลายทางมีสินค้านี้อยู่แล้ว ระบบจะรวมยอดเข้าด้วยกันและลบรายการต้นทางทิ้ง
+                                </span>
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-sm text-textMuted mb-2">คลังสินค้าปลายทาง <span className="text-red-500">*</span></label>
+                                <select
+                                    value={targetWarehouseId}
+                                    onChange={e => setTargetWarehouseId(e.target.value)}
+                                    className="glass-input w-full p-3"
+                                    required
+                                >
+                                    <option value="">-- เลือกคลังสินค้าปลายทาง --</option>
+                                    {warehouses.filter(w => w.id !== item.warehouse_id).map(w => (
+                                        <option key={w.id} value={w.id}>
+                                            {w.is_default ? '[คลังหลัก] ' : ''}{w.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <button type="submit" disabled={isSaving || !targetWarehouseId} className="btn-primary w-full p-3 bg-blue-500 hover:bg-blue-600 border-none shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                                {isSaving ? 'กำลังบันทึก...' : 'ยืนยันการย้ายคลัง'}
                             </button>
                         </form>
                     </div>

@@ -286,12 +286,18 @@ const PurchaseOrderListPage = () => {
                                         </td>
                                         <td className="px-6 py-5 text-center">{new Date(po.issue_date).toLocaleDateString('th-TH')}</td>
                                         <td className="px-6 py-5 text-center">
-                                            <span style={{
-                                                color: new Date(po.due_date) < new Date() && po.status !== 'Completed' ? 'var(--error)' : 'inherit',
-                                                fontWeight: new Date(po.due_date) < new Date() && po.status !== 'Completed' ? '600' : 'normal'
-                                            }}>
-                                                {po.due_date ? new Date(po.due_date).toLocaleDateString('th-TH') : '-'}
-                                            </span>
+                                            {po.is_multi_due_date ? (
+                                                <span className="text-amber-500 font-semibold px-2 py-1 rounded-md" style={{ background: 'rgba(245, 158, 11, 0.1)', fontSize: '0.85rem' }}>
+                                                    Multi Dates
+                                                </span>
+                                            ) : (
+                                                <span style={{
+                                                    color: new Date(po.due_date) < new Date() && po.status !== 'Completed' ? 'var(--error)' : 'inherit',
+                                                    fontWeight: new Date(po.due_date) < new Date() && po.status !== 'Completed' ? '600' : 'normal'
+                                                }}>
+                                                    {po.due_date ? new Date(po.due_date).toLocaleDateString('th-TH') : '-'}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-5 text-center">
                                             <div className="text-[0.95rem]" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>

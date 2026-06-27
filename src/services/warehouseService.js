@@ -137,6 +137,22 @@ export const warehouseService = {
         }
     },
 
+    moveInventoryItem: async (inventoryId, targetWarehouseId, performedBy) => {
+        try {
+            const { data, error } = await supabase.rpc('move_single_inventory_item', {
+                p_inventory_id: inventoryId,
+                p_target_warehouse_id: targetWarehouseId,
+                p_performed_by: performedBy || 'System'
+            });
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error moving inventory item:', error);
+            throw error;
+        }
+    },
+
     getNegativeInventory: async () => {
         try {
             const { data, error } = await supabase

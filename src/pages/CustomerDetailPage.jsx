@@ -365,6 +365,12 @@ const CustomerDetailPage = () => {
                     </div>
                 </div>
                 <div className="flex gap-2">
+                    <button
+                        onClick={() => window.open(`/dashboard/customers/${id}/envelope-print`, '_blank')}
+                        className="px-4 py-2.5 rounded-lg border border-border bg-card hover:bg-card-hover text-textMain cursor-pointer flex items-center gap-2 font-medium transition-all duration-200 shadow-sm"
+                    >
+                        <Mail size={18} /> ปะหน้าซอง
+                    </button>
                     {hasPermission('customers', 'edit') && (
                         <button
                             onClick={() => navigate(`/dashboard/customers/${id}/edit`)}
@@ -607,9 +613,31 @@ const CustomerDetailPage = () => {
                             <h3 className="mt-[0] mb-6 text-emerald-500 flex items-center gap-2">
                                 <MapPin size={20} /> ที่อยู่
                             </h3>
-                            <div className="leading-relaxed">
+                            <div className="leading-relaxed mb-6">
                                 {customer.address || '-'}
                             </div>
+
+                            {(customer.billingAddress || customer.billingAttention || customer.billingPhone) && (
+                                <>
+                                    <div className="border-t border-border my-4"></div>
+                                    <h4 className="mt-0 mb-3 text-orange-500 flex items-center gap-2 text-[0.95rem]">
+                                        <FileText size={18} /> ข้อมูลที่อยู่วางบิล (Billing)
+                                    </h4>
+                                    <div className="text-sm grid gap-2">
+                                        {customer.billingAttention && (
+                                            <div><span className="text-gray-500">เรียน:</span> {customer.billingAttention}</div>
+                                        )}
+                                        {customer.billingPhone && (
+                                            <div><span className="text-gray-500">เบอร์โทร:</span> {customer.billingPhone}</div>
+                                        )}
+                                        {customer.billingAddress && (
+                                            <div className="leading-relaxed mt-1">
+                                                {customer.billingAddress}
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         {/* History */}

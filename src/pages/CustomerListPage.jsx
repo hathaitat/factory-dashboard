@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import XLSX from 'xlsx-js-style';
-import { Plus, Search, Filter, Eye, Edit, Trash2, FileSpreadsheet } from 'lucide-react';
+import { Plus, Search, Eye, Edit, Trash2, FileSpreadsheet, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';

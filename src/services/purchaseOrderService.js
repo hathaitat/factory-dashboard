@@ -23,6 +23,11 @@ const _mapPurchaseOrder = (po) => {
     if (po.purchase_order_items) {
         po.purchase_order_items.forEach(item => {
             if (item.due_date) uniqueDueDates.add(item.due_date);
+            if (item.delivery_schedule && Array.isArray(item.delivery_schedule)) {
+                item.delivery_schedule.forEach(schedule => {
+                    if (schedule.date) uniqueDueDates.add(schedule.date);
+                });
+            }
         });
     }
 
@@ -339,6 +344,12 @@ export const purchaseOrderService = {
         if (items && items.length > 0) {
             const itemsToInsert = items.map((item, index) => {
                 const { delivered_quantity, remaining_quantity, due_date, ...cleanItem } = item;
+                
+                // Ensure delivery_schedule defaults to empty array if not present
+                if (!cleanItem.delivery_schedule) {
+                    cleanItem.delivery_schedule = [];
+                }
+
                 return {
                     ...cleanItem,
                     due_date: due_date || poData.due_date || null,
@@ -387,6 +398,11 @@ export const purchaseOrderService = {
                     // Remove id and created_at so Supabase generates new ones for re-inserted items
                     // Also remove frontend-only fields
                     const { id: _itemId, created_at: _createdAt, delivered_quantity, remaining_quantity, due_date, ...cleanItem } = item;
+                    
+                    if (!cleanItem.delivery_schedule) {
+                        cleanItem.delivery_schedule = [];
+                    }
+
                     return {
                         ...cleanItem,
                         due_date: due_date || poData.due_date || null,

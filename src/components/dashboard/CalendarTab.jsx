@@ -56,8 +56,15 @@ const CalendarTab = () => {
             const uniqueDueDates = new Set();
             if (po.purchase_order_items && po.purchase_order_items.length > 0) {
                 po.purchase_order_items.forEach(item => {
-                    if (item.due_date) uniqueDueDates.add(item.due_date);
-                    else if (po.due_date) uniqueDueDates.add(po.due_date);
+                    if (item.delivery_schedule && item.delivery_schedule.length > 0) {
+                        item.delivery_schedule.forEach(schedule => {
+                            if (schedule.date) uniqueDueDates.add(schedule.date);
+                        });
+                    } else if (item.due_date) {
+                        uniqueDueDates.add(item.due_date);
+                    } else if (po.due_date) {
+                        uniqueDueDates.add(po.due_date);
+                    }
                 });
             } else if (po.due_date) {
                 uniqueDueDates.add(po.due_date);

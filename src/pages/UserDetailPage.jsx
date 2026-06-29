@@ -20,6 +20,7 @@ const MODULES = [
     { id: 'invoices', label: 'ใบกำกับภาษี' },
     { id: 'billing', label: 'ใบวางบิล' },
     { id: 'certificate_receipts', label: 'ใบรับรองแทนใบเสร็จ' },
+    { id: 'envelopes', label: 'ใบปะหน้าซองจดหมาย' },
     { id: 'employees', label: 'พนักงาน' },
     { id: 'company', label: 'ข้อมูลบริษัท' },
     { id: 'users', label: 'สิทธิ์การใช้งาน' },
@@ -31,11 +32,11 @@ const MODULES = [
 ];
 
 const UserDetailPage = () => {
-    const { user } = useAuth();
     const { id } = useParams();
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
     const { showAlert } = useDialog();
+    const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {

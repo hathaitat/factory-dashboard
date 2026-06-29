@@ -17,7 +17,10 @@ const CustomerForm = ({ initialData, onSubmit, title }) => {
         poNote: '',
         invoiceNote: '',
         billingNoteNote: '',
-        receiptNote: ''
+        receiptNote: '',
+        billingAttention: '',
+        billingAddress: '',
+        billingPhone: ''
     });
 
     useEffect(() => {
@@ -206,6 +209,48 @@ const CustomerForm = ({ initialData, onSubmit, title }) => {
                         value={formData.address}
                         onChange={handleChange}
                         required
+                        rows="2"
+                        className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain resize-y"
+                    />
+                </div>
+
+                <div className="border-t border-border my-4"></div>
+
+                <h3 className="m-0 mb-2 text-lg text-primary flex items-center gap-2">
+                    <FileText size={20} /> ข้อมูลที่อยู่วางบิล (Billing Address)
+                </h3>
+                <div className="text-sm text-textMuted mb-4">หากเว้นว่างไว้ ระบบจะใช้ที่อยู่และผู้ติดต่อหลักด้านบนแทน</div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="form-group">
+                        <label className="block mb-2 text-textMuted">เรียน (ผู้ติดต่อสำหรับวางบิล)</label>
+                        <input
+                            type="text"
+                            name="billingAttention"
+                            value={formData.billingAttention || ''}
+                            onChange={handleChange}
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain"
+                            placeholder="เช่น ฝ่ายบัญชี, คุณสมชาย"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="block mb-2 text-textMuted">เบอร์โทรศัพท์ (สำหรับวางบิล)</label>
+                        <input
+                            type="tel"
+                            name="billingPhone"
+                            value={formData.billingPhone || ''}
+                            onChange={handleChange}
+                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain"
+                        />
+                    </div>
+                </div>
+
+                <div className="form-group">
+                    <label className="block mb-2 text-textMuted">ที่อยู่วางบิล</label>
+                    <textarea
+                        name="billingAddress"
+                        value={formData.billingAddress || ''}
+                        onChange={handleChange}
                         rows="2"
                         className="glass-input w-full p-3 bg-main border border-border rounded-lg text-textMain resize-y"
                     />

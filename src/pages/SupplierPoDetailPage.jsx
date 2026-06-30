@@ -13,6 +13,7 @@ const SupplierPoDetailPage = () => {
     const { showConfirm, showAlert, showError } = useDialog();
     const { hasPermission } = usePermissions();
     const [po, setPo] = useState(null);
+    const [receivingLogs, setReceivingLogs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -24,6 +25,8 @@ const SupplierPoDetailPage = () => {
             const data = await supplierPoService.getSupplierPoById(id);
             if (data) {
                 setPo(data);
+                const logs = await supplierPoService.getPoReceivingHistory(id);
+                setReceivingLogs(logs || []);
             } else {
                 showError('ไม่พบข้อมูลใบสั่งซื้อ');
                 navigate('/dashboard/supplier-pos');
@@ -221,6 +224,51 @@ const SupplierPoDetailPage = () => {
                             </div>
                         )}
                     </div>
+
+                    {receivingLogs.length > 0 && (
+                        <div className="glass-panel p-8">
+                            <h3 className="mb-4 text-emerald-500 flex items-center gap-2">
+                                <CheckCircle size={20} /> ประวัติการรับสินค้า
+                            </h3>
+                            <div className="overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                    <thead>
+                                        <tr className="text-left" style={{ borderBottom: '2px solid var(--border-color)' }}>
+                                            <th className="p-3 text-textMuted font-semibold text-sm">วันที่รับ</th>
+                                            <th className="p-3 text-textMuted font-semibold text-sm">รายการสินค้า</th>
+                                            <th className="p-3 text-textMuted font-semibold text-sm text-right">จำนวน</th>
+                                            <th className="p-3 text-textMuted font-semibold text-sm">อ้างอิง / ใบส่งของ</th>
+                                            <th className="p-3 text-textMuted font-semibold text-sm">ผู้ทำรายการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {receivingLogs.map((log) => {
+                                            const isRevert = log.remark && log.remark.includes('ยกเลิก');
+                                            return (
+                                                <tr key={log.id} className="border-b border-border">
+                                                    <td className="p-3 text-sm">{new Date(log.created_at).toLocaleString('th-TH')}</td>
+                                                    <td className="p-3 text-sm font-medium">{log.inventory?.product_name || '-'}</td>
+                                                    <td className={`p-3 text-sm text-right font-semibold ${isRevert ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                        {isRevert ? '-' : '+'}{Number(log.qty).toLocaleString()} {log.inventory?.unit || ''}
+                                                    </td>
+                                                    <td className="p-3 text-sm">
+                                                        {log.reference_no && log.reference_no.includes('ใบส่งของ:') ? (
+                                                            <span className="bg-amber-500/10 text-amber-600 px-2 py-1 rounded">
+                                                                {log.reference_no.split('ใบส่งของ:')[1].replace(')', '').trim()}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-textMuted">{log.reference_no || '-'}</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="p-3 text-sm text-textMuted">{log.performed_by || '-'}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

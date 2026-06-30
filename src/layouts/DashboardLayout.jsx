@@ -29,7 +29,8 @@ const DashboardLayout = () => {
     const [openGroups, setOpenGroups] = useState({
         ops: false,
         partners: false,
-        system: false
+        system: false,
+        forms: false
     });
 
     const toggleGroup = (group) => {
@@ -181,11 +182,33 @@ const DashboardLayout = () => {
                         </>
                     )}
 
-                    {hasPermission('certificate_receipts', 'view') && (
-                        <NavLink to="/dashboard/certificate-receipts" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                            <FileText size={20} className="text-[#06b6d4]" />
-                            <span>ใบรับรองแทนใบเสร็จ</span>
-                        </NavLink>
+                    {/* Form Tools Group */}
+                    {(hasPermission('certificate_receipts', 'view') || hasPermission('envelopes', 'view')) && (
+                        <div className={`nav-group ${openGroups.forms ? 'open' : ''}`}>
+                            <button className="nav-item group-header" onClick={() => toggleGroup('forms')}>
+                                <FileText size={20} className="text-[#06b6d4]" />
+                                <span>เครื่องมือพิมพ์เอกสาร</span>
+                                <div className="group-chevron">
+                                    {openGroups.forms ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                </div>
+                            </button>
+                            {openGroups.forms && (
+                                <div className="group-content">
+                                    {hasPermission('certificate_receipts', 'view') && (
+                                        <NavLink to="/dashboard/certificate-receipts" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                            <FileText size={18} className="opacity-70" />
+                                            <span>ใบรับรองแทนใบเสร็จ</span>
+                                        </NavLink>
+                                    )}
+                                    {hasPermission('envelopes', 'view') && (
+                                        <NavLink to="/dashboard/envelopes" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-mail opacity-70"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                                            <span>ปะหน้าซองจดหมาย</span>
+                                        </NavLink>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     )}
 
                     {hasPermission('supplier_pos', 'view') && (

@@ -72,8 +72,8 @@ serve(async (req) => {
     // 2. Fetch Late Tasks (Customer POs and Supplier POs)
     const today = new Date().toISOString().split('T')[0]
     
-    // 2.1 Fetch late Customer POs (Client POs - งานส่งลูกค้า)
-    const { data: lateClientPos, error: clientError } = await supabase
+    // 2.1 Fetch active Customer POs (Client POs - งานส่งลูกค้า)
+    const { data: activeClientPos, error: clientError } = await supabase
       .from('purchase_orders')
       .select(`
         id,
@@ -81,14 +81,54 @@ serve(async (req) => {
         due_date, 
         customer_id, 
         customers(name),
-        purchase_order_items(product_name, quantity),
+        purchase_order_items(product_name, quantity, due_date),
         invoices(id, status, invoice_items(product_name, quantity))
       `)
-      .lt('due_date', today)
       .not('status', 'in', '("Completed","Cancelled","Draft")')
-      .order('due_date', { ascending: true })
 
     if (clientError) throw clientError
+
+    // Filter late Client POs based on item due dates
+    const lateClientPos = [];
+    if (activeClientPos) {
+      activeClientPos.forEach((po: any) => {
+        let isLate = false;
+        const missingItems: string[] = [];
+        
+        let deliveredMap: Record<string, number> = {};
+        if (po.invoices) {
+          const validInvoices = po.invoices.filter((inv: any) => inv.status !== 'Cancelled');
+          validInvoices.forEach((inv: any) => {
+            if (inv.invoice_items) {
+              inv.invoice_items.forEach((item: any) => {
+                const name = item.product_name;
+                if (name) {
+                  deliveredMap[name] = (deliveredMap[name] || 0) + Number(item.quantity || 0);
+                }
+              });
+            }
+          });
+        }
+
+        if (po.purchase_order_items) {
+          po.purchase_order_items.forEach((item: any) => {
+            const name = item.product_name;
+            const delivered = name ? (deliveredMap[name] || 0) : 0;
+            const remaining = Math.max(0, Number(item.quantity || 0) - delivered);
+            
+            const targetDate = item.due_date || po.due_date;
+            if (remaining > 0 && targetDate && targetDate < today) {
+              isLate = true;
+              missingItems.push(`       - ${name}: ขาดอีก ${remaining.toLocaleString()} ชิ้น (คิวส่ง: ${formatDate(targetDate)})`);
+            }
+          });
+        }
+
+        if (isLate) {
+          lateClientPos.push({ ...po, missingItemsStr: '\n' + missingItems.join('\n') });
+        }
+      });
+    }
 
     // 2.2 Fetch late Supplier POs (Vendor POs - สั่งซื้อของ)
     const { data: lateSupplierPos, error: supplierError } = await supabase
@@ -112,35 +152,7 @@ serve(async (req) => {
         message += `\n📦 **ส่งงานลูกค้า (Client PO)** - ${lateClientPos.length} รายการ\n`
         lateClientPos.forEach((po: any, index: number) => {
           const custName = po.customers?.name || 'ไม่ทราบชื่อลูกค้า'
-          
-          let deliveredMap: Record<string, number> = {};
-          if (po.invoices) {
-            const validInvoices = po.invoices.filter((inv: any) => inv.status !== 'Cancelled');
-            validInvoices.forEach((inv: any) => {
-              if (inv.invoice_items) {
-                inv.invoice_items.forEach((item: any) => {
-                  const name = item.product_name;
-                  if (name) {
-                    deliveredMap[name] = (deliveredMap[name] || 0) + Number(item.quantity || 0);
-                  }
-                });
-              }
-            });
-          }
-
-          let missingItemsStr = '';
-          if (po.purchase_order_items) {
-            po.purchase_order_items.forEach((item: any) => {
-              const name = item.product_name;
-              const delivered = name ? (deliveredMap[name] || 0) : 0;
-              const remaining = Math.max(0, Number(item.quantity || 0) - delivered);
-              if (remaining > 0) {
-                missingItemsStr += `\n       - ${name}: ขาดอีก ${remaining.toLocaleString()} ชิ้น`;
-              }
-            });
-          }
-
-          message += `  ${index + 1}. PO: ${po.po_number}\n     ลูกค้า: ${custName}\n     กำหนดส่ง: ${formatDate(po.due_date)}${missingItemsStr}\n`
+          message += `  ${index + 1}. PO: ${po.po_number}\n     ลูกค้า: ${custName}${po.missingItemsStr}\n`
         })
       }
 

@@ -257,6 +257,27 @@ export const supplierPoService = {
         }
     },
 
+    // Get receiving history for a PO
+    getPoReceivingHistory: async (poId) => {
+        try {
+            const { data, error } = await supabase
+                .from('inventory_logs')
+                .select(`
+                    *,
+                    inventory:warehouse_inventory(sku, product_name, unit)
+                `)
+                .eq('source_type', 'supplier_po')
+                .eq('source_id', poId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error fetching PO receiving history:', error);
+            return [];
+        }
+    },
+
     // Create supplier PO
     createSupplierPo: async (poData) => {
         try {

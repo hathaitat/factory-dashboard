@@ -18,6 +18,9 @@ const _mapCustomer = (customer) => ({
     invoiceNote: customer.invoice_note,
     billingNoteNote: customer.billing_note_note,
     receiptNote: customer.receipt_note,
+    billingAttention: customer.billing_attention,
+    billingAddress: customer.billing_address,
+    billingPhone: customer.billing_phone,
     createdAt: customer.created_at,
     updatedAt: customer.updated_at,
     createdBy: customer.created_by,
@@ -179,6 +182,9 @@ export const customerService = {
         invoice_note: customerData.invoiceNote || '',
         billing_note_note: customerData.billingNoteNote || '',
         receipt_note: customerData.receiptNote || '',
+        billing_attention: customerData.billingAttention || '',
+        billing_address: customerData.billingAddress || '',
+        billing_phone: customerData.billingPhone || '',
         created_by: customerData.createdBy || null,
         updated_by: customerData.updatedBy || null
       };
@@ -217,6 +223,9 @@ export const customerService = {
         invoice_note: customerData.invoiceNote,
         billing_note_note: customerData.billingNoteNote,
         receipt_note: customerData.receiptNote,
+        billing_attention: customerData.billingAttention,
+        billing_address: customerData.billingAddress,
+        billing_phone: customerData.billingPhone,
         updated_at: new Date().toISOString(),
         updated_by: customerData.updatedBy || null
       };

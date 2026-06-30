@@ -15,6 +15,7 @@ const CustomerListPage = React.lazy(() => import('./pages/CustomerListPage'));
 const CustomerCreatePage = React.lazy(() => import('./pages/CustomerCreatePage'));
 const CustomerEditPage = React.lazy(() => import('./pages/CustomerEditPage'));
 const CustomerDetailPage = React.lazy(() => import('./pages/CustomerDetailPage'));
+const CustomerEnvelopePrintPage = React.lazy(() => import('./pages/CustomerEnvelopePrintPage'));
 const CustomerProductHistoryPrint = React.lazy(() => import('./pages/CustomerProductHistoryPrint'));
 const CompanyInfoPage = React.lazy(() => import('./pages/CompanyInfoPage'));
 const UserListPage = React.lazy(() => import('./pages/UserListPage'));
@@ -61,6 +62,7 @@ const InternalRequisitionFormPage = React.lazy(() => import('./pages/InternalReq
 const InternalRequisitionDetailPage = React.lazy(() => import('./pages/InternalRequisitionDetailPage'));
 const InternalRequisitionPrintPage = React.lazy(() => import('./pages/InternalRequisitionPrintPage'));
 const InternalItemHistoryPage = React.lazy(() => import('./pages/InternalItemHistoryPage'));
+const EnvelopePrintToolPage = React.lazy(() => import('./pages/EnvelopePrintToolPage'));
 // Loading fallback component
 const PageLoader = () => (
   <div className="flex justify-center items-center h-screen text-textMuted bg-main">
@@ -218,6 +220,11 @@ function App() {
                       <Route path="certificate-receipts" element={<CertificateReceiptPage />} />
                     </Route>
 
+                    {/* Envelopes Print Tool Module */}
+                    <Route element={<PermissionRoute module="envelopes" action="view" />}>
+                      <Route path="envelopes" element={<EnvelopePrintToolPage />} />
+                    </Route>
+
                     {/* Users/Permissions Module */}
                     <Route element={<PermissionRoute module="users" action="view" />}>
                       <Route path="users" element={<UserListPage />} />
@@ -275,6 +282,7 @@ function App() {
                   </Route>
                   <Route element={<PermissionRoute module="customers" action="view" />}>
                     <Route path="/dashboard/customers/:id/print-product-history" element={<CustomerProductHistoryPrint />} />
+                    <Route path="/dashboard/customers/:id/envelope-print" element={<CustomerEnvelopePrintPage />} />
                   </Route>
                 </Route>
 

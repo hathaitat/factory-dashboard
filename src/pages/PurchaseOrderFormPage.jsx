@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, Plus, Trash2, ArrowLeft, X, UploadCloud, File, Eye, FileText, Clock, User } from 'lucide-react';
+import { Save, Plus, Trash2, ArrowLeft, X, UploadCloud, File, Eye, FileText, Clock, User, Calendar } from 'lucide-react';
 import { purchaseOrderService } from '../services/purchaseOrderService';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService';
@@ -45,8 +45,9 @@ const PurchaseOrderFormPage = () => {
     });
 
     const [items, setItems] = useState([
-        { product_name: '', quantity: 1, unit: '', price_per_unit: 0, amount: 0 }
+        { product_name: '', quantity: 1, unit: '', price_per_unit: 0, amount: 0, due_date: '', delivery_schedule: [] }
     ]);
+    const [expandedScheduleIndex, setExpandedScheduleIndex] = useState(null);
 
     useEffect(() => {
         loadInitialData();
@@ -135,12 +136,38 @@ const PurchaseOrderFormPage = () => {
     };
 
     const handleAddItem = () => {
-        setItems([...items, { product_name: '', quantity: 1, unit: '', price_per_unit: 0, amount: 0 }]);
+        setItems([...items, { product_name: '', quantity: 1, unit: '', price_per_unit: 0, amount: 0, due_date: '', delivery_schedule: [] }]);
     };
 
     const handleRemoveItem = (index) => {
         const newItems = items.filter((_, i) => i !== index);
-        setItems(newItems.length > 0 ? newItems : [{ product_name: '', quantity: 1, unit: '', price_per_unit: 0, amount: 0 }]);
+        setItems(newItems.length > 0 ? newItems : [{ product_name: '', quantity: 1, unit: '', price_per_unit: 0, amount: 0, due_date: '', delivery_schedule: [] }]);
+        if (expandedScheduleIndex === index) {
+            setExpandedScheduleIndex(null);
+        } else if (expandedScheduleIndex > index) {
+            setExpandedScheduleIndex(expandedScheduleIndex - 1);
+        }
+    };
+
+    const handleAddSchedule = (itemIndex) => {
+        const newItems = [...items];
+        if (!newItems[itemIndex].delivery_schedule) {
+            newItems[itemIndex].delivery_schedule = [];
+        }
+        newItems[itemIndex].delivery_schedule.push({ date: '', quantity: 1 });
+        setItems(newItems);
+    };
+
+    const handleRemoveSchedule = (itemIndex, scheduleIndex) => {
+        const newItems = [...items];
+        newItems[itemIndex].delivery_schedule = newItems[itemIndex].delivery_schedule.filter((_, i) => i !== scheduleIndex);
+        setItems(newItems);
+    };
+
+    const handleScheduleChange = (itemIndex, scheduleIndex, field, value) => {
+        const newItems = [...items];
+        newItems[itemIndex].delivery_schedule[scheduleIndex][field] = value;
+        setItems(newItems);
     };
 
     const handleItemChange = (index, field, value) => {
@@ -441,9 +468,10 @@ const PurchaseOrderFormPage = () => {
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr className="border-b border-border text-left">
-                                    <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '40%' }}>รายละเอียดสินค้า</th>
-                                    <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '15%' }}>จำนวน</th>
-                                    <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '15%' }}>หน่วย</th>
+                                    <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '35%' }}>รายละเอียดสินค้า</th>
+                                    <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '15%' }}>วันกำหนดส่ง</th>
+                                    <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '10%' }}>จำนวน</th>
+                                    <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '10%' }}>หน่วย</th>
                                     <th className="px-6 py-4 text-textMuted font-medium" style={{ width: '15%' }}>ราคา/หน่วย <span style={{ fontSize: '0.75rem' }}>(ถ้ามี)</span></th>
                                     <th className="px-6 py-4 text-textMuted font-medium text-right" style={{ width: '15%' }}>จำนวนเงิน</th>
                                     <th className="p-4" style={{ width: '50px' }}></th>
@@ -451,7 +479,8 @@ const PurchaseOrderFormPage = () => {
                             </thead>
                             <tbody>
                                 {items.map((item, index) => (
-                                    <tr key={index} className="border-b border-border">
+                                    <React.Fragment key={index}>
+                                    <tr className="border-b border-border" style={{ verticalAlign: 'top' }}>
                                         <td className="px-6 py-3">
                                             <div className="relative" style={{ display: 'flex', alignItems: 'center' }}>
                                                 <input
@@ -471,7 +500,7 @@ const PurchaseOrderFormPage = () => {
                                                         }
                                                     }}
                                                     placeholder="พิมพ์ชื่อสินค้า..."
-                                                    className="glass-panel w-full p-2 bg-cardHover rounded text-main border border-border" style={{ paddingRight: '2rem' }}
+                                                    className="glass-panel w-full p-2 bg-cardHover rounded text-main border border-border" style={{ paddingRight: '2rem', height: '42px' }}
                                                 />
                                                 {item.product_name && (
                                                     <button
@@ -494,12 +523,44 @@ const PurchaseOrderFormPage = () => {
                                             </datalist>
                                         </td>
                                         <td className="px-6 py-3">
+                                            {item.delivery_schedule && item.delivery_schedule.length > 0 ? (
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center justify-between p-2 rounded text-sm border" style={{ background: 'rgba(59, 130, 246, 0.05)', borderColor: 'rgba(59, 130, 246, 0.2)', color: 'var(--primary)' }}>
+                                                        <span className="font-medium">แบ่ง {item.delivery_schedule.length} งวด</span>
+                                                    </div>
+                                                    <button type="button" onClick={() => setExpandedScheduleIndex(expandedScheduleIndex === index ? null : index)} className="text-xs text-left mt-1 cursor-pointer bg-transparent border-none" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>
+                                                        {expandedScheduleIndex === index ? 'ซ่อนการแบ่งงวด' : 'แก้ไข/ดูการแบ่งงวด'}
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col gap-1">
+                                                    <input
+                                                        type="date"
+                                                        value={item.due_date || ''}
+                                                        onChange={e => handleItemChange(index, 'due_date', e.target.value)}
+                                                        className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
+                                                        style={{ height: '42px' }}
+                                                    />
+                                                    <button type="button" onClick={() => {
+                                                        const newItems = [...items];
+                                                        newItems[index].delivery_schedule = [{ date: item.due_date || '', quantity: item.quantity || 1 }];
+                                                        newItems[index].due_date = '';
+                                                        setItems(newItems);
+                                                        setExpandedScheduleIndex(index);
+                                                    }} className="text-xs text-left mt-1 cursor-pointer bg-transparent border-none" style={{ color: 'var(--primary)' }}>
+                                                        + แบ่งงวดส่งย่อย
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-3">
                                             <input
                                                 type="number"
                                                 required
                                                 value={item.quantity}
                                                 onChange={e => handleItemChange(index, 'quantity', e.target.value)}
                                                 className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
+                                                style={{ height: '42px' }}
                                             />
                                             {isEdit && item.delivered_quantity !== undefined && (
                                                 <div className="mt-1 text-xs">
@@ -517,6 +578,7 @@ const PurchaseOrderFormPage = () => {
                                                 onChange={e => handleItemChange(index, 'unit', e.target.value)}
                                                 placeholder="ชิ้น/กก."
                                                 className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
+                                                style={{ height: '42px' }}
                                             />
                                         </td>
                                         <td className="px-6 py-3">
@@ -525,12 +587,13 @@ const PurchaseOrderFormPage = () => {
                                                 value={item.price_per_unit}
                                                 onChange={e => handleItemChange(index, 'price_per_unit', e.target.value)}
                                                 className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
+                                                style={{ height: '42px' }}
                                             />
                                         </td>
-                                        <td className="px-6 py-3 text-right font-medium">
+                                        <td className="px-6 py-3 text-right font-medium" style={{ paddingTop: '1.2rem' }}>
                                             ฿{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
-                                        <td className="p-3">
+                                        <td className="p-3" style={{ paddingTop: '1rem' }}>
                                             <button
                                                 type="button"
                                                 onClick={() => handleRemoveItem(index)}
@@ -540,6 +603,89 @@ const PurchaseOrderFormPage = () => {
                                             </button>
                                         </td>
                                     </tr>
+                                    {expandedScheduleIndex === index && (
+                                        <tr className="border-b border-border" style={{ background: 'rgba(0,0,0,0.02)' }}>
+                                            <td colSpan="7" className="px-6 py-4">
+                                                <div className="glass-panel p-4 rounded-lg border border-border relative">
+                                                    <button type="button" onClick={() => setExpandedScheduleIndex(null)} className="absolute top-2 right-2 bg-transparent border-none text-textMuted cursor-pointer hover:text-main">
+                                                        <X size={16} />
+                                                    </button>
+                                                    <div className="flex items-center justify-between mb-4 pr-6">
+                                                        <h4 className="m-0 text-sm font-medium flex items-center gap-2" style={{ color: 'var(--primary)' }}>
+                                                            <Calendar size={16} />
+                                                            กำหนดส่งย่อย (Delivery Schedule)
+                                                        </h4>
+                                                        <div className="text-sm">
+                                                            <span className="text-textMuted">จำนวนรวมในงวด: </span>
+                                                            <span className={`font-semibold ${(item.delivery_schedule || []).reduce((sum, s) => sum + Number(s.quantity || 0), 0) !== Number(item.quantity || 0) ? 'text-error' : 'text-success'}`}>
+                                                                {(item.delivery_schedule || []).reduce((sum, s) => sum + Number(s.quantity || 0), 0).toLocaleString()}
+                                                            </span>
+                                                            <span className="text-textMuted"> / {Number(item.quantity || 0).toLocaleString()} {item.unit}</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {((item.delivery_schedule || []).reduce((sum, s) => sum + Number(s.quantity || 0), 0) !== Number(item.quantity || 0)) && (
+                                                        <div className="mb-3 p-2 text-xs rounded border" style={{ background: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.2)', color: 'var(--error)' }}>
+                                                            * คำเตือน: ผลรวมของจำนวนในแต่ละงวด ({(item.delivery_schedule || []).reduce((sum, s) => sum + Number(s.quantity || 0), 0)}) ไม่เท่ากับจำนวนรวมของสินค้า ({item.quantity})
+                                                        </div>
+                                                    )}
+
+                                                    <table className="w-full text-sm mb-3">
+                                                        <thead>
+                                                            <tr className="text-left text-textMuted">
+                                                                <th className="pb-2 font-medium w-12 text-center">งวดที่</th>
+                                                                <th className="pb-2 font-medium">วันที่ส่ง</th>
+                                                                <th className="pb-2 font-medium">จำนวน</th>
+                                                                <th className="pb-2 w-10"></th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {(item.delivery_schedule || []).map((schedule, sIndex) => (
+                                                                <tr key={sIndex}>
+                                                                    <td className="py-1 text-center font-medium text-textMuted">{sIndex + 1}</td>
+                                                                    <td className="py-1 pr-2">
+                                                                        <input
+                                                                            type="date"
+                                                                            value={schedule.date || ''}
+                                                                            onChange={e => handleScheduleChange(index, sIndex, 'date', e.target.value)}
+                                                                            className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
+                                                                        />
+                                                                    </td>
+                                                                    <td className="py-1 pr-2">
+                                                                        <input
+                                                                            type="number"
+                                                                            value={schedule.quantity || ''}
+                                                                            onChange={e => handleScheduleChange(index, sIndex, 'quantity', e.target.value)}
+                                                                            className="glass-input w-full p-2 bg-cardHover rounded text-main border border-border"
+                                                                        />
+                                                                    </td>
+                                                                    <td className="py-1">
+                                                                        <button type="button" onClick={() => handleRemoveSchedule(index, sIndex)} className="text-red-500 bg-transparent border-none cursor-pointer p-1">
+                                                                            <Trash2 size={14} />
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                    <div className="flex justify-between items-center mt-2 border-t border-border pt-3">
+                                                        <button type="button" onClick={() => handleAddSchedule(index)} className="text-xs text-primary bg-transparent border-none cursor-pointer flex items-center gap-1 hover:underline">
+                                                            <Plus size={14}/> เพิ่มงวด
+                                                        </button>
+                                                        <button type="button" onClick={() => {
+                                                            const newItems = [...items];
+                                                            newItems[index].delivery_schedule = [];
+                                                            setItems(newItems);
+                                                            setExpandedScheduleIndex(null);
+                                                        }} className="text-xs text-textMuted bg-transparent border-none cursor-pointer hover:underline">
+                                                            ยกเลิกการแบ่งงวด
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                    </React.Fragment>
                                 ))}
                             </tbody>
                         </table>

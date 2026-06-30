@@ -18,11 +18,25 @@ const _mapPurchaseOrder = (po) => {
         });
     }
 
+    let uniqueDueDates = new Set();
+    if (po.due_date) uniqueDueDates.add(po.due_date);
+    if (po.purchase_order_items) {
+        po.purchase_order_items.forEach(item => {
+            if (item.due_date) uniqueDueDates.add(item.due_date);
+            if (item.delivery_schedule && Array.isArray(item.delivery_schedule)) {
+                item.delivery_schedule.forEach(schedule => {
+                    if (schedule.date) uniqueDueDates.add(schedule.date);
+                });
+            }
+        });
+    }
+
     return {
         ...po,
         total_po_quantity: totalPOQuantity,
         total_po_amount: totalPOAmount,
-        total_delivered_quantity: totalDeliveredQuantity
+        total_delivered_quantity: totalDeliveredQuantity,
+        is_multi_due_date: uniqueDueDates.size > 1
     };
 };
 
@@ -39,7 +53,8 @@ export const purchaseOrderService = {
                 ),
                 purchase_order_items (
                     quantity,
-                    amount
+                    amount,
+                    due_date
                 ),
                 invoices (
                     id,
@@ -70,7 +85,8 @@ export const purchaseOrderService = {
                     ),
                     purchase_order_items (
                         quantity,
-                        amount
+                        amount,
+                        due_date
                     ),
                     invoices (
                         id,
@@ -327,9 +343,16 @@ export const purchaseOrderService = {
 
         if (items && items.length > 0) {
             const itemsToInsert = items.map((item, index) => {
-                const { delivered_quantity, remaining_quantity, ...cleanItem } = item;
+                const { delivered_quantity, remaining_quantity, due_date, ...cleanItem } = item;
+                
+                // Ensure delivery_schedule defaults to empty array if not present
+                if (!cleanItem.delivery_schedule) {
+                    cleanItem.delivery_schedule = [];
+                }
+
                 return {
                     ...cleanItem,
+                    due_date: due_date || poData.due_date || null,
                     po_id: po.id,
                     sort_order: index
                 };
@@ -374,9 +397,15 @@ export const purchaseOrderService = {
                 const itemsToInsert = items.map((item, index) => {
                     // Remove id and created_at so Supabase generates new ones for re-inserted items
                     // Also remove frontend-only fields
-                    const { id: _itemId, created_at: _createdAt, delivered_quantity, remaining_quantity, ...cleanItem } = item;
+                    const { id: _itemId, created_at: _createdAt, delivered_quantity, remaining_quantity, due_date, ...cleanItem } = item;
+                    
+                    if (!cleanItem.delivery_schedule) {
+                        cleanItem.delivery_schedule = [];
+                    }
+
                     return {
                         ...cleanItem,
+                        due_date: due_date || poData.due_date || null,
                         po_id: id,
                         sort_order: index
                     };

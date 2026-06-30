@@ -51,11 +51,32 @@ const CalendarTab = () => {
     const dayNames = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
 
     const getEventsForDate = (day, month, year) => {
-        const clientEvents = purchaseOrders.filter(po => {
-            if (!po.due_date) return false;
-            const d = new Date(po.due_date);
-            return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
-        }).map(po => ({ ...po, type: 'client' }));
+        const clientEvents = [];
+        purchaseOrders.forEach(po => {
+            const uniqueDueDates = new Set();
+            if (po.purchase_order_items && po.purchase_order_items.length > 0) {
+                po.purchase_order_items.forEach(item => {
+                    if (item.delivery_schedule && item.delivery_schedule.length > 0) {
+                        item.delivery_schedule.forEach(schedule => {
+                            if (schedule.date) uniqueDueDates.add(schedule.date);
+                        });
+                    } else if (item.due_date) {
+                        uniqueDueDates.add(item.due_date);
+                    } else if (po.due_date) {
+                        uniqueDueDates.add(po.due_date);
+                    }
+                });
+            } else if (po.due_date) {
+                uniqueDueDates.add(po.due_date);
+            }
+
+            uniqueDueDates.forEach(dateStr => {
+                const d = new Date(dateStr);
+                if (d.getDate() === day && d.getMonth() === month && d.getFullYear() === year) {
+                    clientEvents.push({ ...po, event_due_date: dateStr, type: 'client' });
+                }
+            });
+        });
 
         const supplierEvents = supplierPos.filter(po => {
             if (!po.delivery_date) return false;
@@ -69,7 +90,7 @@ const CalendarTab = () => {
     const getStatusColor = (event) => {
         if (event.status === 'Completed') return 'completed';
 
-        const date = event.type === 'client' ? event.due_date : event.delivery_date;
+        const date = event.type === 'client' ? (event.event_due_date || event.due_date) : event.delivery_date;
         if (!date) return 'upcoming';
 
         const targetDate = new Date(date);
@@ -114,7 +135,7 @@ const CalendarTab = () => {
                     <div className="day-events">
                         {displayEvents.map(event => (
                             <div
-                                key={`${event.type}-${event.id}`}
+                                key={`${event.type}-${event.id}-${event.event_due_date || 'default'}`}
                                 className={`event-pill ${getStatusColor(event)} ${event.type}`}
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -226,7 +247,7 @@ const CalendarTab = () => {
                         <div className="modal-body">
                             {selectedDayEvents.events.map(event => (
                                 <div 
-                                    key={`${event.type}-${event.id}`}
+                                    key={`${event.type}-${event.id}-${event.event_due_date || 'default'}`}
                                     className={`modal-event-item ${getStatusColor(event)} ${event.type}`}
                                     onClick={() => {
                                         const path = event.type === 'client' 

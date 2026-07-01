@@ -99,7 +99,8 @@ export const internalRequisitionService = {
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'text/plain'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
                     },
                     body: JSON.stringify({
                         requisition_number: req.requisition_number,
@@ -176,7 +177,10 @@ export const internalRequisitionService = {
                     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/req-webhook`;
                     fetch(url, { // Fire and forget
                         method: 'POST',
-                        headers: { 'Content-Type': 'text/plain' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+                        },
                         body: JSON.stringify({
                             requisition_number: requisitionData.requisition_number || id,
                             requested_by: requisitionData.requested_by || requisitionData.updated_by || 'ไม่ระบุ',

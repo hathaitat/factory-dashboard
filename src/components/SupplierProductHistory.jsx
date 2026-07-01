@@ -102,7 +102,7 @@ const SupplierProductHistory = ({ product, onBack }) => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                         {/* Chart Area */}
                         <div style={{ height: '350px', width: '100%', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '1rem' }}>
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                                 <AreaChart data={chartData}>
                                     <defs>
                                         <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">

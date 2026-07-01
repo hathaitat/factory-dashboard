@@ -580,8 +580,8 @@ const CustomLineChart = ({
                 </div>
             )}
 
-            <div style={{ width: '100%', height: 350 }}>
-                <ResponsiveContainer width="100%" height="100%">
+            <div style={{ width: '100%', height: 350, minHeight: 350 }}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <ComposedChart data={enhancedData} margin={{ top: 20, right: 10, left: 0, bottom: isCategorical ? 50 : 5 }}>
                         <defs>
                             {finalChartObj.configs.map(config => (

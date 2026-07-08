@@ -9,7 +9,6 @@ import { supplierService } from '../services/supplierService';
 import { supplierProductService } from '../services/supplierProductService';
 import { usePermissions } from '../hooks/usePermissions';
 import { useDialog } from '../contexts/DialogContext';
-import PageHeader from '../components/PageHeader';
 import SupplierProductHistory from '../components/SupplierProductHistory';
 
 const SupplierDetailPage = () => {

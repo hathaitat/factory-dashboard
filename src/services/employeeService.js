@@ -25,7 +25,7 @@ export const employeeService = {
 
             if (searchTerm) {
                 const safe = sanitizeSearchTerm(searchTerm);
-                if (safe) query = query.or(`full_name.ilike.%${safe}%,code.ilike.%${safe}%,nickname.ilike.%${safe}%`);
+                if (safe) query = query.or(`full_name.ilike.%${safe}%,code.ilike.%${safe}%`);
             }
 
             const from = (page - 1) * limit;
@@ -49,7 +49,7 @@ export const employeeService = {
 
             if (searchTerm) {
                 const safe = sanitizeSearchTerm(searchTerm);
-                if (safe) query = query.or(`full_name.ilike.%${safe}%,code.ilike.%${safe}%,nickname.ilike.%${safe}%`);
+                if (safe) query = query.or(`full_name.ilike.%${safe}%,code.ilike.%${safe}%`);
             }
 
             const { data, error } = await query.order('code', { ascending: true });
@@ -86,7 +86,6 @@ export const employeeService = {
             const dbData = {
                 code: employeeData.code,
                 full_name: employeeData.full_name,
-                nickname: employeeData.nickname,
                 phone: employeeData.phone,
                 position: employeeData.position,
                 employment_type: employeeData.employment_type || 'Full-time',
@@ -123,7 +122,6 @@ export const employeeService = {
             const dbData = {
                 code: employeeData.code,
                 full_name: employeeData.full_name,
-                nickname: employeeData.nickname,
                 phone: employeeData.phone,
                 position: employeeData.position,
                 employment_type: employeeData.employment_type,

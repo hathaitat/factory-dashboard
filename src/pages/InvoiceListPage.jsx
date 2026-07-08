@@ -493,7 +493,7 @@ const InvoiceListPage = () => {
     return (
         <div className="px-4">
             <PageHeader
-                title="รายการใบกำกับภาษี (Invoices)"
+                title="รายการใบกำกับภาษี"
                 helpContent={HELP_CONTENT.invoices}
             >
                 <div className="flex gap-3">

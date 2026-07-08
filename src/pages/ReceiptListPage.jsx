@@ -292,7 +292,7 @@ const ReceiptListPage = () => {
     return (
         <div className="px-4">
             <PageHeader
-                title="รายการใบเสร็จรับเงิน (Receipts)"
+                title="รายการใบเสร็จรับเงิน"
                 helpContent={HELP_CONTENT.receipts}
             >
                 <div className="flex gap-3">

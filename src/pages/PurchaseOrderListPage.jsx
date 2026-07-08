@@ -115,7 +115,7 @@ const PurchaseOrderListPage = () => {
     return (
         <div className="px-4">
             <PageHeader
-                title="รายการใบสั่งซื้อ (Purchase Orders)"
+                title="รายการใบสั่งซื้อ"
                 helpContent={HELP_CONTENT.purchaseOrders}
             >
                 <div className="flex gap-3">

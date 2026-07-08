@@ -1,6 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, FileText, Receipt, Users, Clock, Calendar as CalendarIcon, Truck, Package } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, FileText, Receipt, Users, Clock, Calendar as CalendarIcon, Truck, Package, Activity } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import PageHeader, { HELP_CONTENT } from '../components/PageHeader';
 import '../styles/OverviewPage.css';
@@ -19,6 +19,7 @@ const SupplierTab = lazy(() => import('../components/dashboard/SupplierTab'));
 const SupplierPoTab = lazy(() => import('../components/dashboard/SupplierPoTab'));
 const WarehouseTab = lazy(() => import('../components/dashboard/WarehouseTab'));
 const InternalRequisitionTab = lazy(() => import('../components/dashboard/InternalRequisitionTab'));
+const ProductionTab = lazy(() => import('../components/dashboard/ProductionTab'));
 
 const TabLoader = () => (
     <div className="tab-loading">
@@ -39,6 +40,7 @@ const TABS = [
     { id: 'customer', label: 'ลูกค้า', icon: Users, module: 'customers', action: 'view' },
     { id: 'supplier', label: 'ผู้ขาย', icon: Truck, module: 'suppliers', action: 'view' },
     { id: 'warehouse', label: 'คลังสินค้า', icon: Package, module: 'warehouses', action: 'view' },
+    { id: 'production', label: 'การผลิต', icon: Activity, module: 'production', action: 'view' },
     { id: 'employee', label: 'พนักงาน', icon: Clock, module: 'employees', action: 'view' },
     { id: 'internal', label: 'ของใช้ในโรงงาน', icon: ShoppingCart, module: 'internal_items', action: 'view' },
 ];
@@ -71,6 +73,7 @@ const OverviewPage = () => {
             case 'supplier': return <SupplierTab />;
 
             case 'warehouse': return <WarehouseTab />;
+            case 'production': return <ProductionTab />;
             case 'employee': return <EmployeeTab />;
             case 'internal': return <InternalRequisitionTab />;
             case 'calendar': return <CalendarTab />;
@@ -81,7 +84,7 @@ const OverviewPage = () => {
     return (
         <div className="overview-container">
             <PageHeader
-                title="ภาพรวมระบบ (Dashboard)"
+                title="ภาพรวมระบบ"
                 helpContent={HELP_CONTENT.overview}
             >
                 <div className="status-badge live">

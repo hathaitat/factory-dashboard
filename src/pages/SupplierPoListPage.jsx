@@ -156,7 +156,7 @@ const SupplierPoListPage = () => {
 
     return (
         <div className="px-4">
-            <PageHeader title="ใบสั่งซื้อผู้ขาย (Vendor PO)" subtitle="จัดการการจัดซื้อวัตถุดิบและอุปกรณ์">
+            <PageHeader title="ใบสั่งซื้อจากผู้ขาย" subtitle="จัดการการจัดซื้อวัตถุดิบและอุปกรณ์">
                 <div className="flex gap-3">
                     <button onClick={exportToExcel} className="glass-panel px-4 py-2.5 bg-white border border-slate-200 text-emerald-500 cursor-pointer rounded-lg font-medium text-sm flex items-center gap-2">
                         <FileSpreadsheet size={18} /> Export All

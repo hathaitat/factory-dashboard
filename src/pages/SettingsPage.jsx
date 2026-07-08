@@ -218,7 +218,7 @@ const SettingsPage = () => {
             showToast('บันทึกข้อมูลคลังสินค้าเรียบร้อย', 'success', 'คลังสินค้า');
         } catch (error) {
             console.error('Error saving warehouse:', error);
-            await showError('เกิดข้อผิดพลาดในการบันทึกคลังสินค้า');
+            await showError(error.message || 'เกิดข้อผิดพลาดในการบันทึกคลังสินค้า');
         }
     };
 
@@ -255,6 +255,23 @@ const SettingsPage = () => {
         } catch (error) {
             console.error('Error deleting and transferring warehouse:', error);
             await showError('เกิดข้อผิดพลาดในการโอนย้ายสินค้าและลบคลังสินค้า');
+        }
+    };
+
+    const confirmDeleteWithoutTransfer = async () => {
+        if (!warehouseToDelete) return;
+        const confirmed = await showConfirm('🚨 ยืนยันการลบทิ้งทั้งหมด?\n\nข้อมูลสินค้าทั้งหมดในคลังนี้จะถูกลบและไม่สามารถกู้คืนได้ คุณแน่ใจหรือไม่?');
+        if (!confirmed) return;
+        try {
+            await warehouseService.deleteWarehouse(warehouseToDelete);
+            setWarehouses(warehouses.filter(w => w.id !== warehouseToDelete));
+            setShowDeleteWarehouseModal(false);
+            setWarehouseToDelete(null);
+            setTransferTargetWarehouseId('');
+            showToast('ลบคลังสินค้าเรียบร้อย', 'success', 'คลังสินค้า');
+        } catch (error) {
+            console.error('Error deleting warehouse:', error);
+            await showError('เกิดข้อผิดพลาดในการลบคลังสินค้า อาจมีการผูกข้อมูลคลังนี้กับใบเบิก/ใบคืนในระบบ');
         }
     };
 
@@ -872,9 +889,8 @@ const SettingsPage = () => {
                         </p>
 
                         <div className="form-group mb-6">
-                            <label className="mb-2 text-textMuted" style={{ display: 'block' }}>คลังสินค้าเป้าหมาย <span className="text-red-500">*</span></label>
+                            <label className="mb-2 text-textMuted" style={{ display: 'block' }}>คลังสินค้าเป้าหมาย (สำหรับโอนย้าย)</label>
                             <select
-                                required
                                 value={transferTargetWarehouseId}
                                 onChange={(e) => setTransferTargetWarehouseId(e.target.value)}
                                 className="glass-input w-full p-3 rounded-lg bg-main border border-border text-main"
@@ -889,18 +905,27 @@ const SettingsPage = () => {
                             </select>
                         </div>
 
-                        <div className="mt-6 flex justify-end gap-4">
-                            <button type="button" onClick={() => setShowDeleteWarehouseModal(false)} className="px-6 py-3 rounded-lg text-red-500 cursor-pointer font-medium" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                                ยกเลิก
-                            </button>
+                        <div className="mt-6 flex justify-between gap-4">
                             <button
                                 type="button"
-                                onClick={confirmDeleteAndTransferWarehouse}
-                                disabled={!transferTargetWarehouseId}
-                                className="btn-primary px-6 py-3" style={{ background: 'var(--error)' }}
+                                onClick={confirmDeleteWithoutTransfer}
+                                className="px-4 py-3 rounded-lg text-red-500 cursor-pointer font-medium border-none bg-transparent hover:bg-red-50 transition-colors"
                             >
-                                โอนย้ายและลบ
+                                ลบทิ้งทั้งหมด (ไม่โอนย้าย)
                             </button>
+                            <div className="flex gap-2">
+                                <button type="button" onClick={() => setShowDeleteWarehouseModal(false)} className="px-6 py-3 rounded-lg text-textMuted cursor-pointer font-medium border-none bg-slate-100 hover:bg-slate-200 transition-colors">
+                                    ยกเลิก
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={confirmDeleteAndTransferWarehouse}
+                                    disabled={!transferTargetWarehouseId}
+                                    className="btn-primary px-6 py-3" style={{ background: 'var(--error)' }}
+                                >
+                                    โอนย้ายและลบ
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

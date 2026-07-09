@@ -87,8 +87,11 @@ const SupplierPoPrintPage = () => {
                         boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
                     }}
                 >
-                    <Printer size={18} /> พิมพ์ใบสั่งซื้อ
+                    <Printer size={18} /> พิมพ์ / ดาวน์โหลด PDF
                 </button>
+                <div style={{ marginLeft: '10px', fontSize: '0.85rem', color: '#bbb' }}>
+                    * หากต้องการดาวน์โหลดเป็นไฟล์ ให้เลือก "Save as PDF" หรือ "บันทึกเป็น PDF" ในหน้าต่างเครื่องพิมพ์
+                </div>
             </div>
 
             {/* Paper Preview Area */}

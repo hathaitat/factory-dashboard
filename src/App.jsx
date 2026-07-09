@@ -75,6 +75,7 @@ const ProductionRequisitionFormPage = React.lazy(() => import('./pages/Productio
 const ProductionReturnDepartmentListPage = React.lazy(() => import('./pages/ProductionReturnDepartmentListPage'));
 const ProductionReturnListPage = React.lazy(() => import('./pages/ProductionReturnListPage'));
 const ProductionReturnFormPage = React.lazy(() => import('./pages/ProductionReturnFormPage'));
+const ProductionRequisitionPrintToolPage = React.lazy(() => import('./pages/ProductionRequisitionPrintToolPage'));
 // Loading fallback component
 const PageLoader = () => (
   <div className="flex justify-center items-center h-screen text-textMuted bg-main">
@@ -235,6 +236,11 @@ function App() {
                     {/* Envelopes Print Tool Module */}
                     <Route element={<PermissionRoute module="envelopes" action="view" />}>
                       <Route path="envelopes" element={<EnvelopePrintToolPage />} />
+                    </Route>
+
+                    {/* Production Requisition Print Tool Module */}
+                    <Route element={<PermissionRoute module="internal_requisitions" action="view" />}>
+                      <Route path="production-requisition-print" element={<ProductionRequisitionPrintToolPage />} />
                     </Route>
 
                     {/* Users/Permissions Module */}

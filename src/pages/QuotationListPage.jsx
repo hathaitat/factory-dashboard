@@ -304,8 +304,10 @@ const QuotationListPage = () => {
                                             </div>
                                         </td>
                                         <td className="p-4">
-                                            <div className="font-semibold text-blue-500" style={{ marginBottom: '2px' }}>
-                                                {qt.quotationNo}
+                                            <div className="font-semibold text-blue-500 font-mono text-lg" style={{ marginBottom: '2px' }}>
+                                                <Link to={`/dashboard/quotations/${qt.id}`} className="text-blue-500 no-underline">
+                                                    {qt.quotationNo}
+                                                </Link>
                                             </div>
                                             <div className="text-xs text-textMuted">
                                                 {fmtDate(qt.date)}
@@ -332,7 +334,7 @@ const QuotationListPage = () => {
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="p-4 font-medium">
+                                        <td className="p-4 font-semibold text-emerald-500 text-right">
                                             ฿{fmtNum(qt.grandTotal)}
                                         </td>
                                         <td className="p-4">

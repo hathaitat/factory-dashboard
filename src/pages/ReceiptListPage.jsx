@@ -403,8 +403,8 @@ const ReceiptListPage = () => {
                                                 </Link>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5 font-semibold text-primary text-lg font-mono">
-                                            <Link to={`/dashboard/receipts/${bn.id}`} className="text-primary no-underline">
+                                        <td className="px-6 py-5 font-semibold text-blue-500 text-lg font-mono">
+                                            <Link to={`/dashboard/receipts/${bn.id}`} className="text-blue-500 no-underline">
                                                 {getReceiptNumber(bn.billingNoteNo, bn.date)}
                                             </Link>
                                         </td>

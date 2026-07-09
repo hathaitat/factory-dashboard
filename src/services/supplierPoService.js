@@ -91,7 +91,7 @@ export const supplierPoService = {
     },
 
     // Server-Side Pagination
-    getSupplierPosPaginated: async ({ page = 1, limit = 50, searchTerm = '', dateFrom = '', dateTo = '', dateFilterType = 'date', supplierId = '' }) => {
+    getSupplierPosPaginated: async ({ page = 1, limit = 50, searchTerm = '', dateFrom = '', dateTo = '', dateFilterType = 'date', supplierId = '', supplierProductId = '' }) => {
         try {
             let query = supabase.from('supplier_pos').select(`
                 *,
@@ -114,6 +114,18 @@ export const supplierPoService = {
             }
             if (supplierId) {
                 query = query.eq('supplier_id', supplierId);
+            }
+            if (supplierProductId) {
+                const { data: matchedItems } = await supabase
+                    .from('supplier_po_items')
+                    .select('po_id')
+                    .eq('supplier_product_id', supplierProductId);
+                const poIds = (matchedItems || []).map(item => item.po_id);
+                if (poIds.length > 0) {
+                    query = query.in('id', poIds);
+                } else {
+                    query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+                }
             }
 
             const from = (page - 1) * limit;
@@ -146,7 +158,7 @@ export const supplierPoService = {
         }
     },
 
-    exportSupplierPos: async ({ searchTerm = '', dateFrom = '', dateTo = '', dateFilterType = 'date', supplierId = '' }) => {
+    exportSupplierPos: async ({ searchTerm = '', dateFrom = '', dateTo = '', dateFilterType = 'date', supplierId = '', supplierProductId = '' }) => {
         try {
             let query = supabase.from('supplier_pos').select(`
                 *,
@@ -169,6 +181,18 @@ export const supplierPoService = {
             }
             if (supplierId) {
                 query = query.eq('supplier_id', supplierId);
+            }
+            if (supplierProductId) {
+                const { data: matchedItems } = await supabase
+                    .from('supplier_po_items')
+                    .select('po_id')
+                    .eq('supplier_product_id', supplierProductId);
+                const poIds = (matchedItems || []).map(item => item.po_id);
+                if (poIds.length > 0) {
+                    query = query.in('id', poIds);
+                } else {
+                    query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+                }
             }
 
             const { data, error } = await query.order('created_at', { ascending: false });

@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Plus, Search, Edit, Trash2, FileSpreadsheet, Eye, Printer, FileText, Clock, XCircle, Calendar, ShoppingCart, Copy, ChevronDown, ChevronRight } from 'lucide-react';
 import { supplierPoService } from '../services/supplierPoService';
 import { supplierService } from '../services/supplierService';
+import { supplierProductService } from '../services/supplierProductService';
 import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
 import PageHeader from '../components/PageHeader';
@@ -22,6 +23,8 @@ const SupplierPoListPage = () => {
     const [dateTo, setDateTo] = useState('');
     const [dateFilterType, setDateFilterType] = useState('date');
     const [supplierId, setSupplierId] = useState('');
+    const [supplierProductId, setSupplierProductId] = useState('');
+    const [supplierProducts, setSupplierProducts] = useState([]);
     const [expandedRows, setExpandedRows] = useState(new Set());
     const [isExporting, setIsExporting] = useState(false);
     const [suppliers, setSuppliers] = useState([]);
@@ -41,15 +44,15 @@ const SupplierPoListPage = () => {
         startItem,
         endItem,
         refresh
-    } = useServerPagination(supplierPoService.getSupplierPosPaginated, { searchTerm: '', dateFrom: '', dateTo: '', dateFilterType: 'date', supplierId: '' }, 50);
+    } = useServerPagination(supplierPoService.getSupplierPosPaginated, { searchTerm: '', dateFrom: '', dateTo: '', dateFilterType: 'date', supplierId: '', supplierProductId: '' }, 50);
 
     // Debounce filters
     useEffect(() => {
         const timer = setTimeout(() => {
-            updateFilters({ searchTerm, dateFrom, dateTo, dateFilterType, supplierId });
+            updateFilters({ searchTerm, dateFrom, dateTo, dateFilterType, supplierId, supplierProductId });
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchTerm, dateFrom, dateTo, dateFilterType, supplierId, updateFilters]);
+    }, [searchTerm, dateFrom, dateTo, dateFilterType, supplierId, supplierProductId, updateFilters]);
 
     const toggleRow = (id) => {
         const newExpanded = new Set(expandedRows);
@@ -69,6 +72,24 @@ const SupplierPoListPage = () => {
             setSuppliers(data || []);
         } catch (error) {
             console.error('Error loading suppliers:', error);
+        }
+    };
+
+    useEffect(() => {
+        if (supplierId) {
+            loadSupplierProducts(supplierId);
+        } else {
+            setSupplierProducts([]);
+            setSupplierProductId('');
+        }
+    }, [supplierId]);
+
+    const loadSupplierProducts = async (sid) => {
+        try {
+            const data = await supplierProductService.getProductsBySupplierId(sid);
+            setSupplierProducts(data || []);
+        } catch (error) {
+            console.error('Error loading supplier products:', error);
         }
     };
 
@@ -117,7 +138,7 @@ const SupplierPoListPage = () => {
     const exportToExcel = async () => {
         setIsExporting(true);
         try {
-            const data = await supplierPoService.exportSupplierPos({ searchTerm, dateFrom, dateTo, dateFilterType, supplierId });
+            const data = await supplierPoService.exportSupplierPos({ searchTerm, dateFrom, dateTo, dateFilterType, supplierId, supplierProductId });
             const dataToExport = data.map(po => ({
                 'เลขที่ PO': po.po_number,
                 'วันที่สั่งซื้อ': po.date || po.po_date,
@@ -150,9 +171,9 @@ const SupplierPoListPage = () => {
         return styles[status] || styles.Draft;
     };
 
-    const clearFilters = () => { setDateFrom(''); setDateTo(''); setDateFilterType('date'); setSupplierId(''); };
+    const clearFilters = () => { setDateFrom(''); setDateTo(''); setDateFilterType('date'); setSupplierId(''); setSupplierProductId(''); };
 
-    const hasActiveFilters = dateFrom || dateTo || supplierId;
+    const hasActiveFilters = dateFrom || dateTo || supplierId || supplierProductId;
 
     return (
         <div className="px-4">
@@ -224,6 +245,17 @@ const SupplierPoListPage = () => {
                         ]
                     },
                     {
+                        type: 'select',
+                        label: 'รายการสินค้า (Product Item)',
+                        value: supplierProductId,
+                        onChange: setSupplierProductId,
+                        options: [
+                            { value: '', label: 'รายการสินค้าทั้งหมด' },
+                            ...supplierProducts.map(p => ({ value: p.id, label: p.name }))
+                        ],
+                        disabled: !supplierId
+                    },
+                    {
                         type: 'date-range',
                         dateFrom,
                         dateTo,
@@ -292,7 +324,7 @@ const SupplierPoListPage = () => {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/supplier-pos/${po.id}`); }} className="px-6 py-5 font-semibold text-blue-500 text-xl font-mono">{po.po_number}</td>
+                                                <td onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/supplier-pos/${po.id}`); }} className="px-6 py-5 font-semibold text-blue-500 text-lg font-mono">{po.po_number}</td>
                                                 <td className="px-6 py-5">
                                                     {po.supplier_id ? (
                                                         <Link 
@@ -314,8 +346,8 @@ const SupplierPoListPage = () => {
                                                         {po.delivery_date ? new Date(po.delivery_date).toLocaleDateString('th-TH') : '-'}
                                                     </span>
                                                 </td>
-                                                <td className="p-4 text-right font-semibold">
-                                                    ฿{po.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                <td className="px-6 py-5 text-right font-semibold text-emerald-500">
+                                                    ฿{po.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </td>
                                                 <td className="p-4 text-center whitespace-nowrap">
                                                     {(() => {

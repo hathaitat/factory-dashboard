@@ -80,35 +80,35 @@ const InvoicePrintTemplate = () => {
 
     return (
         <div className="print-container">
-            <div className="no-print" style={{ 
-                padding: '0.8rem 1.5rem', 
-                display: 'flex', 
+            <div className="no-print" style={{
+                padding: '0.8rem 1.5rem',
+                display: 'flex',
                 alignItems: 'center',
                 gap: '1rem',
-                background: '#111', 
-                color: 'white', 
-                position: 'sticky', 
-                top: 0, 
+                background: '#111',
+                color: 'white',
+                position: 'sticky',
+                top: 0,
                 zIndex: 100,
                 borderBottom: '1px solid #333'
             }}>
-                <button 
-                    onClick={() => navigate('/dashboard/invoices')} 
-                    style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                        background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white', 
+                <button
+                    onClick={() => navigate('/dashboard/invoices')}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid #444', color: 'white',
                         padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
                         fontSize: '0.9rem'
                     }}
                 >
                     <ArrowLeft size={18} /> ย้อนกลับ
                 </button>
-                
-                <button 
-                    onClick={handlePrint} 
-                    style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                        background: '#3b82f6', border: 'none', color: 'white', 
+
+                <button
+                    onClick={handlePrint}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        background: '#3b82f6', border: 'none', color: 'white',
                         padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
                         fontWeight: '600', fontSize: '0.95rem',
                         boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
@@ -122,9 +122,9 @@ const InvoicePrintTemplate = () => {
                     <button
                         key={cert.id}
                         onClick={() => window.open(cert.file_url, '_blank')}
-                        style={{ 
-                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                            background: '#10b981', border: 'none', color: 'white', 
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            background: '#10b981', border: 'none', color: 'white',
                             padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer',
                             fontSize: '0.95rem'
                         }}
@@ -153,7 +153,7 @@ const InvoicePrintTemplate = () => {
                         <div className="header-section">
                             <div className="company-info-print">
                                 <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '8px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                         {company.logoUrl && (
                                             <img src={company.logoUrl} alt="Company Logo" style={{ height: '90px', maxWidth: '250px', objectFit: 'contain' }} />
                                         )}

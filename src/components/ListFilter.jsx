@@ -70,13 +70,14 @@ const ListFilter = ({ filters = [], onClear, hasActiveFilters }) => {
                                 <select
                                     value={filter.value}
                                     onChange={(e) => filter.onChange(e.target.value)}
-                                    className={`appearance-none py-[0.4rem] pr-8 pl-[0.7rem] rounded-lg text-[0.85rem] outline-none min-w-[120px] cursor-pointer transition-all duration-200 ${isActive ? 'bg-blue-500/10 border border-blue-500/30 text-blue-500 font-medium' : 'bg-card border border-border text-textMain font-normal'}`}
+                                    disabled={filter.disabled}
+                                    className={`appearance-none py-[0.4rem] pr-8 pl-[0.7rem] rounded-lg text-[0.85rem] outline-none min-w-[120px] cursor-pointer transition-all duration-200 ${isActive ? 'bg-blue-500/10 border border-blue-500/30 text-blue-500 font-medium' : 'bg-card border border-border text-textMain font-normal'} ${filter.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     {filter.options.map(opt => (
                                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                                     ))}
                                 </select>
-                                <ChevronDown size={14} className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${isActive ? 'text-blue-500' : 'text-textMuted'}`} />
+                                <ChevronDown size={14} className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${isActive ? 'text-blue-500' : 'text-textMuted'} ${filter.disabled ? 'opacity-50' : ''}`} />
                             </div>
                         </div>
                     );

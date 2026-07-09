@@ -63,6 +63,7 @@ const InternalRequisitionDetailPage = React.lazy(() => import('./pages/InternalR
 const InternalRequisitionPrintPage = React.lazy(() => import('./pages/InternalRequisitionPrintPage'));
 const InternalItemHistoryPage = React.lazy(() => import('./pages/InternalItemHistoryPage'));
 const EnvelopePrintToolPage = React.lazy(() => import('./pages/EnvelopePrintToolPage'));
+const ProductionRequisitionPrintToolPage = React.lazy(() => import('./pages/ProductionRequisitionPrintToolPage'));
 // Loading fallback component
 const PageLoader = () => (
   <div className="flex justify-center items-center h-screen text-textMuted bg-main">
@@ -223,6 +224,11 @@ function App() {
                     {/* Envelopes Print Tool Module */}
                     <Route element={<PermissionRoute module="envelopes" action="view" />}>
                       <Route path="envelopes" element={<EnvelopePrintToolPage />} />
+                    </Route>
+
+                    {/* Production Requisition Print Tool Module */}
+                    <Route element={<PermissionRoute module="internal_requisitions" action="view" />}>
+                      <Route path="production-requisition-print" element={<ProductionRequisitionPrintToolPage />} />
                     </Route>
 
                     {/* Users/Permissions Module */}

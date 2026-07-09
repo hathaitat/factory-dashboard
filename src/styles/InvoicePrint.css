@@ -78,7 +78,7 @@ body {
 .company-contact,
 .company-email,
 .company-taxid {
-    font-size: 0.9rem;
+    font-size: 0.75rem;
     line-height: 1.5;
     /* Reduced from 1.8 */
     color: #000;

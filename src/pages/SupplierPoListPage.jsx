@@ -324,7 +324,7 @@ const SupplierPoListPage = () => {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/supplier-pos/${po.id}`); }} className="px-6 py-5 font-semibold text-blue-500 text-xl font-mono">{po.po_number}</td>
+                                                <td onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/supplier-pos/${po.id}`); }} className="px-6 py-5 font-semibold text-blue-500 text-lg font-mono">{po.po_number}</td>
                                                 <td className="px-6 py-5">
                                                     {po.supplier_id ? (
                                                         <Link 
@@ -346,8 +346,8 @@ const SupplierPoListPage = () => {
                                                         {po.delivery_date ? new Date(po.delivery_date).toLocaleDateString('th-TH') : '-'}
                                                     </span>
                                                 </td>
-                                                <td className="p-4 text-right font-semibold">
-                                                    ฿{po.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                <td className="px-6 py-5 text-right font-semibold text-emerald-500">
+                                                    ฿{po.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </td>
                                                 <td className="p-4 text-center whitespace-nowrap">
                                                     {(() => {

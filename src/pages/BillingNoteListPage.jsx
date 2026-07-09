@@ -369,11 +369,11 @@ const BillingNoteListPage = () => {
                         <thead>
                             <tr className="border-b border-border text-left">
                                 <th className="actions-column text-textMuted font-medium">จัดการ</th>
-                                <th className="py-[1.2rem] px-[1.5rem] text-textMuted font-medium">เลขที่ใบวางบิล</th>
-                                <th className="py-[1.2rem] px-[1.5rem] text-textMuted font-medium">ชื่อลูกค้า</th>
-                                <th className="py-[1.2rem] px-[1.5rem] text-textMuted font-medium">วันที่</th>
-                                <th className="py-[1.2rem] px-[1.5rem] text-textMuted font-medium text-right">จำนวนเงินสุทธิ</th>
-                                <th className="py-[1.2rem] px-[1.5rem] text-textMuted font-medium text-center">สถานะ</th>
+                                <th className="px-6 py-5 text-textMuted font-medium">เลขที่ใบวางบิล</th>
+                                <th className="px-6 py-5 text-textMuted font-medium">ชื่อลูกค้า</th>
+                                <th className="px-6 py-5 text-textMuted font-medium">วันที่</th>
+                                <th className="px-6 py-5 text-textMuted font-medium text-right">จำนวนเงินสุทธิ</th>
+                                <th className="px-6 py-5 text-textMuted font-medium text-center">สถานะ</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -425,16 +425,18 @@ const BillingNoteListPage = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="py-[1.2rem] px-[1.5rem] font-semibold text-[#3b82f6] text-[1.1rem] font-mono">
-                                            <Link to={`/dashboard/billing-notes/${bn.id}`} className="text-[#3b82f6] no-underline hover:underline">
+                                        <td className="px-6 py-5 font-semibold text-blue-500 text-lg font-mono">
+                                            <Link to={`/dashboard/billing-notes/${bn.id}`} className="text-blue-500 no-underline">
                                                 {bn.billingNoteNo}
                                             </Link>
                                         </td>
-                                        <td className="py-[1.2rem] px-[1.5rem]">
+                                        <td className="px-6 py-5">
                                             {bn.customer_id ? (
                                                 <Link 
                                                     to={`/dashboard/customers/${bn.customer_id}`} 
-                                                    className="text-[#3b82f6] no-underline hover:underline"
+                                                    className="text-blue-500 no-underline"
+                                                    onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                                                    onMouseOut={(e) => e.target.style.textDecoration = 'none'}
                                                 >
                                                     {bn.customerName}
                                                 </Link>
@@ -442,8 +444,8 @@ const BillingNoteListPage = () => {
                                                 bn.customerName
                                             )}
                                         </td>
-                                        <td className="py-[1.2rem] px-[1.5rem]">{new Date(bn.date).toLocaleDateString('th-TH')}</td>
-                                        <td className="py-[1.2rem] px-[1.5rem] text-right font-semibold text-success">
+                                        <td className="px-6 py-5">{new Date(bn.date).toLocaleDateString('th-TH')}</td>
+                                        <td className="px-6 py-5 text-right font-semibold text-emerald-500">
                                             ฿{bn.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
                                         <td className="py-[1.2rem] px-[1.5rem] text-center">

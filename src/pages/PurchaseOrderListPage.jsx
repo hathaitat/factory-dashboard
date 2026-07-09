@@ -268,7 +268,9 @@ const PurchaseOrderListPage = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-5 font-semibold text-blue-500 text-lg font-mono">
-                                            {po.po_number}
+                                            <Link to={`/dashboard/purchase-orders/${po.id}`} className="text-blue-500 no-underline">
+                                                {po.po_number}
+                                            </Link>
                                         </td>
                                         <td className="px-6 py-5">
                                             {po.customer_id ? (
@@ -310,7 +312,7 @@ const PurchaseOrderListPage = () => {
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5 text-right font-medium text-main">
+                                        <td className="px-6 py-5 text-right font-semibold text-emerald-500">
                                             ฿{po.total_po_amount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
                                         <td className="px-6 py-5 text-center">

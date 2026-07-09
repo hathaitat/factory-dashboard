@@ -15,21 +15,11 @@ const ProductionRequisitionPrintToolPage = () => {
         copyType: 'ต้นฉบับ / Original',
         department: '',
         requestedBy: '',
-        remark: '',
-        docNoPrefix: 'WH',
-        docNo1: '',
-        docNo2: '',
-        docDate: new Date().toISOString().split('T')[0],
-        customNotes: [
-            '*** รับ/จ่ายสินค้าวันจันทร์-วันศุกร์ (วันทำงานปกติ) เวลา 08:30-12:00 และ 13:00-16:00 น. ***',
-            '- ใบขอเบิกสินค้าต้องมีลายเซ็นของหัวหน้าฝ่ายขึ้นไปผู้อนุมัติทุกครั้ง (ตามวงเงินที่ได้รับอนุมัติ)',
-            '- โปรดตรวจสอบสินค้า จำนวนที่ได้รับ และชั้นผู้รับของทุกครั้งก่อนออกจากสโตร์',
-            '- ติดต่อสอบถามฝ่ายคลังสินค้าได้ที่เบอร์ 120, 126, 127, 276, 104 และ 516'
-        ]
+        docDate: new Date().toISOString().split('T')[0]
     });
 
     const [items, setItems] = useState([
-        { id: 1, remark: '', description: '', qtyRequest: '', qtyReceipt: '', uom: '' }
+        { id: 1, requesterDept: '', remark: '', description: '', qtyRequest: '', qtyReceipt: '', uom: '' }
     ]);
 
     useEffect(() => {
@@ -51,14 +41,6 @@ const ProductionRequisitionPrintToolPage = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleNoteChange = (index, value) => {
-        setFormData(prev => {
-            const newNotes = [...prev.customNotes];
-            newNotes[index] = value;
-            return { ...prev, customNotes: newNotes };
-        });
-    };
-
     const handleItemChange = (id, field, value) => {
         setItems(prev => prev.map(item =>
             item.id === id ? { ...item, [field]: value } : item
@@ -68,7 +50,7 @@ const ProductionRequisitionPrintToolPage = () => {
     const addItem = () => {
         setItems(prev => [
             ...prev,
-            { id: Date.now(), remark: '', description: '', qtyRequest: '', qtyReceipt: '', uom: '' }
+            { id: Date.now(), requesterDept: '', remark: '', description: '', qtyRequest: '', qtyReceipt: '', uom: '' }
         ]);
     };
 
@@ -132,33 +114,15 @@ const ProductionRequisitionPrintToolPage = () => {
                             <input type="text" className="glass-input w-full p-2.5 rounded-lg" name="department" value={formData.department} onChange={handleFormChange} placeholder="ระบุแผนก..." />
                         </div>
                         <div>
-                            <label className="block text-sm text-textMuted mb-1">ผู้ขอเบิก (Requested By)</label>
-                            <input type="text" className="glass-input w-full p-2.5 rounded-lg" name="requestedBy" value={formData.requestedBy} onChange={handleFormChange} placeholder="ชื่อผู้เบิก..." />
-                        </div>
-                        <div>
-                            <label className="block text-sm text-textMuted mb-1">หมายเหตุ (Remark)</label>
-                            <input type="text" className="glass-input w-full p-2.5 rounded-lg" name="remark" value={formData.remark} onChange={handleFormChange} placeholder="หมายเหตุหัวเอกสาร..." />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-4">
-                        <div>
-                            <label className="block text-sm text-textMuted mb-1">Prefix เลขที่</label>
-                            <input type="text" className="glass-input w-full p-2.5 rounded-lg" name="docNoPrefix" value={formData.docNoPrefix} onChange={handleFormChange} />
-                        </div>
-                        <div>
-                            <label className="block text-sm text-textMuted mb-1">เลขที่ (ช่องที่ 1)</label>
-                            <input type="text" className="glass-input w-full p-2.5 rounded-lg" name="docNo1" value={formData.docNo1} onChange={handleFormChange} placeholder="เช่น 001" />
-                        </div>
-                        <div>
-                            <label className="block text-sm text-textMuted mb-1">เลขที่ (ช่องที่ 2)</label>
-                            <input type="text" className="glass-input w-full p-2.5 rounded-lg" name="docNo2" value={formData.docNo2} onChange={handleFormChange} placeholder="เช่น 01" />
+                            <label className="block text-sm text-textMuted mb-1">ผู้ประจำแผนก</label>
+                            <input type="text" className="glass-input w-full p-2.5 rounded-lg" name="requestedBy" value={formData.requestedBy} onChange={handleFormChange} placeholder="ชื่อผู้ประจำแผนก..." />
                         </div>
                         <div>
                             <label className="block text-sm text-textMuted mb-1">วันที่เอกสาร</label>
                             <input type="date" className="glass-input w-full p-2.5 rounded-lg" name="docDate" value={formData.docDate} onChange={handleFormChange} />
                         </div>
                     </div>
+
                 </div>
 
                 <div className="glass-panel p-6 rounded-xl">
@@ -174,10 +138,11 @@ const ProductionRequisitionPrintToolPage = () => {
                             <thead>
                                 <tr className="border-b border-border text-left">
                                     <th className="p-3 text-textMuted font-medium w-16 text-center">ลำดับ</th>
+                                    <th className="p-3 text-textMuted font-medium w-32">ผู้เบิก/แผนก</th>
                                     <th className="p-3 text-textMuted font-medium w-40">หมายเหตุ (Remark)</th>
                                     <th className="p-3 text-textMuted font-medium">รายการที่ขอเบิก (Description)</th>
-                                    <th className="p-3 text-textMuted font-medium w-36 text-right">จำนวนขอเบิก</th>
-                                    <th className="p-3 text-textMuted font-medium w-36 text-right">จำนวนที่ได้รับ</th>
+                                    <th className="p-3 text-textMuted font-medium w-36 text-right">จำนวนที่เบิกเข้า</th>
+                                    <th className="p-3 text-textMuted font-medium w-36 text-right">จำนวนที่เบิกออก</th>
                                     <th className="p-3 text-textMuted font-medium w-28">หน่วยนับ (UOM)</th>
                                     <th className="p-3 w-12 text-center"></th>
                                 </tr>
@@ -186,6 +151,9 @@ const ProductionRequisitionPrintToolPage = () => {
                                 {items.map((item, index) => (
                                     <tr key={item.id} className="border-b border-border">
                                         <td className="p-2 text-center font-medium">{index + 1}</td>
+                                        <td className="p-2">
+                                            <input type="text" className="glass-input w-full p-2 rounded-md" value={item.requesterDept} onChange={(e) => handleItemChange(item.id, 'requesterDept', e.target.value)} placeholder="ผู้เบิก/แผนก..." />
+                                        </td>
                                         <td className="p-2">
                                             <input type="text" className="glass-input w-full p-2 rounded-md" value={item.remark} onChange={(e) => handleItemChange(item.id, 'remark', e.target.value)} />
                                         </td>
@@ -213,17 +181,6 @@ const ProductionRequisitionPrintToolPage = () => {
                     </div>
                 </div>
 
-                <div className="glass-panel p-6 rounded-xl">
-                    <h3 className="text-lg font-bold mb-4 border-b border-border pb-2">หมายเหตุท้ายเอกสาร (แสดงด้านล่าง)</h3>
-                    <div className="space-y-3">
-                        {formData.customNotes.map((note, index) => (
-                            <div key={index}>
-                                <label className="block text-xs text-textMuted mb-1">บรรทัดที่ {index + 1}</label>
-                                <input type="text" className="glass-input w-full p-2 rounded-lg text-sm" value={note} onChange={(e) => handleNoteChange(index, e.target.value)} />
-                            </div>
-                        ))}
-                    </div>
-                </div>
             </div>
 
             {/* --- PRINT LAYOUT --- */}
@@ -261,19 +218,13 @@ const ProductionRequisitionPrintToolPage = () => {
                         <tbody>
                             <tr>
                                 <td className="w-15 label-cell">Department Code<br/>แผนก</td>
-                                <td className="w-45 value-cell">: {formData.department}</td>
-                                <td className="w-15 label-cell">เลขที่ / No.</td>
-                                <td className="w-25 value-cell">: {formData.docNoPrefix} {formData.docNo1 ? `${formData.docNo1} / ` : ''} {formData.docNo2}</td>
+                                <td className="w-35 value-cell">: {formData.department}</td>
+                                <td className="w-15 label-cell">ผู้ประจำแผนก</td>
+                                <td className="w-35 value-cell">: {formData.requestedBy}</td>
                             </tr>
                             <tr>
-                                <td className="label-cell">Requested By<br/>ผู้ขอเบิก</td>
-                                <td className="value-cell">: {formData.requestedBy}</td>
                                 <td className="label-cell">วันที่ / Date</td>
-                                <td className="value-cell">: {formatDateThai(formData.docDate)}</td>
-                            </tr>
-                            <tr>
-                                <td className="label-cell">Remark<br/>หมายเหตุ</td>
-                                <td colSpan="3" className="value-cell">: {formData.remark}</td>
+                                <td colSpan="3" className="value-cell">: {formatDateThai(formData.docDate)}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -283,10 +234,11 @@ const ProductionRequisitionPrintToolPage = () => {
                         <thead>
                             <tr>
                                 <th style={{ width: '6%' }}>ลำดับ<br/>No.</th>
-                                <th style={{ width: '20%' }}>หมายเหตุ<br/>Remark</th>
-                                <th style={{ width: '44%' }}>รายการที่ขอเบิก<br/>Description</th>
-                                <th style={{ width: '11%' }}>จำนวนที่ขอเบิก<br/>Quantity Request</th>
-                                <th style={{ width: '11%' }}>จำนวนที่ได้รับ<br/>Quantity Receipt</th>
+                                <th style={{ width: '14%' }}>ผู้เบิก/แผนก</th>
+                                <th style={{ width: '15%' }}>หมายเหตุ<br/>Remark</th>
+                                <th style={{ width: '35%' }}>รายการที่ขอเบิก<br/>Description</th>
+                                <th style={{ width: '11%' }}>จำนวนที่เบิกเข้า</th>
+                                <th style={{ width: '11%' }}>จำนวนที่เบิกออก</th>
                                 <th style={{ width: '8%' }}>หน่วยนับ<br/>UOM</th>
                             </tr>
                         </thead>
@@ -294,6 +246,7 @@ const ProductionRequisitionPrintToolPage = () => {
                             {items.map((item, idx) => (
                                 <tr key={idx}>
                                     <td className="text-center">{idx + 1}</td>
+                                    <td className="text-left">{item.requesterDept}</td>
                                     <td className="text-left whitespace-nowrap overflow-hidden text-ellipsis">{item.remark}</td>
                                     <td className="text-left">{item.description}</td>
                                     <td className="text-right">{item.qtyRequest ? Number(item.qtyRequest).toLocaleString() : ''}</td>
@@ -302,8 +255,9 @@ const ProductionRequisitionPrintToolPage = () => {
                                 </tr>
                             ))}
                             {/* Empty rows to fill A4 size */}
-                            {Array.from({ length: Math.max(0, 15 - items.length) }).map((_, i) => (
+                            {Array.from({ length: Math.max(0, 23 - items.length) }).map((_, i) => (
                                 <tr key={`empty-${i}`} className="empty-row">
+                                    <td></td>
                                     <td></td>
                                     <td></td>
                                     <td></td>
@@ -315,27 +269,15 @@ const ProductionRequisitionPrintToolPage = () => {
                         </tbody>
                     </table>
 
-                    {/* Footer Conditions Box */}
-                    <div className="terms-conditions-box">
-                        {formData.customNotes.filter(Boolean).map((note, index) => (
-                            <div key={index} className="term-line">{note}</div>
-                        ))}
-                    </div>
-
                     {/* Signatures */}
                     <div className="signatures-grid">
                         <div className="signature-box">
-                            <div className="sig-title">ผู้ขอเบิก / ผู้จัดทำ / Prepared by</div>
+                            <div className="sig-title">แผนก</div>
                             <div className="sig-line"></div>
                             <div className="sig-date-line">วันที่ / Date ........./........./.........</div>
                         </div>
                         <div className="signature-box">
-                            <div className="sig-title">ผู้จ่ายสินค้า / Payer by</div>
-                            <div className="sig-line"></div>
-                            <div className="sig-date-line">วันที่ / Date ........./........./.........</div>
-                        </div>
-                        <div className="signature-box">
-                            <div className="sig-title">ผู้อนุมัติ / Authorized Signature</div>
+                            <div className="sig-title">หัวหน้างาน</div>
                             <div className="sig-line"></div>
                             <div className="sig-date-line">วันที่ / Date ........./........./.........</div>
                         </div>
@@ -473,6 +415,7 @@ const ProductionRequisitionPrintToolPage = () => {
 
                     .w-15 { width: 15%; }
                     .w-25 { width: 25%; }
+                    .w-35 { width: 35%; }
                     .w-45 { width: 45%; }
 
                     /* Items print table */
@@ -528,7 +471,7 @@ const ProductionRequisitionPrintToolPage = () => {
                     /* Signatures grid */
                     .signatures-grid {
                         display: grid;
-                        grid-template-cols: repeat(3, 1fr);
+                        grid-template-columns: repeat(2, 1fr);
                         gap: 15px;
                         margin-top: 15px;
                     }

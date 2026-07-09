@@ -304,7 +304,7 @@ const InventoryHistoryPage = () => {
                         style={{ marginBottom: 0 }}
                     />
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap justify-end gap-3 flex-shrink-0">
                     <button
                         onClick={() => {
                             if (bomRules.length === 0) {
@@ -313,14 +313,14 @@ const InventoryHistoryPage = () => {
                             }
                             navigate(`/dashboard/supplier-pos/create?subcontract_inventory_id=${item.id}&subcontract_material=${encodeURIComponent(item.product_name)}&subcontract_warehouse=${item.warehouse_id}`);
                         }}
-                        className="btn-secondary px-5 py-2.5 text-violet-500 flex items-center gap-2" style={{ borderColor: '#8b5cf6' }}
+                        className="btn-secondary px-4 py-2 text-violet-500 flex items-center gap-2 whitespace-nowrap" style={{ borderColor: '#8b5cf6' }}
                     >
                         <Building2 size={18} /> เปิด PO ผลิต
                     </button>
                     {hasPermission('warehouses', 'edit') && (
                         <button
                             onClick={() => setShowAdjustModal(true)}
-                            className="btn-primary px-5 py-2.5 flex items-center gap-2"
+                            className="btn-primary px-4 py-2 flex items-center gap-2 whitespace-nowrap"
                         >
                             <Plus size={18} /> ปรับสต็อก
                         </button>
@@ -328,7 +328,7 @@ const InventoryHistoryPage = () => {
                     {hasPermission('warehouses', 'edit') && (
                         <button
                             onClick={() => setShowMoveModal(true)}
-                            className="btn-secondary px-5 py-2.5 text-blue-500 flex items-center gap-2" style={{ borderColor: '#3b82f6' }}
+                            className="btn-secondary px-4 py-2 text-blue-500 flex items-center gap-2 whitespace-nowrap" style={{ borderColor: '#3b82f6' }}
                         >
                             <ArrowUpRight size={18} /> ย้ายคลัง
                         </button>
@@ -336,14 +336,14 @@ const InventoryHistoryPage = () => {
                     {hasPermission('warehouses', 'edit') && logs.length === 0 && (
                         <button
                             onClick={handleInitializeHistory}
-                            className="btn-secondary text-primary px-4 py-2.5 flex items-center gap-2" style={{ borderColor: 'var(--primary)' }}
+                            className="btn-secondary text-primary px-4 py-2 flex items-center gap-2 whitespace-nowrap" style={{ borderColor: 'var(--primary)' }}
                         >
                             <History size={18} /> บันทึกยอดเริ่มต้น
                         </button>
                     )}
                     <button
                         onClick={() => window.print()}
-                        className="btn-secondary px-4 py-2.5 flex items-center gap-2"
+                        className="btn-secondary px-4 py-2 flex items-center gap-2 whitespace-nowrap"
                     >
                         <Printer size={18} /> พิมพ์ Stock Card
                     </button>

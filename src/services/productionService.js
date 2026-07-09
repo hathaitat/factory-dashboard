@@ -303,7 +303,12 @@ export const productionService = {
                     
                 if (delError) {
                     if (delError.code === '23503') {
-                        throw new Error('ไม่สามารถลบเป้าหมายการผลิตบางรายการได้ เนื่องจากมีการถูกอ้างอิงไปแล้ว (เช่น ถูกนำไปใช้ใบเบิกหรือบันทึกผลผลิตแล้ว)');
+                        // Fallback: If cannot delete due to references (e.g. daily logs exist), set target to 0
+                        const { error: updError } = await supabase
+                            .from('production_plans')
+                            .update({ target_quantity: 0 })
+                            .in('id', idsToDelete);
+                        if (updError) throw updError;
                     } else {
                         throw delError;
                     }

@@ -233,10 +233,11 @@ const ProductionDailyLogPage = () => {
                         // Orphan requisition (no target plan). Show it as a separate raw material row so it's not lost.
                         const pName = item.warehouse_inventory?.product_name;
                         if (pName) {
-                            const key = getMapKey(pName, 'วัตถุดิบ (ไม่ระบุเป้า)');
+                            const orphanProductName = `[ไม่ระบุเป้า] ${pName}`;
+                            const key = getMapKey(orphanProductName, '');
                             if (!newMatrixMap[key]) {
                                 newMatrixMap[key] = { 
-                                    id: key, product_name: pName, process: 'วัตถุดิบ (ไม่ระบุเป้า)', inventory_id: item.inventory_id,
+                                    id: key, product_name: orphanProductName, process: '', inventory_id: item.inventory_id,
                                     unit: item.unit || 'PCS', weight_unit: 'KG', target_warehouse_id: null,
                                     plan: {}, actual: {}, defect: {}, logs: {}, requisition_sum: 0, requisition_materials: new Set()
                                 };
@@ -247,7 +248,12 @@ const ProductionDailyLogPage = () => {
                 });
             });
 
-            setMatrix(Object.values(newMatrixMap));
+            const finalMatrix = Object.values(newMatrixMap);
+            finalMatrix.forEach(row => {
+                const inv = invData.find(i => i.product_name === row.product_name);
+                if (inv) row.sku = inv.sku;
+            });
+            setMatrix(finalMatrix);
         } catch (error) {
             console.error(error);
             showError('เกิดข้อผิดพลาดในการโหลดข้อมูลเป้าหมายและผลผลิตจริง');
@@ -448,7 +454,9 @@ const ProductionDailyLogPage = () => {
                         <table className="production-plan-table w-full border-collapse min-w-max text-[0.85rem]">
                             <thead>
                                 <tr>
-                                    <th className="sticky top-0 left-0 z-20 bg-slate-100 border-b border-r border-slate-300 p-2 w-[140px] min-w-[140px] text-center text-[#1e3a8a] font-bold">P/No</th>
+                                    <th className="sticky top-0 left-0 z-20 bg-slate-100 border-b border-r border-slate-300 p-2 w-[140px] min-w-[140px] text-center text-[#1e3a8a] font-bold">
+                                        P/No <br/><span className="text-[0.7rem] font-normal text-slate-500">(SKU)</span>
+                                    </th>
                                     <th className="sticky top-0 left-[140px] z-20 bg-slate-100 border-b border-r border-slate-300 p-2 w-[100px] min-w-[100px] text-center text-[#1e3a8a] font-bold">Process</th>
                                     <th className="sticky top-0 left-[240px] z-20 bg-slate-100 border-b border-r border-slate-300 p-2 w-[60px] min-w-[60px] text-center text-slate-700 font-bold">Type</th>
                                     
@@ -494,9 +502,16 @@ const ProductionDailyLogPage = () => {
                                                 <tr className="bg-[#f0fdf4]">
                                                     {showPnoCell && (
                                                         <td className="sticky left-0 z-10 bg-slate-50 border-r border-slate-200 p-2 product-group-end-cell" rowSpan={pnoRowSpan}>
-                                                            <span className="text-[0.85rem] font-bold text-slate-700 block truncate" title={row.product_name}>
-                                                                {row.product_name}
-                                                            </span>
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className="text-[0.85rem] font-bold text-slate-700 block truncate" title={row.product_name}>
+                                                                    {row.product_name}
+                                                                </span>
+                                                                {row.sku && (
+                                                                    <span className="text-[0.65rem] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded flex self-start max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={`SKU: ${row.sku}`}>
+                                                                        {row.sku}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                     )}
                                                     <td className={`sticky left-[140px] z-10 bg-slate-50 border-r border-slate-200 p-2 ${isLastRowForProduct ? 'product-group-end-cell' : 'step-end-cell'}`} rowSpan={3}>

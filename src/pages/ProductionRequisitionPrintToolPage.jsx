@@ -19,7 +19,7 @@ const ProductionRequisitionPrintToolPage = () => {
     });
 
     const [items, setItems] = useState([
-        { id: 1, requesterDept: '', remark: '', description: '', qtyRequest: '', qtyReceipt: '', uom: '' }
+        { id: 1, reqDateItem: '', fromDept: '', toDept: '', requesterDept: '', remark: '', description: '', qtyRequest: '', qtyReceipt: '', uom: '' }
     ]);
 
     useEffect(() => {
@@ -50,7 +50,7 @@ const ProductionRequisitionPrintToolPage = () => {
     const addItem = () => {
         setItems(prev => [
             ...prev,
-            { id: Date.now(), requesterDept: '', remark: '', description: '', qtyRequest: '', qtyReceipt: '', uom: '' }
+            { id: Date.now(), reqDateItem: '', fromDept: '', toDept: '', requesterDept: '', remark: '', description: '', qtyRequest: '', qtyReceipt: '', uom: '' }
         ]);
     };
 
@@ -138,12 +138,15 @@ const ProductionRequisitionPrintToolPage = () => {
                             <thead>
                                 <tr className="border-b border-border text-left">
                                     <th className="p-3 text-textMuted font-medium w-16 text-center">ลำดับ</th>
-                                    <th className="p-3 text-textMuted font-medium w-32">ผู้เบิก/แผนก</th>
-                                    <th className="p-3 text-textMuted font-medium w-40">หมายเหตุ (Remark)</th>
-                                    <th className="p-3 text-textMuted font-medium">รายการที่ขอเบิก (Description)</th>
-                                    <th className="p-3 text-textMuted font-medium w-36 text-right">จำนวนที่เบิกเข้า</th>
-                                    <th className="p-3 text-textMuted font-medium w-36 text-right">จำนวนที่เบิกออก</th>
-                                    <th className="p-3 text-textMuted font-medium w-28">หน่วยนับ (UOM)</th>
+                                    <th className="p-3 text-textMuted font-medium w-28">วันที่</th>
+                                    <th className="p-3 text-textMuted font-medium w-28">ผู้เบิก/แผนก</th>
+                                    <th className="p-3 text-textMuted font-medium w-28">จากแผนก</th>
+                                    <th className="p-3 text-textMuted font-medium w-28">ไปแผนก</th>
+                                    <th className="p-3 text-textMuted font-medium w-32">หมายเหตุ (Remark)</th>
+                                    <th className="p-3 text-textMuted font-medium min-w-[150px]">รายการที่ขอเบิก (Description)</th>
+                                    <th className="p-3 text-textMuted font-medium w-28 text-right">จำนวนที่เบิกเข้า</th>
+                                    <th className="p-3 text-textMuted font-medium w-28 text-right">จำนวนที่เบิกออก</th>
+                                    <th className="p-3 text-textMuted font-medium w-24">หน่วย (UOM)</th>
                                     <th className="p-3 w-12 text-center"></th>
                                 </tr>
                             </thead>
@@ -152,7 +155,16 @@ const ProductionRequisitionPrintToolPage = () => {
                                     <tr key={item.id} className="border-b border-border">
                                         <td className="p-2 text-center font-medium">{index + 1}</td>
                                         <td className="p-2">
-                                            <input type="text" className="glass-input w-full p-2 rounded-md" value={item.requesterDept} onChange={(e) => handleItemChange(item.id, 'requesterDept', e.target.value)} placeholder="ผู้เบิก/แผนก..." />
+                                            <input type="date" className="glass-input w-full p-2 rounded-md" value={item.reqDateItem} onChange={(e) => handleItemChange(item.id, 'reqDateItem', e.target.value)} />
+                                        </td>
+                                        <td className="p-2">
+                                            <input type="text" className="glass-input w-full p-2 rounded-md" value={item.requesterDept} onChange={(e) => handleItemChange(item.id, 'requesterDept', e.target.value)} placeholder="ผู้เบิก..." />
+                                        </td>
+                                        <td className="p-2">
+                                            <input type="text" className="glass-input w-full p-2 rounded-md" value={item.fromDept} onChange={(e) => handleItemChange(item.id, 'fromDept', e.target.value)} placeholder="จาก..." />
+                                        </td>
+                                        <td className="p-2">
+                                            <input type="text" className="glass-input w-full p-2 rounded-md" value={item.toDept} onChange={(e) => handleItemChange(item.id, 'toDept', e.target.value)} placeholder="ไป..." />
                                         </td>
                                         <td className="p-2">
                                             <input type="text" className="glass-input w-full p-2 rounded-md" value={item.remark} onChange={(e) => handleItemChange(item.id, 'remark', e.target.value)} />
@@ -233,30 +245,42 @@ const ProductionRequisitionPrintToolPage = () => {
                     <table className="items-print-table">
                         <thead>
                             <tr>
-                                <th style={{ width: '6%' }}>ลำดับ<br/>No.</th>
-                                <th style={{ width: '14%' }}>ผู้เบิก/แผนก</th>
-                                <th style={{ width: '15%' }}>หมายเหตุ<br/>Remark</th>
-                                <th style={{ width: '35%' }}>รายการที่ขอเบิก<br/>Description</th>
-                                <th style={{ width: '11%' }}>จำนวนที่เบิกเข้า</th>
-                                <th style={{ width: '11%' }}>จำนวนที่เบิกออก</th>
-                                <th style={{ width: '8%' }}>หน่วยนับ<br/>UOM</th>
+                                <th style={{ width: '4%' }}>ลำดับ<br/>No.</th>
+                                <th style={{ width: '9%' }}>วันที่<br/>Date</th>
+                                <th style={{ width: '10%' }}>ผู้เบิก<br/>Requester</th>
+                                <th style={{ width: '10%' }}>จากแผนก<br/>From Dept</th>
+                                <th style={{ width: '10%' }}>ไปแผนก<br/>To Dept</th>
+                                <th style={{ width: '12%' }}>หมายเหตุ<br/>Remark</th>
+                                <th style={{ width: '23%' }}>รายการที่ขอเบิก<br/>Description</th>
+                                <th style={{ width: '8%' }}>เบิกเข้า<br/>In</th>
+                                <th style={{ width: '8%' }}>เบิกออก<br/>Out</th>
+                                <th style={{ width: '6%' }}>หน่วย<br/>UOM</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {items.map((item, idx) => (
+                            {items.map((item, idx) => {
+                                const hasData = item.reqDateItem || item.requesterDept || item.fromDept || item.toDept || item.remark || item.description || item.qtyRequest || item.qtyReceipt || item.uom;
+                                return (
                                 <tr key={idx}>
-                                    <td className="text-center">{idx + 1}</td>
+                                    <td className="text-center">{hasData ? idx + 1 : ''}</td>
+                                    <td className="text-center">{formatDateThai(item.reqDateItem)}</td>
                                     <td className="text-left">{item.requesterDept}</td>
+                                    <td className="text-left">{item.fromDept}</td>
+                                    <td className="text-left">{item.toDept}</td>
                                     <td className="text-left whitespace-nowrap overflow-hidden text-ellipsis">{item.remark}</td>
                                     <td className="text-left">{item.description}</td>
                                     <td className="text-right">{item.qtyRequest ? Number(item.qtyRequest).toLocaleString() : ''}</td>
                                     <td className="text-right">{item.qtyReceipt ? Number(item.qtyReceipt).toLocaleString() : ''}</td>
                                     <td className="text-center">{item.uom}</td>
                                 </tr>
-                            ))}
+                                );
+                            })}
                             {/* Empty rows to fill A4 size */}
                             {Array.from({ length: Math.max(0, 23 - items.length) }).map((_, i) => (
                                 <tr key={`empty-${i}`} className="empty-row">
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
                                     <td></td>
                                     <td></td>
                                     <td></td>
@@ -302,7 +326,7 @@ const ProductionRequisitionPrintToolPage = () => {
                     
                     @page {
                         size: A4;
-                        margin: 10mm 15mm;
+                        margin: 10mm 8mm;
                     }
 
                     body {
@@ -440,10 +464,7 @@ const ProductionRequisitionPrintToolPage = () => {
                         border: 1px solid #000;
                         padding: 6px 8px;
                         vertical-align: middle;
-                    }
-
-                    .items-print-table tr.empty-row td {
-                        height: 25px; /* height of empty rows */
+                        height: 25px;
                     }
 
                     .text-center { text-align: center; }

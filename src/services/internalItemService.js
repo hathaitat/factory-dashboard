@@ -248,6 +248,28 @@ export const internalItemService = {
         }
     },
 
+    getWithdrawalLogs: async () => {
+        try {
+            const { data, error } = await supabase
+                .from('internal_item_logs')
+                .select(`
+                    *,
+                    item:internal_items(
+                        id,
+                        name,
+                        category:internal_categories(id, name)
+                    )
+                `)
+                .eq('type', 'OUT')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching withdrawal logs:', error);
+            return [];
+        }
+    },
+
     getMonthlyIssuedValue: async () => {
         try {
             const now = new Date();

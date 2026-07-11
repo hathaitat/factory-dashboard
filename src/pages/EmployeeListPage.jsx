@@ -933,12 +933,22 @@ const EmployeeListPage = () => {
                 helpContent={HELP_CONTENT.employees}
             >
                 {viewMode === 'info' && (
-                    <button
-                        onClick={exportEmployeeListToExcel}
-                        className="px-5 py-3 rounded-lg border border-slate-200 bg-white text-emerald-500 cursor-pointer flex items-center gap-2 font-medium text-[0.95rem]"
-                    >
-                        <FileSpreadsheet size={18} /> Export List
-                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={exportEmployeeListToExcel}
+                            className="px-5 py-3 rounded-lg border border-slate-200 bg-white text-emerald-500 cursor-pointer flex items-center gap-2 font-medium text-[0.95rem]"
+                        >
+                            <FileSpreadsheet size={18} /> Export List
+                        </button>
+                        {hasPermission('employees', 'create') && (
+                            <button
+                                onClick={() => navigate('/dashboard/employees/new')}
+                                className="px-5 py-3 rounded-lg border-none bg-primary text-white cursor-pointer flex items-center gap-2 font-medium text-[0.95rem] shadow-sm hover:opacity-90"
+                            >
+                                <Plus size={18} /> เพิ่มพนักงานใหม่
+                            </button>
+                        )}
+                    </div>
                 )}
 
                 {viewMode === 'timesheet' && selectedPeriod && hasPermission('employees', 'edit') && (

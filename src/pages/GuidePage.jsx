@@ -7,7 +7,7 @@ const GuidePage = () => {
     return (
         <div style={{ padding: '0 1rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
             <PageHeader
-                title="คู่มือการใช้งานระบบ (System Guide)"
+                title="คู่มือการใช้งานระบบ"
                 helpContent={HELP_CONTENT.guide}
             />
             

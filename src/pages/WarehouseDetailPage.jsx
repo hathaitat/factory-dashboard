@@ -27,6 +27,7 @@ const WarehouseDetailPage = () => {
 
     // Modal state
     const [showModal, setShowModal] = useState(false);
+    const [isCustomType, setIsCustomType] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
     const [formData, setFormData] = useState({
         product_type: 'material', // material | finished_good
@@ -93,6 +94,8 @@ const WarehouseDetailPage = () => {
 
     const handleOpenModal = (item = null) => {
         if (item) {
+            const isStandard = item.product_type === 'material' || item.product_type === 'finished_good';
+            setIsCustomType(!isStandard);
             setEditingItem(item);
             setFormData({
                 product_type: item.product_type,
@@ -103,6 +106,7 @@ const WarehouseDetailPage = () => {
                 min_stock: item.min_stock || 0
             });
         } else {
+            setIsCustomType(false);
             setEditingItem(null);
             setFormData({
                 product_type: 'material',
@@ -289,8 +293,10 @@ const WarehouseDetailPage = () => {
                                         <td className="px-6 py-4">
                                             {item.product_type === 'material' ? (
                                                 <span className="text-primary rounded-xl inline-block whitespace-nowrap" style={{ fontSize: '0.75rem', background: 'rgba(59, 130, 246, 0.1)', padding: '0.2rem 0.6rem' }}>วัตถุดิบ</span>
-                                            ) : (
+                                            ) : item.product_type === 'finished_good' ? (
                                                 <span className="text-emerald-500 rounded-xl inline-block whitespace-nowrap" style={{ fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', padding: '0.2rem 0.6rem' }}>สินค้าสำเร็จรูป</span>
+                                            ) : (
+                                                <span className="text-orange-500 rounded-xl inline-block whitespace-nowrap" style={{ fontSize: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', padding: '0.2rem 0.6rem' }}>{item.product_type}</span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-textMuted">{item.sku || '-'}</td>
@@ -362,14 +368,38 @@ const WarehouseDetailPage = () => {
                             <div className="form-group mb-4">
                                 <label className="mb-2 text-textMuted text-sm" style={{ display: 'block' }}>ประเภทรายการ *</label>
                                 <select
-                                    required
-                                    value={formData.product_type}
-                                    onChange={(e) => setFormData({ ...formData, product_type: e.target.value })}
-                                    className="glass-input w-full p-3 rounded-lg"
+                                    required={!isCustomType}
+                                    value={isCustomType ? '__custom__' : formData.product_type}
+                                    onChange={(e) => {
+                                        if (e.target.value === '__custom__') {
+                                            setIsCustomType(true);
+                                            setFormData({ ...formData, product_type: '' });
+                                        } else {
+                                            setIsCustomType(false);
+                                            setFormData({ ...formData, product_type: e.target.value });
+                                        }
+                                    }}
+                                    className={`glass-input w-full p-3 rounded-lg ${isCustomType ? 'mb-2' : ''}`}
                                 >
                                     <option value="material">วัตถุดิบ (Material)</option>
                                     <option value="finished_good">สินค้าสำเร็จรูป (FG)</option>
+                                    {Array.from(new Set(inventory.map(i => i.product_type))).filter(t => t !== 'material' && t !== 'finished_good').map(type => (
+                                        <option key={type} value={type}>{type}</option>
+                                    ))}
+                                    <option value="__custom__">+ เพิ่มประเภทใหม่...</option>
                                 </select>
+                                
+                                {isCustomType && (
+                                    <input 
+                                        type="text"
+                                        required
+                                        value={formData.product_type}
+                                        onChange={(e) => setFormData({ ...formData, product_type: e.target.value })}
+                                        placeholder="พิมพ์ประเภทรายการที่ต้องการ"
+                                        className="glass-input w-full p-3 rounded-lg"
+                                        autoFocus
+                                    />
+                                )}
                             </div>
 
                             <div className="form-group mb-4">

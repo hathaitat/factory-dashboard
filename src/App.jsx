@@ -63,6 +63,18 @@ const InternalRequisitionDetailPage = React.lazy(() => import('./pages/InternalR
 const InternalRequisitionPrintPage = React.lazy(() => import('./pages/InternalRequisitionPrintPage'));
 const InternalItemHistoryPage = React.lazy(() => import('./pages/InternalItemHistoryPage'));
 const EnvelopePrintToolPage = React.lazy(() => import('./pages/EnvelopePrintToolPage'));
+const ProductionDashboardPage = React.lazy(() => import('./pages/ProductionDashboardPage'));
+const ProductionSettingsPage = React.lazy(() => import('./pages/ProductionSettingsPage'));
+const ProductionPlanListPage = React.lazy(() => import('./pages/ProductionPlanListPage'));
+const ProductionPlanFormPage = React.lazy(() => import('./pages/ProductionPlanFormPage'));
+const ProductionDailyLogListPage = React.lazy(() => import('./pages/ProductionDailyLogListPage'));
+const ProductionDailyLogPage = React.lazy(() => import('./pages/ProductionDailyLogPage'));
+const ProductionRequisitionDepartmentListPage = React.lazy(() => import('./pages/ProductionRequisitionDepartmentListPage'));
+const ProductionRequisitionListPage = React.lazy(() => import('./pages/ProductionRequisitionListPage'));
+const ProductionRequisitionFormPage = React.lazy(() => import('./pages/ProductionRequisitionFormPage'));
+const ProductionReturnDepartmentListPage = React.lazy(() => import('./pages/ProductionReturnDepartmentListPage'));
+const ProductionReturnListPage = React.lazy(() => import('./pages/ProductionReturnListPage'));
+const ProductionReturnFormPage = React.lazy(() => import('./pages/ProductionReturnFormPage'));
 const ProductionRequisitionPrintToolPage = React.lazy(() => import('./pages/ProductionRequisitionPrintToolPage'));
 // Loading fallback component
 const PageLoader = () => (
@@ -262,7 +274,22 @@ function App() {
 
                     {/* Production Module */}
                     <Route element={<PermissionRoute module="production" action="view" />}>
-                      <Route path="production" element={<div className="p-8"><h2>ข้อมูลการผลิต (เร็วๆ นี้)</h2></div>} />
+                      <Route path="production" element={<ProductionDashboardPage />} />
+                      <Route path="production/settings" element={<ProductionSettingsPage />} />
+                      <Route path="production/plans" element={<ProductionPlanListPage />} />
+                      <Route path="production/plans/new" element={<ProductionPlanFormPage />} />
+                      <Route path="production/plans/edit/:month/:lineId" element={<ProductionPlanFormPage />} />
+                      <Route path="production/daily-log" element={<ProductionDailyLogListPage />} />
+                      <Route path="production/daily-log/edit/:month/:lineId" element={<ProductionDailyLogPage />} />
+                      <Route path="production/requisitions" element={<ProductionRequisitionDepartmentListPage />} />
+                      <Route path="production/requisitions/line/:lineId" element={<ProductionRequisitionListPage />} />
+                      <Route path="production/requisitions/new" element={<ProductionRequisitionFormPage />} />
+                      <Route path="production/requisitions/:id" element={<ProductionRequisitionFormPage />} />
+                      <Route path="production/returns" element={<ProductionReturnDepartmentListPage />} />
+                      <Route path="production/returns/line/:lineId" element={<ProductionReturnListPage />} />
+                      <Route path="production/returns/new" element={<ProductionReturnFormPage />} />
+                      <Route path="production/returns/:id" element={<ProductionReturnFormPage />} />
+                      <Route path="production/returns/:id/edit" element={<ProductionReturnFormPage />} />
                     </Route>
                     <Route element={<PermissionRoute module="overview" action="view" />}>
                       <Route path="guide" element={<GuidePage />} />

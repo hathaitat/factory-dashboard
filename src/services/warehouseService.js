@@ -12,6 +12,7 @@ export const warehouseService = {
                     supplier:suppliers(name)
                 `)
                 .order('is_default', { ascending: false })
+                .order('code', { ascending: true, nullsFirst: false })
                 .order('name', { ascending: true });
 
             if (error) throw error;
@@ -43,6 +44,17 @@ export const warehouseService = {
 
     createWarehouse: async (warehouseData) => {
         try {
+            if (warehouseData.code) {
+                const { data: existing } = await supabase
+                    .from('warehouses')
+                    .select('id')
+                    .eq('code', warehouseData.code)
+                    .maybeSingle();
+                if (existing) {
+                    throw new Error('รหัสคลังสินค้านี้มีอยู่ในระบบแล้ว');
+                }
+            }
+
             const { data, error } = await supabase
                 .from('warehouses')
                 .insert([warehouseData])
@@ -59,6 +71,18 @@ export const warehouseService = {
 
     updateWarehouse: async (id, warehouseData) => {
         try {
+            if (warehouseData.code) {
+                const { data: existing } = await supabase
+                    .from('warehouses')
+                    .select('id')
+                    .eq('code', warehouseData.code)
+                    .neq('id', id)
+                    .maybeSingle();
+                if (existing) {
+                    throw new Error('รหัสคลังสินค้านี้มีอยู่ในระบบแล้ว');
+                }
+            }
+
             warehouseData.updated_at = new Date().toISOString();
             const { data, error } = await supabase
                 .from('warehouses')
@@ -119,6 +143,46 @@ export const warehouseService = {
     },
 
     // === Inventory Management ===
+
+    getUniqueInventoryItems: async () => {
+        try {
+            const { data, error } = await supabase
+                .from('warehouse_inventory')
+                .select('product_name, unit, id')
+                .order('product_name', { ascending: true });
+            if (error) throw error;
+            const seen = new Set();
+            return (data || []).filter(item => {
+                if (seen.has(item.product_name)) return false;
+                seen.add(item.product_name);
+                return true;
+            });
+        } catch (error) {
+            console.error('Error fetching unique inventory items:', error);
+            return [];
+        }
+    },
+
+    getInventoryItemsByWarehouses: async (warehouseIds) => {
+        try {
+            if (!warehouseIds || warehouseIds.length === 0) return [];
+            const { data, error } = await supabase
+                .from('warehouse_inventory')
+                .select('product_name, unit, id, warehouse_id')
+                .in('warehouse_id', warehouseIds)
+                .order('product_name', { ascending: true });
+            if (error) throw error;
+            const seen = new Set();
+            return (data || []).filter(item => {
+                if (seen.has(item.product_name)) return false;
+                seen.add(item.product_name);
+                return true;
+            });
+        } catch (error) {
+            console.error('Error fetching inventory items by warehouses:', error);
+            return [];
+        }
+    },
 
     getInventoryByWarehouse: async (warehouseId) => {
         try {

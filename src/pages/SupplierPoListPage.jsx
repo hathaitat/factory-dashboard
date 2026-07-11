@@ -177,7 +177,7 @@ const SupplierPoListPage = () => {
 
     return (
         <div className="px-4">
-            <PageHeader title="ใบสั่งซื้อผู้ขาย (Vendor PO)" subtitle="จัดการการจัดซื้อวัตถุดิบและอุปกรณ์">
+            <PageHeader title="ใบสั่งซื้อจากผู้ขาย" subtitle="จัดการการจัดซื้อวัตถุดิบและอุปกรณ์">
                 <div className="flex gap-3">
                     <button onClick={exportToExcel} className="glass-panel px-4 py-2.5 bg-white border border-slate-200 text-emerald-500 cursor-pointer rounded-lg font-medium text-sm flex items-center gap-2">
                         <FileSpreadsheet size={18} /> Export All
@@ -280,10 +280,10 @@ const SupplierPoListPage = () => {
                             <tr className="border-b border-border text-left">
                                 <th style={{ width: '40px' }}></th>
                                 <th className="actions-column text-textMuted font-medium">จัดการ</th>
-                                <th className="px-6 py-5 text-textMuted font-medium">เลขที่ PO</th>
+                                <th className="px-4 py-5 text-textMuted font-medium" style={{ width: '150px', minWidth: '150px', maxWidth: '150px', wordBreak: 'break-word' }}>เลขที่ PO</th>
                                 <th className="px-6 py-5 text-textMuted font-medium">ผู้ขาย (Vendor)</th>
                                 <th className="px-6 py-5 text-textMuted font-medium text-center">วันที่สั่งซื้อ</th>
-                                <th className="px-6 py-5 text-textMuted font-medium text-center">สถานที่จัดส่ง</th>
+                                <th className="px-6 py-5 text-textMuted font-medium text-center" style={{ minWidth: '200px' }}>สถานที่จัดส่ง</th>
                                 <th className="px-6 py-5 text-textMuted font-medium text-center">กำหนดส่ง</th>
                                 <th className="p-4 text-textMuted font-semibold text-right">ยอดเงินสุทธิ</th>
                                 <th className="p-4 text-textMuted font-semibold text-center">การรับสินค้า</th>
@@ -324,7 +324,7 @@ const SupplierPoListPage = () => {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/supplier-pos/${po.id}`); }} className="px-6 py-5 font-semibold text-blue-500 text-lg font-mono">{po.po_number}</td>
+                                                <td onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/supplier-pos/${po.id}`); }} className="px-4 py-5 font-semibold text-blue-500 text-lg font-mono" style={{ width: '150px', minWidth: '150px', maxWidth: '150px', wordBreak: 'break-word' }}>{po.po_number}</td>
                                                 <td className="px-6 py-5">
                                                     {po.supplier_id ? (
                                                         <Link 

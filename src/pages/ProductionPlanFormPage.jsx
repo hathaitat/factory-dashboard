@@ -106,6 +106,7 @@ const ProductionPlanFormPage = () => {
                     newMatrixMap[key] = { 
                         id: key, 
                         product_name: p.product_name, 
+                        product_code: p.product_code || '',
                         process: p.process || '', 
                         target_warehouse_id: p.target_warehouse_id || '',
                         plan: {}, 
@@ -126,6 +127,7 @@ const ProductionPlanFormPage = () => {
                     newMatrixMap[key] = { 
                         id: key, 
                         product_name: pName, 
+                        product_code: l.production_plans?.product_code || '',
                         process: pProcess, 
                         target_warehouse_id: l.production_plans?.target_warehouse_id || '',
                         plan: {}, 
@@ -159,6 +161,7 @@ const ProductionPlanFormPage = () => {
                             newMatrixMap[key] = {
                                 id: key,
                                 product_name: item.product_name,
+                                product_code: item.sku || '',
                                 process: '',
                                 target_warehouse_id: group.target_warehouse_id || item.warehouse_id || '',
                                 plan: {},
@@ -176,6 +179,7 @@ const ProductionPlanFormPage = () => {
                                 newMatrixMap[key] = {
                                     id: key,
                                     product_name: item.product_name,
+                                    product_code: item.sku || '',
                                     process: stepName,
                                     target_warehouse_id: stepTargetWh || group.target_warehouse_id || item.warehouse_id || '',
                                     plan: {},
@@ -225,6 +229,7 @@ const ProductionPlanFormPage = () => {
         setMatrix([...matrix, { 
             id: `new-${Date.now()}`, 
             product_name: '', 
+            product_code: '',
             process: '', 
             target_warehouse_id: '',
             plan: {}, 
@@ -285,6 +290,7 @@ const ProductionPlanFormPage = () => {
                             plan_month: month,
                             plan_date: dateStr,
                             product_name: row.product_name,
+                            product_code: row.product_code || null,
                             process: row.process || '',
                             target_warehouse_id: row.target_warehouse_id || null,
                             target_quantity: Number(val),

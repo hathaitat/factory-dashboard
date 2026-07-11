@@ -12,6 +12,8 @@ import PageHeader from '../components/PageHeader';
 import { Plus, Save, X, Trash2, Calculator } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../contexts/AuthContext';
+import { productionService } from '../services/productionService';
+import { productionMaterialService } from '../services/productionMaterialService';
 
 const InventoryHistoryPage = () => {
     const { user } = useAuth();
@@ -32,8 +34,36 @@ const InventoryHistoryPage = () => {
     const [adjustType, setAdjustType] = useState('IN');
     const [adjustQty, setAdjustQty] = useState('');
     const [adjustRemark, setAdjustRemark] = useState('');
+    const [productionLines, setProductionLines] = useState([]);
+    const [reqLineId, setReqLineId] = useState('');
+    const [reqWeightKg, setReqWeightKg] = useState('');
+    
+    // New state for Target Items
+    const [targetItems, setTargetItems] = useState([]);
+    const [reqTargetItemId, setReqTargetItemId] = useState('');
 
-    // BOM Rules state
+    useEffect(() => {
+        const fetchTargetItems = async () => {
+            if (!reqLineId) {
+                setTargetItems([]);
+                setReqTargetItemId('');
+                return;
+            }
+            const line = productionLines.find(l => l.id === reqLineId);
+            if (line && line.warehouse_ids && line.warehouse_ids.length > 0) {
+                try {
+                    const items = await warehouseService.getInventoryItemsByWarehouses(line.warehouse_ids);
+                    setTargetItems(items || []);
+                } catch (error) {
+                    console.error("Error fetching target items:", error);
+                }
+            } else {
+                setTargetItems([]);
+                setReqTargetItemId('');
+            }
+        };
+        fetchTargetItems();
+    }, [reqLineId, productionLines]);
     const [bomRules, setBomRules] = useState([]);
     const [supplierProducts, setSupplierProducts] = useState([]);
     const [showBomModal, setShowBomModal] = useState(false);
@@ -74,6 +104,9 @@ const InventoryHistoryPage = () => {
             const { supplierProductService } = await import('../services/supplierProductService');
             const prods = await supplierProductService.getAllProducts();
             setSupplierProducts(prods || []);
+
+            const lines = await productionService.getLines();
+            setProductionLines(lines || []);
 
         } catch (error) {
             console.error('Error loading inventory history:', error);
@@ -117,15 +150,52 @@ const InventoryHistoryPage = () => {
 
         setIsSaving(true);
         try {
-            await warehouseService.adjustStock(id, adjustType, adjustQty, adjustRemark, currentUser?.fullName || 'system');
-            showAlert('ปรับยอดสต็อกเรียบร้อยแล้ว');
+            if (adjustType === 'PROD_REQ') {
+                if (!reqLineId) {
+                    setIsSaving(false);
+                    return showError('กรุณาเลือกแผนกการผลิต');
+                }
+                const reqData = {
+                    req_date: new Date().toISOString().split('T')[0],
+                    line_id: reqLineId,
+                    source_warehouse_id: item.warehouse_id,
+                    status: 'completed',
+                    created_by: currentUser?.email
+                };
+                
+                let finalRemark = adjustRemark;
+                if (reqTargetItemId) {
+                    const tItem = targetItems.find(i => i.id === reqTargetItemId);
+                    if (tItem) {
+                        finalRemark = finalRemark
+                            ? `${finalRemark} (เบิกเพื่อผลิต: ${tItem.product_name})`
+                            : `เบิกเพื่อผลิต: ${tItem.product_name}`;
+                    }
+                }
+                
+                const itemsData = [{
+                    inventory_id: id,
+                    quantity: Number(adjustQty),
+                    unit: item.unit,
+                    weight_kg: reqWeightKg ? Number(reqWeightKg) : null,
+                    notes: finalRemark
+                }];
+                await productionMaterialService.createRequisition(reqData, itemsData, currentUser?.fullName || 'system');
+                showAlert('เบิกออกผลิตเรียบร้อยแล้ว');
+            } else {
+                await warehouseService.adjustStock(id, adjustType, adjustQty, adjustRemark, currentUser?.fullName || 'system');
+                showAlert('ปรับยอดสต็อกเรียบร้อยแล้ว');
+            }
             setShowAdjustModal(false);
             setAdjustQty('');
             setAdjustRemark('');
+            setReqLineId('');
+            setReqWeightKg('');
+            setReqTargetItemId('');
             loadData();
         } catch (error) {
             console.error('Error adjusting stock:', error);
-            showError('เกิดข้อผิดพลาดในการปรับยอดสต็อก');
+            showError('เกิดข้อผิดพลาดในการทำรายการ');
         } finally {
             setIsSaving(false);
         }
@@ -234,7 +304,7 @@ const InventoryHistoryPage = () => {
                         style={{ marginBottom: 0 }}
                     />
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap justify-end gap-3 flex-shrink-0">
                     <button
                         onClick={() => {
                             if (bomRules.length === 0) {
@@ -243,14 +313,14 @@ const InventoryHistoryPage = () => {
                             }
                             navigate(`/dashboard/supplier-pos/create?subcontract_inventory_id=${item.id}&subcontract_material=${encodeURIComponent(item.product_name)}&subcontract_warehouse=${item.warehouse_id}`);
                         }}
-                        className="btn-secondary px-5 py-2.5 text-violet-500 flex items-center gap-2" style={{ borderColor: '#8b5cf6' }}
+                        className="btn-secondary px-4 py-2 text-violet-500 flex items-center gap-2 whitespace-nowrap" style={{ borderColor: '#8b5cf6' }}
                     >
                         <Building2 size={18} /> เปิด PO ผลิต
                     </button>
                     {hasPermission('warehouses', 'edit') && (
                         <button
                             onClick={() => setShowAdjustModal(true)}
-                            className="btn-primary px-5 py-2.5 flex items-center gap-2"
+                            className="btn-primary px-4 py-2 flex items-center gap-2 whitespace-nowrap"
                         >
                             <Plus size={18} /> ปรับสต็อก
                         </button>
@@ -258,7 +328,7 @@ const InventoryHistoryPage = () => {
                     {hasPermission('warehouses', 'edit') && (
                         <button
                             onClick={() => setShowMoveModal(true)}
-                            className="btn-secondary px-5 py-2.5 text-blue-500 flex items-center gap-2" style={{ borderColor: '#3b82f6' }}
+                            className="btn-secondary px-4 py-2 text-blue-500 flex items-center gap-2 whitespace-nowrap" style={{ borderColor: '#3b82f6' }}
                         >
                             <ArrowUpRight size={18} /> ย้ายคลัง
                         </button>
@@ -266,14 +336,14 @@ const InventoryHistoryPage = () => {
                     {hasPermission('warehouses', 'edit') && logs.length === 0 && (
                         <button
                             onClick={handleInitializeHistory}
-                            className="btn-secondary text-primary px-4 py-2.5 flex items-center gap-2" style={{ borderColor: 'var(--primary)' }}
+                            className="btn-secondary text-primary px-4 py-2 flex items-center gap-2 whitespace-nowrap" style={{ borderColor: 'var(--primary)' }}
                         >
                             <History size={18} /> บันทึกยอดเริ่มต้น
                         </button>
                     )}
                     <button
                         onClick={() => window.print()}
-                        className="btn-secondary px-4 py-2.5 flex items-center gap-2"
+                        className="btn-secondary px-4 py-2 flex items-center gap-2 whitespace-nowrap"
                     >
                         <Printer size={18} /> พิมพ์ Stock Card
                     </button>
@@ -447,6 +517,26 @@ const InventoryHistoryPage = () => {
                                                             {log.reference_no || 'ใบสั่งซื้อ'}
                                                         </span>
                                                     </>
+                                                ) : log.source_type === 'production_requisition' ? (
+                                                    <>
+                                                        <FileText size={14} color="#8b5cf6" />
+                                                        <span
+                                                            className="text-violet-500 font-semibold cursor-pointer underline"
+                                                            onClick={() => navigate(`/dashboard/production/requisitions/${log.source_id}`)}
+                                                        >
+                                                            {log.reference_no || 'ใบเบิกผลิต'}
+                                                        </span>
+                                                    </>
+                                                ) : log.source_type === 'production_requisition_cancel' ? (
+                                                    <>
+                                                        <FileText size={14} color="#f43f5e" />
+                                                        <span
+                                                            className="text-rose-500 font-semibold"
+                                                            title="ใบเบิกนี้ถูกลบ/ยกเลิกออกจากระบบแล้ว"
+                                                        >
+                                                            ยกเลิก {log.reference_no || 'ใบเบิก'}
+                                                        </span>
+                                                    </>
                                                 ) : (
                                                     <>
                                                         <User size={14} color="var(--text-muted)" />
@@ -504,17 +594,80 @@ const InventoryHistoryPage = () => {
                                         เบิกออก (-)
                                     </button>
                                 </div>
+                                <div className="mt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setAdjustType('PROD_REQ')}
+                                        className="w-full p-3 rounded-lg font-semibold cursor-pointer flex items-center justify-center gap-2" style={{ border: '1px solid #8b5cf6', background: adjustType === 'PROD_REQ' ? '#8b5cf6' : 'white', color: adjustType === 'PROD_REQ' ? 'white' : '#8b5cf6' }}
+                                    >
+                                        <Building2 size={16} /> เบิกออกผลิต (-)
+                                    </button>
+                                </div>
                             </div>
-                            <div className="mb-5">
-                                <label className="block text-sm text-textMuted mb-2">จำนวน ({item.unit})</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    required
-                                    value={adjustQty}
-                                    onChange={e => setAdjustQty(e.target.value)}
-                                    className="glass-input w-full p-3 rounded-lg"
-                                />
+                            
+                            {adjustType === 'PROD_REQ' && (
+                                <div className="mb-5">
+                                    <label className="block text-sm text-textMuted mb-2">แผนกการผลิตที่เบิก <span className="text-red-500">*</span></label>
+                                    <select
+                                        required
+                                        value={reqLineId}
+                                        onChange={(e) => setReqLineId(e.target.value)}
+                                        className="glass-input w-full p-3 rounded-lg"
+                                    >
+                                        <option value="">-- เลือกแผนก --</option>
+                                        {productionLines.map(line => (
+                                            <option key={line.id} value={line.id}>{line.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {adjustType === 'PROD_REQ' && reqLineId && (
+                                <div className="mb-5">
+                                    <label className="block text-sm text-textMuted mb-2">ผลิตเป็นอะไร (ตัวเลือกเพิ่มเติม)</label>
+                                    <select
+                                        value={reqTargetItemId}
+                                        onChange={(e) => setReqTargetItemId(e.target.value)}
+                                        className="glass-input w-full p-3 rounded-lg"
+                                    >
+                                        <option value="">-- ระบุสินค้าที่จะผลิต --</option>
+                                        {targetItems.map(t => (
+                                            <option key={t.id} value={t.id}>{t.product_name}</option>
+                                        ))}
+                                    </select>
+                                    {targetItems.length === 0 && (
+                                        <div className="text-xs text-orange-500 mt-1">
+                                            * แผนกที่เลือกยังไม่ได้ผูกกับคลังสินค้าใดๆ (ไปที่เมนูตั้งค่าการผลิตเพื่อผูกคลังก่อน)
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="mb-5" style={{ display: 'grid', gridTemplateColumns: adjustType === 'PROD_REQ' ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                                <div>
+                                    <label className="block text-sm text-textMuted mb-2">จำนวน ({item.unit}) <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        required
+                                        value={adjustQty}
+                                        onChange={e => setAdjustQty(e.target.value)}
+                                        className="glass-input w-full p-3 rounded-lg"
+                                    />
+                                </div>
+                                {adjustType === 'PROD_REQ' && (
+                                    <div>
+                                        <label className="block text-sm text-textMuted mb-2">น้ำหนัก (กิโลกรัม)</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={reqWeightKg}
+                                            onChange={e => setReqWeightKg(e.target.value)}
+                                            className="glass-input w-full p-3 rounded-lg"
+                                            placeholder="ไม่บังคับ"
+                                        />
+                                    </div>
+                                )}
                             </div>
                             <div className="mb-6">
                                 <label className="block text-sm text-textMuted mb-2">หมายเหตุ (ระบุเหตุผลที่ปรับปรุง)</label>

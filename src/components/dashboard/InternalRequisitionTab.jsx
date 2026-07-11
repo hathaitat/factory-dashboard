@@ -12,7 +12,9 @@ const InternalRequisitionTab = () => {
         lowStockItems: [],
         recentRequisitions: [],
         rawRequisitions: [],
-        totalValue: 0
+        totalValue: 0,
+        chartWithdrawalLogs: [],
+        flatWithdrawalLogs: []
     });
     const [isLoading, setIsLoading] = useState(true);
     const [groupByMode, setGroupByMode] = useState('category'); // 'category' | 'item'
@@ -22,12 +24,13 @@ const InternalRequisitionTab = () => {
     const loadStats = async () => {
         setIsLoading(true);
         try {
-            const [items, lowStock, requisitions, monthlyApprovedValue, categories] = await Promise.all([
+            const [items, lowStock, requisitions, monthlyApprovedValue, categories, withdrawalLogs] = await Promise.all([
                 internalItemService.getItems(),
                 internalItemService.getLowStockItems(),
                 internalRequisitionService.getRequisitions(),
                 internalItemService.getMonthlyIssuedValue(),
-                internalItemService.getCategories()
+                internalItemService.getCategories(),
+                internalItemService.getWithdrawalLogs()
             ]);
 
             const activeItems = items.filter(i => i.status === 'active');
@@ -48,7 +51,31 @@ const InternalRequisitionTab = () => {
                 }
             });
 
-            const allItemNames = Array.from(new Set(flatRequisitionItems.map(i => i.item_name))).filter(Boolean);
+            const allItemNames = items.map(i => i.name).filter(Boolean);
+
+            const chartWithdrawalLogs = [];
+            const flatWithdrawalLogs = [];
+
+            (withdrawalLogs || []).forEach(log => {
+                const dateStr = log.created_at ? log.created_at.split('T')[0] : new Date(log.date).toISOString().split('T')[0];
+                const amount = (Number(log.qty) || 0) * (Number(log.unit_cost) || 0);
+
+                chartWithdrawalLogs.push({
+                    date: dateStr,
+                    amount: amount
+                });
+
+                const itemName = log.item?.name || 'ทั่วไป';
+                const categoryName = log.item?.category?.name || 'ทั่วไป';
+
+                flatWithdrawalLogs.push({
+                    date: dateStr,
+                    item_name: itemName,
+                    categoryName: categoryName,
+                    quantity: Number(log.qty) || 0,
+                    amount: amount
+                });
+            });
 
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -83,6 +110,8 @@ const InternalRequisitionTab = () => {
                 totalRequisitionsCount: requisitions.length,
                 monthlyApprovedValue: monthlyApprovedValue,
                 flatRequisitionItems: flatRequisitionItems,
+                chartWithdrawalLogs: chartWithdrawalLogs,
+                flatWithdrawalLogs: flatWithdrawalLogs,
                 allCategoryNames: categories ? categories.map(c => c.name) : [],
                 allItemNames: allItemNames,
                 topRequestedItems: topRequestedItems
@@ -168,12 +197,12 @@ const InternalRequisitionTab = () => {
                 title="แนวโน้มการเบิกและสั่งซื้อของใช้"
                 metrics={[
                     { id: 'withdraw_count', label: 'จำนวนการเบิก (ครั้ง)', data: stats.rawRequisitions, dateField: 'date', color: '#f59e0b', yAxisId: 'right', valueSuffix: ' ครั้ง' },
-                    { id: 'purchase_amount', label: 'ยอดขอเบิกทั้งหมด (฿)', data: stats.rawRequisitions, dateField: 'date', valueField: 'total_amount', color: '#3b82f6', valuePrefix: '฿' }
+                    { id: 'withdraw_value', label: 'มูลค่าเบิกจ่ายจริง (฿)', data: stats.chartWithdrawalLogs, dateField: 'date', valueField: 'amount', color: '#3b82f6', valuePrefix: '฿' }
                 ]}
                 defaultMetric="withdraw_count"
                 enableGroupBy={true}
                 groupByLabel={groupByMode === 'category' ? "หมวดหมู่" : "รายการสินค้า"}
-                groupByData={stats.flatRequisitionItems || []}
+                groupByData={stats.flatWithdrawalLogs || []}
                 groupByField={groupByMode === 'category' ? "categoryName" : "item_name"}
                 groupByDateField="date"
                 groupByValueField={groupByMode === 'category' ? "amount" : "quantity"}

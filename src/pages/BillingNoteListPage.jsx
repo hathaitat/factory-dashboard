@@ -281,7 +281,7 @@ const BillingNoteListPage = () => {
     return (
         <div className="px-4">
             <PageHeader
-                title="รายการใบวางบิล (Billing Notes)"
+                title="รายการใบวางบิล"
                 helpContent={HELP_CONTENT.billingNotes}
             >
                 <div className="flex gap-3">

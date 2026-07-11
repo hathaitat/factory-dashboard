@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Activity, Settings, LogOut, Users, Building, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle, Truck, Package, ChevronDown, ChevronUp, ChevronRight, Bell, ArrowRight, History as HistoryIcon } from 'lucide-react';
+import { LayoutDashboard, Activity, Settings, LogOut, Users, Building, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle, Truck, Package, ChevronDown, ChevronUp, ChevronRight, Bell, ArrowRight, History as HistoryIcon, Target, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { internalRequisitionService } from '../services/internalRequisitionService';
 import { companyService } from '../services/companyService';
@@ -28,6 +28,7 @@ const DashboardLayout = () => {
     // State for collapsible menus
     const [openGroups, setOpenGroups] = useState({
         ops: false,
+        internal: false,
         partners: false,
         system: false,
         forms: false
@@ -151,21 +152,21 @@ const DashboardLayout = () => {
                     {hasPermission('purchase_orders', 'view') && (
                         <NavLink to="/dashboard/purchase-orders" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                             <ShoppingCart size={20} className="text-[#10b981]" />
-                            <span>ใบสั่งซื้อ (PO) ของลูกค้า</span>
+                            <span>ใบสั่งซื้อของลูกค้า</span>
                         </NavLink>
                     )}
 
                     {hasPermission('quotations', 'view') && (
                         <NavLink to="/dashboard/quotations" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                             <FileText size={20} className="text-[#6366f1]" />
-                            <span>ใบเสนอราคา (Quotations)</span>
+                            <span>ใบเสนอราคา</span>
                         </NavLink>
                     )}
 
                     {hasPermission('invoices', 'view') && (
                         <NavLink to="/dashboard/invoices" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                             <FileText size={20} className="text-[#f59e0b]" />
-                            <span>ใบกำกับภาษี (Invoice)</span>
+                            <span>ใบกำกับภาษี</span>
                         </NavLink>
                     )}
 
@@ -177,7 +178,7 @@ const DashboardLayout = () => {
                             </NavLink>
                             <NavLink to="/dashboard/receipts" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                                 <DollarSign size={20} className="text-[#06b6d4]" />
-                                <span>ใบเสร็จรับเงิน (Receipt)</span>
+                                <span>ใบเสร็จรับเงิน</span>
                             </NavLink>
                         </>
                     )}
@@ -220,13 +221,13 @@ const DashboardLayout = () => {
                     {hasPermission('supplier_pos', 'view') && (
                         <NavLink to="/dashboard/supplier-pos" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                             <ShoppingCart size={20} className="text-[#8b5cf6]" />
-                            <span>ใบสั่งซื้อจากผู้ขาย (Vendor PO)</span>
+                            <span>ใบสั่งซื้อจากผู้ขาย</span>
                         </NavLink>
                     )}
                     {/* COLLAPSIBLE GROUPS */}
 
                     {/* 1. Warehouse & Production */}
-                    {(hasPermission('warehouses', 'view') || hasPermission('production', 'view') || hasPermission('internal_items', 'view') || hasPermission('internal_requisitions', 'view')) && (
+                    {(hasPermission('warehouses', 'view') || hasPermission('production', 'view')) && (
                         <div className={`nav-group ${openGroups.ops ? 'open' : ''}`}>
                             <button className="nav-item group-header" onClick={() => toggleGroup('ops')}>
                                 <Package size={20} className="text-[#14b8a6]" />
@@ -240,19 +241,54 @@ const DashboardLayout = () => {
                                     {hasPermission('warehouses', 'view') && (
                                         <NavLink to="/dashboard/warehouses" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
                                             <Package size={18} className="opacity-70" />
-                                            <span>คลังสินค้า (Warehouse)</span>
+                                            <span>คลังสินค้า</span>
                                         </NavLink>
                                     )}
                                     {hasPermission('production', 'view') && (
-                                        <NavLink to="/dashboard/production" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
-                                            <Activity size={18} className="opacity-70" />
-                                            <span>การผลิต</span>
-                                        </NavLink>
+                                        <>
+                                            <NavLink to="/dashboard/production" end onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                                <Activity size={18} className="opacity-70" />
+                                                <span>ภาพรวมการผลิต</span>
+                                            </NavLink>
+                                            <NavLink to="/dashboard/production/plans" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                                <Target size={18} className="opacity-70" />
+                                                <span>เป้าหมายการผลิต</span>
+                                            </NavLink>
+                                            <NavLink to="/dashboard/production/daily-log" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                                <Edit2 size={18} className="opacity-70" />
+                                                <span>บันทึกผลผลิต</span>
+                                            </NavLink>
+                                            <NavLink to="/dashboard/production/requisitions" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                                <Package size={18} className="opacity-70" />
+                                                <span>เบิกวัตถุดิบ (ผลิต)</span>
+                                            </NavLink>
+                                            <NavLink to="/dashboard/production/returns" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                                <HistoryIcon size={18} className="opacity-70" />
+                                                <span>คืนวัตถุดิบ (ผลิต)</span>
+                                            </NavLink>
+                                        </>
                                     )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* 1.5 Internal Items */}
+                    {(hasPermission('internal_items', 'view') || hasPermission('internal_requisitions', 'view')) && (
+                        <div className={`nav-group ${openGroups.internal ? 'open' : ''}`}>
+                            <button className="nav-item group-header" onClick={() => toggleGroup('internal')}>
+                                <Package size={20} className="text-[#f59e0b]" />
+                                <span>ของใช้ในโรงงาน</span>
+                                <div className="group-chevron">
+                                    {openGroups.internal ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                </div>
+                            </button>
+                            {openGroups.internal && (
+                                <div className="group-content">
                                     {hasPermission('internal_items', 'view') && (
                                         <NavLink to="/dashboard/internal-items" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
                                             <Package size={18} className="opacity-70" />
-                                            <span>ของใช้ในโรงงาน</span>
+                                            <span>รายการของใช้</span>
                                         </NavLink>
                                     )}
                                     {hasPermission('internal_requisitions', 'view') && (
@@ -281,7 +317,7 @@ const DashboardLayout = () => {
                                     {hasPermission('customers', 'view') && (
                                         <NavLink to="/dashboard/customers" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
                                             <Users size={18} className="opacity-70" />
-                                            <span>ลูกค้า (Customers)</span>
+                                            <span>ลูกค้า</span>
                                         </NavLink>
                                     )}
                                     {hasPermission('certificates', 'view') && (
@@ -293,7 +329,7 @@ const DashboardLayout = () => {
                                     {hasPermission('suppliers', 'view') && (
                                         <NavLink to="/dashboard/suppliers" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
                                             <Truck size={18} className="opacity-70" />
-                                            <span>ผู้ขาย (Suppliers)</span>
+                                            <span>ผู้ขาย</span>
                                         </NavLink>
                                     )}
                                     {hasPermission('employees', 'view') && (
@@ -308,7 +344,7 @@ const DashboardLayout = () => {
                     )}
 
                     {/* 3. System Settings */}
-                    {(hasPermission('settings', 'view') || hasPermission('company', 'view') || hasPermission('users', 'view')) && (
+                    {(hasPermission('settings', 'view') || hasPermission('company', 'view') || hasPermission('users', 'view') || hasPermission('production', 'edit')) && (
                         <div className={`nav-group ${openGroups.system ? 'open' : ''}`}>
                             <button className="nav-item group-header" onClick={() => toggleGroup('system')}>
                                 <Settings size={20} className="text-[#64748b]" />
@@ -342,6 +378,12 @@ const DashboardLayout = () => {
                                                 <span>ตั้งค่า</span>
                                             </NavLink>
                                         </>
+                                    )}
+                                    {hasPermission('production', 'edit') && (
+                                        <NavLink to="/dashboard/production/settings" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                            <Settings size={18} className="opacity-70" />
+                                            <span>ตั้งค่าแผนก/เครื่อง</span>
+                                        </NavLink>
                                     )}
                                 </div>
                             )}

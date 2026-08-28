@@ -430,6 +430,10 @@ export const warehouseService = {
 
     addInventoryItem: async (inventoryData) => {
         try {
+            // Sanitize inputs
+            if (inventoryData.sku) inventoryData.sku = inventoryData.sku.trim();
+            if (inventoryData.product_name) inventoryData.product_name = inventoryData.product_name.trim();
+
             const { data, error } = await supabase
                 .from('warehouse_inventory')
                 .insert([inventoryData])
@@ -458,6 +462,10 @@ export const warehouseService = {
 
     updateInventoryItem: async (id, inventoryData, performedBy = 'System') => {
         try {
+            // Sanitize inputs
+            if (inventoryData.sku) inventoryData.sku = inventoryData.sku.trim();
+            if (inventoryData.product_name) inventoryData.product_name = inventoryData.product_name.trim();
+
             const { data, error } = await supabase.rpc('update_warehouse_inventory_with_log', {
                 p_id: id,
                 p_inventory_data: inventoryData,

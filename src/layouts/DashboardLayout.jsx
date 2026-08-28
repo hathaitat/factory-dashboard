@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Activity, Settings, LogOut, Users, Building, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle, Truck, Package, ChevronDown, ChevronUp, ChevronRight, Bell, ArrowRight, History as HistoryIcon, Target, Edit2 } from 'lucide-react';
+import { LayoutDashboard, Activity, Settings, LogOut, Users, Building, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle, Truck, Package, ChevronDown, ChevronUp, ChevronRight, Bell, ArrowRight, History as HistoryIcon, Target, Edit2, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { internalRequisitionService } from '../services/internalRequisitionService';
 import { companyService } from '../services/companyService';
@@ -239,10 +239,22 @@ const DashboardLayout = () => {
                             {openGroups.ops && (
                                 <div className="group-content">
                                     {hasPermission('warehouses', 'view') && (
-                                        <NavLink to="/dashboard/warehouses" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
-                                            <Package size={18} className="opacity-70" />
-                                            <span>คลังสินค้า</span>
-                                        </NavLink>
+                                        <>
+                                            <NavLink to="/dashboard/warehouses" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                                <Package size={18} className="opacity-70" />
+                                                <span>คลังสินค้า</span>
+                                            </NavLink>
+                                            <NavLink to="/dashboard/demand-report" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                                <Activity size={18} className="opacity-70" />
+                                                <span>วิเคราะห์ Demand</span>
+                                            </NavLink>
+                                            {hasPermission('customer_forecasts', 'view', true) && (
+                                                <NavLink to="/dashboard/customer-forecasts" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                                    <TrendingUp size={18} className="opacity-70" />
+                                                    <span>ประมาณการยอดขาย</span>
+                                                </NavLink>
+                                            )}
+                                        </>
                                     )}
                                     {hasPermission('production', 'view') && (
                                         <>

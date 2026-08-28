@@ -7,7 +7,7 @@ import { useDialog } from '../contexts/DialogContext';
 import { userService } from '../services/userService';
 import FormPageHeader from '../components/FormPageHeader';
 import { useAuth } from '../contexts/AuthContext';
-
+import SearchableSelect from '../components/SearchableSelect';
 const InternalRequisitionFormPage = () => {
     const { user } = useAuth();
     const { id } = useParams();
@@ -281,12 +281,18 @@ const InternalRequisitionFormPage = () => {
                                     <tr key={item.id} className="border-b border-border">
                                         <td className="text-center text-textMuted" style={{ padding: '1rem 1.5rem' }}>{index + 1}</td>
                                         <td style={{ padding: '1rem 1.5rem' }}>
-                                            <select value={item.item_id || ''} onChange={e => handleItemSelect(index, e.target.value)} className="glass-panel w-full text-main border border-border mb-2" style={{ padding: '0.6rem', borderRadius: '6px', background: 'var(--card-hover)' }}>
-                                                <option value="">-- เลือกสินค้า --</option>
-                                                {allItems.map(i => (
-                                                    <option key={i.id} value={i.id}>{i.name} ({i.category?.name || '-'})</option>
-                                                ))}
-                                            </select>
+                                            <div className="mb-2">
+                                                <SearchableSelect
+                                                    options={allItems.map(i => ({
+                                                        value: i.id,
+                                                        label: i.name,
+                                                        subLabel: i.category?.name || '-'
+                                                    }))}
+                                                    value={item.item_id || ''}
+                                                    onChange={(val) => handleItemSelect(index, val || '')}
+                                                    placeholder="-- เลือกสินค้า --"
+                                                />
+                                            </div>
                                             <input type="text" value={item.item_name} onChange={e => handleItemChange(index, 'item_name', e.target.value)} placeholder="หรือพิมพ์ชื่อสินค้าเอง..." className="glass-input w-full bg-transparent text-main border border-border text-xs" style={{ padding: '0.4rem 0.6rem', borderRadius: '4px', borderStyle: 'dashed' }} />
                                             {item.item_name && !item.item_id && (
                                                 <div className="flex items-center gap-1 mt-1 text-[10px] text-[#f59e0b]">

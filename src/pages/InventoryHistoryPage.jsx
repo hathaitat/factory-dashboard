@@ -14,6 +14,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../contexts/AuthContext';
 import { productionService } from '../services/productionService';
 import { productionMaterialService } from '../services/productionMaterialService';
+import SearchableSelect from '../components/SearchableSelect';
 
 const InventoryHistoryPage = () => {
     const { user } = useAuth();
@@ -703,17 +704,17 @@ const InventoryHistoryPage = () => {
                         <form onSubmit={handleSaveBomRule}>
                             <div className="mb-5">
                                 <label className="block text-sm text-textMuted mb-2">สินค้าที่ผลิตได้ (Finished Product)</label>
-                                <select
+                                <SearchableSelect
+                                    options={supplierProducts.map(p => ({
+                                        value: p.id,
+                                        label: p.name,
+                                        subLabel: p.suppliers?.name || ''
+                                    }))}
                                     value={newBomRule.supplier_product_id}
-                                    onChange={e => setNewBomRule({ ...newBomRule, supplier_product_id: e.target.value })}
-                                    className="glass-input w-full p-3" style={{ background: 'var(--bg-main)' }}
-                                    required
-                                >
-                                    <option value="">-- เลือกสินค้า --</option>
-                                    {supplierProducts.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name} {p.suppliers?.name ? `(${p.suppliers.name})` : ''}</option>
-                                    ))}
-                                </select>
+                                    onChange={(val) => setNewBomRule({ ...newBomRule, supplier_product_id: val || '' })}
+                                    placeholder="-- เลือกสินค้า --"
+                                    className="glass-input w-full p-3 border-none shadow-none bg-main"
+                                />
                             </div>
 
                             <div className="mb-6" style={{ display: 'grid', gridTemplateColumns: '1fr 50px 1fr', gap: '1rem', alignItems: 'center' }}>

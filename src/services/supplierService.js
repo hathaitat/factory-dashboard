@@ -32,7 +32,7 @@ export const supplierService = {
     getSuppliers: async () => {
         try {
             const [suppliersResult, categories, mappingData] = await Promise.all([
-                supabase.from('suppliers').select('*').order('name', { ascending: true }),
+                supabase.from('suppliers').select('*').order('code', { ascending: false }),
                 supplierCategoryService.getCategories(),
                 settingService.getSetting('supplier_categories_map')
             ]);
@@ -68,7 +68,7 @@ export const supplierService = {
             const to = from + limit - 1;
 
             const [queryResult, categories, mappingData] = await Promise.all([
-                query.order('name', { ascending: true }).range(from, to),
+                query.order('code', { ascending: false }).range(from, to),
                 supplierCategoryService.getCategories(),
                 settingService.getSetting('supplier_categories_map')
             ]);
@@ -101,7 +101,7 @@ export const supplierService = {
             }
 
             const [queryResult, categories, mappingData] = await Promise.all([
-                query.order('name', { ascending: true }),
+                query.order('code', { ascending: false }),
                 supplierCategoryService.getCategories(),
                 settingService.getSetting('supplier_categories_map')
             ]);

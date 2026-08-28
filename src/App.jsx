@@ -56,6 +56,8 @@ const SupplierPoPrintPage = React.lazy(() => import('./pages/SupplierPoPrintPage
 const WarehouseListPage = React.lazy(() => import('./pages/WarehouseListPage'));
 const WarehouseDetailPage = React.lazy(() => import('./pages/WarehouseDetailPage'));
 const InventoryHistoryPage = React.lazy(() => import('./pages/InventoryHistoryPage'));
+const DemandReportPage = React.lazy(() => import('./pages/DemandReportPage'));
+const CustomerForecastPage = React.lazy(() => import('./pages/CustomerForecastPage'));
 const InternalItemListPage = React.lazy(() => import('./pages/InternalItemListPage'));
 const InternalRequisitionListPage = React.lazy(() => import('./pages/InternalRequisitionListPage'));
 const InternalRequisitionFormPage = React.lazy(() => import('./pages/InternalRequisitionFormPage'));
@@ -148,6 +150,8 @@ function App() {
                       <Route path="warehouses" element={<WarehouseListPage />} />
                       <Route path="warehouses/:id" element={<WarehouseDetailPage />} />
                       <Route path="inventory/:id" element={<InventoryHistoryPage />} />
+                      <Route path="demand-report" element={<DemandReportPage />} />
+                      <Route path="customer-forecasts" element={<CustomerForecastPage />} />
                     </Route>
 
                     {/* Internal Items Module */}

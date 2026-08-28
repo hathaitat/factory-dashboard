@@ -24,6 +24,15 @@ export const translateError = (errorMsg) => {
         if (lowerMsg.includes('supplier_pos_po_number_key')) {
             return 'เลขที่ใบสั่งซื้อ (Vendor PO) นี้มีอยู่ในระบบแล้ว กรุณาใช้เลขที่อื่น';
         }
+        if (lowerMsg.includes('suppliers_code_key') || lowerMsg.includes('suppliers_code_idx')) {
+            return 'รหัส Supplier นี้มีอยู่ในระบบแล้ว กรุณาใช้รหัสอื่น';
+        }
+        if (lowerMsg.includes('customers_code_key') || lowerMsg.includes('customers_code_idx')) {
+            return 'รหัสลูกค้านี้มีอยู่ในระบบแล้ว กรุณาใช้รหัสอื่น';
+        }
+        if (lowerMsg.includes('warehouse_inventory_warehouse_sku_idx')) {
+            return 'รหัสสินค้า (SKU) นี้มีอยู่ในคลังสินค้านี้แล้ว ไม่สามารถสร้างซ้ำได้ (ให้ใช้วิธีปรับปรุงยอดหรือทำรับเข้าแทน)';
+        }
         if (lowerMsg.includes('tax_id')) {
             return 'เลขประจำตัวผู้เสียภาษีนี้มีอยู่ในระบบแล้ว';
         }

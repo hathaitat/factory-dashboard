@@ -6,6 +6,11 @@ import { customerService } from '../services/customerService';
 import { supplierService } from '../services/supplierService';
 import { useDialog } from '../contexts/DialogContext';
 
+const ENVELOPE_SIZES = {
+    'standard': { id: 'standard', name: 'ซองมาตรฐาน (235x108mm)', width: '235mm', height: '108mm', padding: '10mm 15mm' },
+    'doc_a4_landscape': { id: 'doc_a4_landscape', name: 'ซองเอกสาร A4 แนวนอน (297x210mm)', width: '297mm', height: '210mm', padding: '20mm 25mm' }
+};
+
 const EnvelopePrintToolPage = () => {
     const navigate = useNavigate();
     const { showError } = useDialog();
@@ -15,6 +20,9 @@ const EnvelopePrintToolPage = () => {
     const [customers, setCustomers] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
     const [searchType, setSearchType] = useState('none'); // 'customer' or 'supplier'
+    const [envelopeSize, setEnvelopeSize] = useState('standard');
+
+    const selectedSize = ENVELOPE_SIZES[envelopeSize];
 
     // Editable Sender State
     const [sender, setSender] = useState({
@@ -151,9 +159,20 @@ const EnvelopePrintToolPage = () => {
                             <span className="text-textMuted">กรอกข้อมูลผู้ส่งและผู้รับเพื่อพิมพ์ลงบนซองจดหมาย</span>
                         </div>
                     </div>
-                    <button onClick={handlePrint} className="btn-primary flex items-center gap-2 px-6 py-2.5">
-                        <Printer size={18} /> พิมพ์ใบปะหน้าซอง
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <select 
+                            className="glass-input text-sm p-2 rounded-lg border-primary/30 font-medium bg-white"
+                            value={envelopeSize}
+                            onChange={(e) => setEnvelopeSize(e.target.value)}
+                        >
+                            {Object.values(ENVELOPE_SIZES).map(size => (
+                                <option key={size.id} value={size.id}>{size.name}</option>
+                            ))}
+                        </select>
+                        <button onClick={handlePrint} className="btn-primary flex items-center gap-2 px-6 py-2.5">
+                            <Printer size={18} /> พิมพ์ใบปะหน้าซอง
+                        </button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 relative">
@@ -259,45 +278,45 @@ const EnvelopePrintToolPage = () => {
                 </div>
                 
                 <div className="text-center text-textMuted mb-4">
-                    --- ตัวอย่างเอกสารที่จะพิมพ์ (ขนาดซอง 235x108mm) ---
+                    --- ตัวอย่างเอกสารที่จะพิมพ์ ({selectedSize.name}) ---
                 </div>
             </div>
 
             {/* --- PRINTABLE A4 AREA --- */}
-            <div className="print-page bg-white shadow-2xl mx-auto relative text-black text-[11pt] font-normal" style={{
-                width: '235mm',
-                height: '108mm',
-                padding: '10mm 15mm',
+            <div className={`print-page bg-white shadow-2xl mx-auto relative text-black ${envelopeSize === 'doc_a4_landscape' ? 'text-[14pt] font-semibold' : 'text-[10pt] font-normal'}`} style={{
+                width: selectedSize.width,
+                height: selectedSize.height,
+                padding: selectedSize.padding,
                 boxSizing: 'border-box'
             }}>
                 <div className="w-full h-full relative flex flex-col justify-between">
                     
                     {/* Top Left: Sender Info */}
-                    <div className="w-[85mm] leading-snug">
+                    <div className={`${envelopeSize === 'doc_a4_landscape' ? 'w-[120mm] p-4' : 'w-[85mm] p-2'} leading-snug rounded-2xl`} style={{ border: envelopeSize === 'doc_a4_landscape' ? '2px solid black' : '1px solid black' }}>
                         <div className="mb-2">
-                            <div className="mb-1">ผู้ส่ง / Sender</div>
-                            <div>{sender.name || 'บริษัท...'}</div>
+                            <div className={`mb-1 ${envelopeSize === 'doc_a4_landscape' ? 'font-bold' : 'font-semibold'}`}>ผู้ส่ง / Sender</div>
+                            <div className={envelopeSize === 'doc_a4_landscape' ? 'font-semibold' : 'font-medium'}>{sender.name || 'บริษัท...'}</div>
                         </div>
                         <div className="whitespace-pre-wrap mt-1">
                             {sender.address || 'ที่อยู่บริษัท...'}
                         </div>
                         {sender.phone && (
-                            <div className="mt-1">
+                            <div className="mt-2">
                                 โทร: {sender.phone}
                             </div>
                         )}
                     </div>
 
                     {/* Bottom Area containing Receiver & Notes */}
-                    <div className="grid grid-cols-3 items-end w-full gap-4">
+                    <div className="flex justify-between items-end w-full gap-4">
                         
                         {/* Bottom Left: Notes Area */}
-                        <div className="col-span-2">
-                            <div className="w-[70mm] border-2 border-dashed border-gray-300 rounded-xl p-2">
-                                <div className="mb-1 font-semibold">หมายเหตุ:</div>
+                        <div>
+                            <div className={`${envelopeSize === 'doc_a4_landscape' ? 'w-[80mm] p-3' : 'w-[60mm] p-2'} rounded-xl`} style={{ border: envelopeSize === 'doc_a4_landscape' ? '2px dashed #9ca3af' : '1px dashed #9ca3af' }}>
+                                <div className={`mb-1 ${envelopeSize === 'doc_a4_landscape' ? 'font-semibold' : 'font-medium'}`}>หมายเหตุ:</div>
                                 
                                 {notes ? (
-                                    <div className="whitespace-pre-wrap leading-snug">
+                                    <div className="whitespace-pre-wrap leading-snug text-[10pt]">
                                         {notes}
                                     </div>
                                 ) : (
@@ -307,22 +326,22 @@ const EnvelopePrintToolPage = () => {
                         </div>
 
                         {/* Bottom Right: Receiver Info */}
-                        <div className="col-span-1 leading-snug text-left">
-                            <div className="mb-1 border-b border-black inline-block pb-1">ผู้รับ / Receiver</div>
+                        <div className={`${envelopeSize === 'doc_a4_landscape' ? 'w-[140mm] p-5' : 'w-[105mm] p-3'} leading-snug text-left rounded-2xl`} style={{ border: envelopeSize === 'doc_a4_landscape' ? '2px solid black' : '1px solid black' }}>
+                            <div className={`${envelopeSize === 'doc_a4_landscape' ? 'mb-3 text-lg font-bold' : 'mb-2 text-base font-semibold'}`}>กรุณาส่ง / To:</div>
                             
                             {receiver.attention && (
                                 <div className="mt-2">เรียน: {receiver.attention}</div>
                             )}
                             
-                            <div className={receiver.attention ? "mt-1" : "mt-2"}>บริษัท: {receiver.name}</div>
+                            <div className={`${receiver.attention ? "mt-1" : "mt-2"} ${envelopeSize === 'doc_a4_landscape' ? 'font-semibold' : 'font-medium'}`}>{receiver.name}</div>
                             
-                            <div className="whitespace-pre-wrap mt-1 leading-snug">
-                                ที่อยู่: {receiver.address || '-'}
+                            <div className="whitespace-pre-wrap mt-2 leading-snug">
+                                {receiver.address || 'ที่อยู่...'}
                             </div>
 
                             {receiver.phone && (
-                                <div className="mt-1">
-                                    เบอร์โทร: {receiver.phone}
+                                <div className="mt-2">
+                                    โทร: {receiver.phone}
                                 </div>
                             )}
                         </div>
@@ -333,7 +352,7 @@ const EnvelopePrintToolPage = () => {
             <style>{`
                 @media print {
                     @page {
-                        size: 235mm 108mm;
+                        size: ${selectedSize.width} ${selectedSize.height};
                         margin: 0;
                     }
                     body * {

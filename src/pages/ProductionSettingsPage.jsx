@@ -7,6 +7,7 @@ import { warehouseService } from '../services/warehouseService';
 import { useDialog } from '../contexts/DialogContext';
 import { usePermissions } from '../hooks/usePermissions';
 import LoadingSpinner from '../components/LoadingSpinner';
+import SearchableSelect from '../components/SearchableSelect';
 
 const ProductionSettingsPage = () => {
     const navigate = useNavigate();
@@ -588,16 +589,18 @@ const ProductionSettingsPage = () => {
                                                     {/* Item Header */}
                                                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-3 py-2.5 flex items-center gap-2 border-b border-slate-200">
                                                         <span className="w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center shrink-0">{gIdx + 1}</span>
-                                                        <select
-                                                            className="flex-1 text-sm font-semibold text-slate-700 bg-transparent border-none outline-none cursor-pointer min-w-0"
-                                                            value={group.inventory_item_id || ''}
-                                                            onChange={(e) => handleUpdateItemGroup(group.id, 'inventory_item_id', e.target.value)}
-                                                        >
-                                                            <option value="">-- เลือกสินค้า (P/No) --</option>
-                                                            {availableItems.map(item => (
-                                                                <option key={item.id} value={item.id}>{item.product_name}</option>
-                                                            ))}
-                                                        </select>
+                                                        <div className="flex-1 min-w-0">
+                                                            <SearchableSelect
+                                                                options={availableItems.map(item => ({
+                                                                    value: item.id,
+                                                                    label: item.product_name,
+                                                                    subLabel: item.sku || ''
+                                                                }))}
+                                                                value={group.inventory_item_id || ''}
+                                                                onChange={(val) => handleUpdateItemGroup(group.id, 'inventory_item_id', val || '')}
+                                                                placeholder="-- เลือกสินค้า (P/No) --"
+                                                            />
+                                                        </div>
                                                         <button
                                                             onClick={() => handleRemoveItemGroup(group.id)}
                                                             className="p-1 text-red-400 hover:text-red-600 shrink-0"

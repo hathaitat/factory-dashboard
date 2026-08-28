@@ -1,7 +1,8 @@
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Search, Package, Settings, Edit2, Trash2, Plus, MapPin, Phone, User, Save, X, Eye, AlertTriangle } from 'lucide-react';
+import { Building2, Search, Package, Settings, Edit2, Trash2, Plus, MapPin, Phone, User, Save, X, Eye, AlertTriangle, FileSpreadsheet } from 'lucide-react';
+import XLSX from 'xlsx-js-style';
 import { warehouseService } from '../services/warehouseService';
 import { supplierPoService } from '../services/supplierPoService';
 import { settingService } from '../services/settingService';
@@ -79,26 +80,24 @@ const WarehouseListPage = () => {
             }
 
             // Pre-fetch customer products for the map just in case we need it
-            if (defaultDistId) {
-                const { data: custProducts } = await supabase
-                    .from('customer_products')
-                    .select('sku, name, customer:customers(name)');
+            const { data: custProducts } = await supabase
+                .from('customer_products')
+                .select('sku, name, customer:customers(name)');
 
-                if (custProducts) {
-                    const cmap = {};
-                    custProducts.forEach(cp => {
-                        const key = cp.sku ? cp.sku : cp.name;
-                        if (!cmap[key]) cmap[key] = new Set();
-                        if (cp.customer && cp.customer.name) {
-                            cmap[key].add(cp.customer.name);
-                        }
-                    });
-                    const finalMap = {};
-                    Object.keys(cmap).forEach(k => {
-                        finalMap[k] = Array.from(cmap[k]);
-                    });
-                    setCustomerProductsMap(finalMap);
-                }
+            if (custProducts) {
+                const cmap = {};
+                custProducts.forEach(cp => {
+                    const key = cp.sku ? cp.sku : cp.name;
+                    if (!cmap[key]) cmap[key] = new Set();
+                    if (cp.customer && cp.customer.name) {
+                        cmap[key].add(cp.customer.name);
+                    }
+                });
+                const finalMap = {};
+                Object.keys(cmap).forEach(k => {
+                    finalMap[k] = Array.from(cmap[k]);
+                });
+                setCustomerProductsMap(finalMap);
             }
 
         } catch (error) {
@@ -165,7 +164,7 @@ const WarehouseListPage = () => {
             setShowModal(false);
         } catch (error) {
             console.error('Error saving item:', error);
-            showError('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+            showError(error?.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
         } finally {
             setIsSaving(false);
         }
@@ -199,6 +198,55 @@ const WarehouseListPage = () => {
             (i.sku && i.sku.toLowerCase().includes(searchTerm.toLowerCase()));
         return matchSearch;
     });
+
+    const exportToExcel = async () => {
+        try {
+            const dataToExport = filteredInventory.map(item => {
+                const coming = pendingItems
+                    .filter(p => p.description === item.product_name)
+                    .reduce((sum, p) => sum + (Number(p.quantity) - Number(p.received_quantity || 0)), 0);
+                
+                let customers = '-';
+                const key = item.sku ? item.sku : item.product_name;
+                const custArr = customerProductsMap[key];
+                if (custArr && custArr.length > 0) {
+                    customers = custArr.join(', ');
+                }
+
+                let status = 'ปกติ';
+                if (item.quantity < 0 || (item.min_stock > 0 && item.quantity <= item.min_stock)) {
+                    status = 'ของใกล้หมด';
+                }
+
+                let productType = item.product_type;
+                if (productType === 'material') productType = 'วัตถุดิบ';
+                if (productType === 'finished_good') productType = 'สินค้าสำเร็จรูป';
+
+                const row = {
+                    'ชื่อรายการ': item.product_name,
+                    'ประเภท': productType,
+                    'รหัสสินค้า': item.sku || '-',
+                    'จำนวนคงเหลือ': Number(item.quantity),
+                    'กำลังมาเพิ่ม': coming > 0 ? coming : 0,
+                    'หน่วย': item.unit || '-',
+                    'ลูกค้า': customers,
+                    'สถานะ': status
+                };
+                
+                return row;
+            });
+
+            const headers = ['ชื่อรายการ', 'ประเภท', 'รหัสสินค้า', 'จำนวนคงเหลือ', 'กำลังมาเพิ่ม', 'หน่วย', 'ลูกค้า', 'สถานะ'];
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(dataToExport, { header: headers });
+            XLSX.utils.book_append_sheet(wb, ws, 'Inventory');
+            XLSX.writeFile(wb, `Inventory_Export_${activeWarehouse?.name || 'Warehouse'}.xlsx`);
+        } catch (error) {
+            console.error('Error exporting data:', error);
+            showError('เกิดข้อผิดพลาดในการ Export ข้อมูล');
+        }
+    };
 
     if (isLoading && warehouses.length === 0) {
         return <div className="loading-spinner my-12 mx-auto"></div>;
@@ -355,14 +403,23 @@ const WarehouseListPage = () => {
                             <div className="text-primary font-semibold flex items-center gap-2">
                                 <Package size={20} /> รายการสินค้าในคลัง
                             </div>
-                            {hasPermission('warehouses', 'create') && (
+                            <div className="flex gap-2">
                                 <button
-                                    onClick={() => handleOpenModal()}
-                                    className="btn-primary px-4 py-2.5 flex items-center gap-2"
+                                    onClick={exportToExcel}
+                                    className="glass-panel px-4 py-2.5 flex items-center gap-2 bg-success/5 border border-success/10 text-success cursor-pointer rounded-lg font-medium text-sm"
+                                    title="Export to Excel"
                                 >
-                                    <Plus size={16} /> เพิ่มรายการใหม่
+                                    <FileSpreadsheet size={16} /> Export Excel
                                 </button>
-                            )}
+                                {hasPermission('warehouses', 'create') && (
+                                    <button
+                                        onClick={() => handleOpenModal()}
+                                        className="btn-primary px-4 py-2.5 flex items-center gap-2 text-sm"
+                                    >
+                                        <Plus size={16} /> เพิ่มรายการใหม่
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         <div className="table-responsive-wrapper overflow-x-auto">
@@ -376,9 +433,7 @@ const WarehouseListPage = () => {
                                         <th className="px-6 py-4 text-textMuted font-medium text-right">จำนวนคงเหลือ</th>
                                         <th className="px-6 py-4 text-violet-500 font-semibold text-right">กำลังมาเพิ่ม</th>
                                         <th className="px-6 py-4 text-textMuted font-medium">หน่วย</th>
-                                        {isDefaultDistribution && (
-                                            <th className="px-6 py-4 font-semibold text-textMuted">ลูกค้า</th>
-                                        )}
+                                        <th className="px-6 py-4 font-semibold text-textMuted text-center">ลูกค้า</th>
                                         <th className="px-6 py-4 text-textMuted font-medium text-center">สถานะ</th>
                                     </tr>
                                 </thead>
@@ -438,24 +493,22 @@ const WarehouseListPage = () => {
                                                     })()}
                                                 </td>
                                                 <td className="px-6 py-4 text-textMuted">{item.unit}</td>
-                                                {isDefaultDistribution && (
-                                                    <td className="text-center px-6 py-4">
-                                                        {(() => {
-                                                            const key = item.sku ? item.sku : item.product_name;
-                                                            const customers = customerProductsMap[key];
-                                                            if (!customers || customers.length === 0) return <span className="text-textMuted">-</span>;
-                                                            return (
-                                                                <div className="flex flex-wrap gap-1">
-                                                                    {customers.map((c, i) => (
-                                                                        <span key={i} className="text-xs bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded">
-                                                                            {c}
-                                                                        </span>
-                                                                    ))}
-                                                                </div>
-                                                            );
-                                                        })()}
-                                                    </td>
-                                                )}
+                                                <td className="text-center px-6 py-4">
+                                                    {(() => {
+                                                        const key = item.sku ? item.sku : item.product_name;
+                                                        const customers = customerProductsMap[key];
+                                                        if (!customers || customers.length === 0) return <span className="text-textMuted">-</span>;
+                                                        return (
+                                                            <div className="flex flex-wrap gap-1 justify-center">
+                                                                {customers.map((c, i) => (
+                                                                    <span key={i} className="text-xs bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded">
+                                                                        {c}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </td>
                                                 <td className="px-6 py-4 text-center">
                                                     {(item.quantity < 0 || (item.min_stock > 0 && item.quantity <= item.min_stock)) ? (
                                                         <span className="text-red-500 rounded-xl inline-block whitespace-nowrap" style={{ fontSize: '0.75rem', background: '#fee2e2', padding: '0.2rem 0.6rem' }}>ของใกล้หมด</span>
@@ -467,7 +520,7 @@ const WarehouseListPage = () => {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={isDefaultDistribution ? "9" : "8"} className="p-12 text-center text-textMuted">
+                                            <td colSpan="9" className="p-12 text-center text-textMuted">
                                                 ไม่มีรายการในหมวดหมู่นี้
                                             </td>
                                         </tr>

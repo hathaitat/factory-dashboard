@@ -1,7 +1,7 @@
 import React from 'react';
 import { Filter, X, ChevronDown } from 'lucide-react';
 import DatePickerCalendar from './DatePickerCalendar';
-
+import SearchableSelect from './SearchableSelect';
 /**
  * Reusable filter bar for list pages — polished design with calendar picker
  */
@@ -67,17 +67,14 @@ const ListFilter = ({ filters = [], onClear, hasActiveFilters }) => {
                         <div key={idx} className="flex flex-col gap-[2px]">
                             <span className="text-[0.7rem] font-semibold text-textMuted uppercase tracking-[0.5px]">{filter.label}</span>
                             <div className="relative">
-                                <select
+                                <SearchableSelect
+                                    options={filter.options}
                                     value={filter.value}
-                                    onChange={(e) => filter.onChange(e.target.value)}
+                                    onChange={(val) => filter.onChange(val || '')}
                                     disabled={filter.disabled}
-                                    className={`appearance-none py-[0.4rem] pr-8 pl-[0.7rem] rounded-lg text-[0.85rem] outline-none min-w-[120px] cursor-pointer transition-all duration-200 ${isActive ? 'bg-blue-500/10 border border-blue-500/30 text-blue-500 font-medium' : 'bg-card border border-border text-textMain font-normal'} ${filter.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                >
-                                    {filter.options.map(opt => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown size={14} className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${isActive ? 'text-blue-500' : 'text-textMuted'} ${filter.disabled ? 'opacity-50' : ''}`} />
+                                    placeholder={filter.placeholder || '-- เลือก --'}
+                                    className={`min-w-[150px] ${isActive ? 'bg-blue-500/10' : ''}`}
+                                />
                             </div>
                         </div>
                     );

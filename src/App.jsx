@@ -41,6 +41,7 @@ const EmployeeDashboardPage = React.lazy(() => import('./pages/EmployeeDashboard
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const PurchaseOrderListPage = React.lazy(() => import('./pages/PurchaseOrderListPage'));
 const PurchaseOrderFormPage = React.lazy(() => import('./pages/PurchaseOrderFormPage'));
+const DeliverySchedulePage = React.lazy(() => import('./pages/DeliverySchedulePage'));
 const QuotationListPage = React.lazy(() => import('./pages/QuotationListPage'));
 const QuotationFormPage = React.lazy(() => import('./pages/QuotationFormPage'));
 const QuotationPrintTemplate = React.lazy(() => import('./components/QuotationPrintTemplate'));
@@ -188,6 +189,7 @@ function App() {
                       <Route path="purchase-orders" element={<PurchaseOrderListPage />} />
                       <Route path="purchase-orders/new" element={<PurchaseOrderFormPage />} />
                       <Route path="purchase-orders/:id/edit" element={<PurchaseOrderFormPage />} />
+                      <Route path="delivery-schedule" element={<DeliverySchedulePage />} />
                     </Route>
 
                     {/* Quotations Module */}

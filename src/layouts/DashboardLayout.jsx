@@ -27,6 +27,7 @@ const DashboardLayout = () => {
 
     // State for collapsible menus
     const [openGroups, setOpenGroups] = useState({
+        pos: false,
         ops: false,
         internal: false,
         partners: false,
@@ -150,10 +151,27 @@ const DashboardLayout = () => {
                     )}
 
                     {hasPermission('purchase_orders', 'view') && (
-                        <NavLink to="/dashboard/purchase-orders" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                            <ShoppingCart size={20} className="text-[#10b981]" />
-                            <span>ใบสั่งซื้อของลูกค้า</span>
-                        </NavLink>
+                        <div className={`nav-group ${openGroups.pos ? 'open' : ''}`}>
+                            <button className="nav-item group-header" onClick={() => toggleGroup('pos')}>
+                                <ShoppingCart size={20} className="text-[#10b981]" />
+                                <span>ใบสั่งซื้อของลูกค้า</span>
+                                <div className="group-chevron">
+                                    {openGroups.pos ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                </div>
+                            </button>
+                            {openGroups.pos && (
+                                <div className="group-content">
+                                    <NavLink to="/dashboard/purchase-orders" end onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                        <ShoppingCart size={18} className="opacity-70" />
+                                        <span>รายการใบสั่งซื้อ (PO)</span>
+                                    </NavLink>
+                                    <NavLink to="/dashboard/delivery-schedule" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                        <Truck size={18} className="opacity-70" />
+                                        <span>แผนการจัดส่งสินค้า</span>
+                                    </NavLink>
+                                </div>
+                            )}
+                        </div>
                     )}
 
                     {hasPermission('quotations', 'view') && (

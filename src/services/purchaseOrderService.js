@@ -419,6 +419,20 @@ export const purchaseOrderService = {
             }
         }
 
+        // Auto-recalculate status if the PO is not cancelled and has active invoices
+        if (cleanPoData.status !== 'Cancelled') {
+            const { data: invoices } = await supabase
+                .from('invoices')
+                .select('id')
+                .eq('purchase_order_id', id)
+                .neq('status', 'Cancelled')
+                .limit(1);
+
+            if (invoices && invoices.length > 0) {
+                await this.updatePurchaseOrderStatus(id);
+            }
+        }
+
         return po;
     },
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Search, Edit, Trash2, FileSpreadsheet, Eye, Link as LinkIcon, Clock, CheckCircle, Package, AlertTriangle, Calendar } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, FileSpreadsheet, Eye, Link as LinkIcon, Clock, CheckCircle, Package, AlertTriangle, Calendar, Truck } from 'lucide-react';
 import { purchaseOrderService } from '../services/purchaseOrderService';
 import { usePermissions } from '../hooks/usePermissions';
 import XLSX from 'xlsx-js-style';
@@ -119,6 +119,12 @@ const PurchaseOrderListPage = () => {
                 helpContent={HELP_CONTENT.purchaseOrders}
             >
                 <div className="flex gap-3">
+                    <button
+                        onClick={() => navigate('/dashboard/delivery-schedule')}
+                        className="glass-panel px-4 py-2.5 text-blue-500 cursor-pointer rounded-lg font-medium text-sm flex items-center gap-2 bg-white border border-slate-200"
+                    >
+                        <Truck size={18} /> แผนจัดส่ง
+                    </button>
                     <button
                         onClick={exportToExcel}
                         className="glass-panel px-4 py-2.5 text-emerald-500 cursor-pointer rounded-lg font-medium text-sm flex items-center gap-2 bg-white border border-slate-200"

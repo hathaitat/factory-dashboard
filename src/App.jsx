@@ -37,7 +37,10 @@ const ReceiptPrintTemplate = React.lazy(() => import('./components/ReceiptPrintT
 const CertificateReceiptPage = React.lazy(() => import('./pages/CertificateReceiptPage'));
 const EmployeeListPage = React.lazy(() => import('./pages/EmployeeListPage'));
 const EmployeeFormPage = React.lazy(() => import('./pages/EmployeeFormPage'));
-const EmployeeDashboardPage = React.lazy(() => import('./pages/EmployeeDashboardPage'));
+const PayrollPeriodListPage = React.lazy(() => import('./pages/PayrollPeriodListPage'));
+const PayrollPeriodDetailPage = React.lazy(() => import('./pages/PayrollPeriodDetailPage'));
+const PayrollSummaryReportPage = React.lazy(() => import('./pages/PayrollSummaryReportPage'));
+const PayrollSlipPage = React.lazy(() => import('./pages/PayrollSlipPage'));
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const PurchaseOrderListPage = React.lazy(() => import('./pages/PurchaseOrderListPage'));
 const PurchaseOrderFormPage = React.lazy(() => import('./pages/PurchaseOrderFormPage'));
@@ -269,7 +272,10 @@ function App() {
                     {/* Employee Management Module */}
                     <Route element={<PermissionRoute module="employees" action="view" />}>
                       <Route path="employees" element={<EmployeeListPage />} />
-                      <Route path="employees/dashboard" element={<EmployeeDashboardPage />} />
+                      <Route path="payroll" element={<PayrollPeriodListPage />} />
+                      <Route path="payroll/:id" element={<PayrollPeriodDetailPage />} />
+                      <Route path="payroll/:id/report" element={<PayrollSummaryReportPage />} />
+                      <Route path="payroll/:id/slips" element={<PayrollSlipPage />} />
                     </Route>
                     <Route element={<PermissionRoute module="employees" action="create" />}>
                       <Route path="employees/new" element={<EmployeeFormPage />} />

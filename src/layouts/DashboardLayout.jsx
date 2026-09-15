@@ -31,6 +31,7 @@ const DashboardLayout = () => {
         ops: false,
         internal: false,
         partners: false,
+        employees: false,
         system: false,
         forms: false
     });
@@ -332,12 +333,12 @@ const DashboardLayout = () => {
                         </div>
                     )}
 
-                    {/* 2. Partners & Personnel */}
-                    {(hasPermission('customers', 'view') || hasPermission('suppliers', 'view') || hasPermission('employees', 'view') || hasPermission('certificates', 'view')) && (
+                    {/* 2. Partners */}
+                    {(hasPermission('customers', 'view') || hasPermission('suppliers', 'view') || hasPermission('certificates', 'view')) && (
                         <div className={`nav-group ${openGroups.partners ? 'open' : ''}`}>
                             <button className="nav-item group-header" onClick={() => toggleGroup('partners')}>
                                 <Users size={20} className="text-[#3b82f6]" />
-                                <span>คู่ค้าและพนักงาน</span>
+                                <span>รายชื่อคู่ค้า</span>
                                 <div className="group-chevron">
                                     {openGroups.partners ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                 </div>
@@ -362,12 +363,31 @@ const DashboardLayout = () => {
                                             <span>ผู้ขาย</span>
                                         </NavLink>
                                     )}
-                                    {hasPermission('employees', 'view') && (
-                                        <NavLink to="/dashboard/employees" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
-                                            <Users size={18} className="opacity-70" />
-                                            <span>รายชื่อพนักงาน</span>
-                                        </NavLink>
-                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* 2.5 Employees */}
+                    {hasPermission('employees', 'view') && (
+                        <div className={`nav-group ${openGroups.employees ? 'open' : ''}`}>
+                            <button className="nav-item group-header" onClick={() => toggleGroup('employees')}>
+                                <Users size={20} className="text-[#8b5cf6]" />
+                                <span>พนักงานและเงินเดือน</span>
+                                <div className="group-chevron">
+                                    {openGroups.employees ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                </div>
+                            </button>
+                            {openGroups.employees && (
+                                <div className="group-content">
+                                    <NavLink to="/dashboard/employees" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                        <Users size={18} className="opacity-70" />
+                                        <span>รายชื่อพนักงาน</span>
+                                    </NavLink>
+                                    <NavLink to="/dashboard/payroll" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                        <DollarSign size={18} className="opacity-70" />
+                                        <span>เงินเดือน</span>
+                                    </NavLink>
                                 </div>
                             )}
                         </div>

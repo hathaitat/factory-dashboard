@@ -257,9 +257,9 @@ a {
 
 /* Table action columns - fixed width and centering */
 .actions-column {
-  width: 133px;
-  min-width: 133px;
-  max-width: 133px;
+  width: 150px;
+  min-width: 150px;
+  max-width: 150px;
   padding: 0.5rem 0.4rem !important;
   text-align: center !important;
   vertical-align: middle;
@@ -271,7 +271,7 @@ a {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  max-width: 120px;
+  max-width: 150px;
   margin: 0 auto;
 }
 
@@ -458,4 +458,42 @@ a {
 .input-sm {
   padding: 0.35rem 0.5rem;
   font-size: 0.875rem;
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+  
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background-color: white !important;
+  }
+  
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+  
+  .print\:overflow-visible {
+    overflow: visible !important;
+  }
+  
+  .report-table {
+    font-size: 13px !important;
+  }
+}
+
+.report-table, .report-table th, .report-table td {
+  border: 1px solid #475569 !important;
+  padding: 0.35rem 0.5rem !important;
+}
+
+.report-table th {
+  background-color: #f1f5f9 !important;
 }

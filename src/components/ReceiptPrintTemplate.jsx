@@ -297,6 +297,7 @@ const ReceiptPrintTemplate = () => {
 
                 <style>{`
                     @media print {
+                        @page { size: A4 portrait; margin: 0; }
                         .no-print { display: none !important; }
                         body { background: white; -webkit-print-color-adjust: exact; }
                         .print-container { padding: 0; }

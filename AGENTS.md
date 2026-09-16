@@ -16,6 +16,15 @@
 - **services/**: ใช้สำหรับติดต่อกับ API หรือ Database (เช่น Supabase)
 - **hooks/**: ใช้สำหรับ Custom Hooks
 
+## 🗄 Database Migration (บทเรียนจริง - ห้ามพลาดซ้ำ)
+- **ห้ามใช้ `CREATE TABLE IF NOT EXISTS` เป็นวิธีเพิ่มคอลัมน์**: ถ้าตารางมีอยู่แล้ว Postgres จะข้ามทั้งคำสั่งแบบเงียบๆ คอลัมน์ใหม่ในนั้นจะ**ไม่ถูกสร้าง** และไม่มี error แจ้งเลย
+    - เคสจริง: `payroll_entries` ถูกสร้างโดย migration ตัวก่อนหน้า พอ `20260914000005` ใช้ `CREATE TABLE IF NOT EXISTS` คอลัมน์ `back_pay`, `company_loan`, `social_security`, `diligence_allowance` จึงหายไปทั้งหมด หน้าเว็บขึ้น HTTP 400 ทุกครั้งที่กดบันทึก และไม่มีใครรู้จนผู้ใช้มาเจอเอง
+    - **ทุกครั้งที่เพิ่มคอลัมน์ ต้องเขียน `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` แยกออกมาเสมอ** ต่อให้ในไฟล์เดียวกันจะมี CREATE TABLE อยู่แล้วก็ตาม
+- **เพิ่มคอลัมน์ใน service = ต้องเพิ่มใน `scripts/check-schema.mjs` ด้วย**: ไฟล์นี้คือรายการคอลัมน์ที่โค้ดใช้จริง ใช้เทียบกับฐานข้อมูล
+- **หลังรัน migration ต้องตรวจเสมอ**: `npm run migrate` จะเรียก `npm run check:schema` ให้อัตโนมัติ ถ้าขึ้น ❌ แปลว่าฐานข้อมูลไม่ตรงกับโค้ด ห้ามปล่อยผ่าน
+    - ตรวจ production ด้วย `npm run check:schema:prod` ก่อน deploy ทุกครั้ง
+- **ห้ามกลบข้อความ error จากฐานข้อมูล**: `showError()` ต้องแนบ `error.message` ที่ Supabase ส่งมาด้วยเสมอ ข้อความรวมๆ อย่าง "เกิดข้อผิดพลาดในการบันทึก" ทำให้หาสาเหตุไม่เจอ
+
 ## ⛔ Boundaries & Safety
 - **Database Schema**: ห้ามแก้ไขโครงสร้าง Database (Table, Column) โดยไม่อธิบายเหตุผลและความจำเป็นอย่างละเอียด
 - **File Management**: ห้ามลบไฟล์สำคัญโดยไม่แจ้งและขออนุญาตก่อน

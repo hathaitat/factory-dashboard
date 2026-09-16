@@ -4,17 +4,19 @@ import { useDialog } from '../contexts/DialogContext';
 import { payrollService } from '../services/payrollService';
 import {
     calculatePayroll,
-    calculateSocialSecurity,
     getBirthdayInPeriod,
     isMonthlyEmployee,
     isDeductionItem,
     parseNum,
-    BIRTHDAY_ALLOWANCE_DEFAULT
+    BIRTHDAY_ALLOWANCE_DEFAULT,
+    DAYS_PER_MONTH,
+    PAY_PERIODS_PER_MONTH
 } from '../utils/payrollCalc';
 
 const EMPTY_FORM = {
     actual_working_days: 0,
     daily_wage: 0,
+    monthly_salary: 0,
     position_allowance: 0,
     skill_allowance: 0,
     ot_1_5_hours: 0,
@@ -45,7 +47,7 @@ const PayrollEntryModal = ({ isOpen, onClose, onSuccess, employee, period, exist
     const { showError } = useDialog();
     const [isSaving, setIsSaving] = useState(false);
     const [formData, setFormData] = useState(EMPTY_FORM);
-    // true = ให้ระบบคำนวณประกันสังคม 5% (เพดาน 750) ให้อัตโนมัติ
+    // true = ให้ระบบคำนวณประกันสังคม 5% ของรายรับรวมให้อัตโนมัติ
     const [ssoAuto, setSsoAuto] = useState(true);
 
     const isMonthly = isMonthlyEmployee(employee);
@@ -66,6 +68,7 @@ const PayrollEntryModal = ({ isOpen, onClose, onSuccess, employee, period, exist
             setFormData({
                 actual_working_days: existingEntry.actual_working_days ?? 0,
                 daily_wage: existingEntry.daily_wage ?? 0,
+                monthly_salary: existingEntry.monthly_salary ?? 0,
                 position_allowance: existingEntry.position_allowance ?? 0,
                 skill_allowance: existingEntry.skill_allowance ?? 0,
                 ot_1_5_hours: existingEntry.ot_1_5_hours ?? 0,
@@ -81,13 +84,19 @@ const PayrollEntryModal = ({ isOpen, onClose, onSuccess, employee, period, exist
                 birthday_allowance: existingEntry.birthday_allowance ?? 0,
                 custom_allowances: normalizeCustomAllowances(existingEntry.custom_allowances)
             });
-            // แถวเก่าที่ยังไม่เคยระบุประกันสังคม ให้กลับไปใช้สูตรอัตโนมัติ
-            setSsoAuto(existingEntry.social_security === null || existingEntry.social_security === undefined);
+            // เปิดโหมดอัตโนมัติไว้ ถ้ายอดที่บันทึกไว้ยังเท่ากับ 5% ของรายรับรวมพอดี
+            // ไม่งั้นพอมาแก้เบี้ยเลี้ยงทีหลัง ยอดประกันสังคมจะค้างอยู่ที่ของเดิม
+            const autoSso = calculatePayroll({ ...existingEntry, social_security: null }, employee).socialSecurity;
+            const savedSso = existingEntry.social_security;
+            setSsoAuto(
+                savedSso === null || savedSso === undefined || Math.abs(parseNum(savedSso) - autoSso) < 0.01
+            );
         } else {
             setFormData({
                 ...EMPTY_FORM,
                 actual_working_days: period.working_days ?? 0,
                 daily_wage: employee.daily_wage ?? 0,
+                monthly_salary: employee.monthly_salary ?? 0,
                 position_allowance: employee.position_allowance ?? 0,
                 skill_allowance: employee.skill_allowance ?? 0,
                 // เติมค่าวันเกิดให้อัตโนมัติเฉพาะตอนสร้างรายการใหม่
@@ -97,14 +106,12 @@ const PayrollEntryModal = ({ isOpen, onClose, onSuccess, employee, period, exist
         }
     }, [isOpen, employee, period, existingEntry]);
 
-    // ค่าที่ใช้คำนวณ: ถ้าเปิดโหมดอัตโนมัติให้คิดประกันสังคมจากค่าแรงล่าสุดเสมอ
-    const entryForCalc = useMemo(() => {
-        const base = parseNum(formData.daily_wage) * parseNum(formData.actual_working_days);
-        return {
-            ...formData,
-            social_security: ssoAuto ? calculateSocialSecurity(base) : parseNum(formData.social_security)
-        };
-    }, [formData, ssoAuto]);
+    // ค่าที่ใช้คำนวณ: โหมดอัตโนมัติส่ง null ให้สูตรกลางคิด 5% จากรายรับรวมเอง
+    // (คิดเองที่นี่ไม่ได้ เพราะต้องรู้รายรับรวมก่อน ซึ่งเป็นผลลัพธ์ของสูตรกลาง)
+    const entryForCalc = useMemo(() => ({
+        ...formData,
+        social_security: ssoAuto ? null : parseNum(formData.social_security)
+    }), [formData, ssoAuto]);
 
     const totals = useMemo(
         () => calculatePayroll(entryForCalc, employee),
@@ -152,6 +159,9 @@ const PayrollEntryModal = ({ isOpen, onClose, onSuccess, employee, period, exist
             await payrollService.upsertPayrollEntry({
                 ...formData,
                 // ช่อง OT ที่ไม่ได้แสดงตามประเภทพนักงาน ต้องไม่ถูกบันทึกค้างไว้เป็นเงินผี
+                // ช่องค่าจ้างของอีกประเภทต้องไม่ถูกบันทึกค้าง ไม่งั้นสลิป/รายงานจะเดาประเภทผิด
+                daily_wage: isMonthly ? 0 : formData.daily_wage,
+                monthly_salary: isMonthly ? formData.monthly_salary : 0,
                 ot_1_5_hours: isMonthly ? 0 : formData.ot_1_5_hours,
                 ot_1_6_hours: isMonthly ? formData.ot_1_6_hours : 0,
                 social_security: totals.socialSecurity,
@@ -169,7 +179,9 @@ const PayrollEntryModal = ({ isOpen, onClose, onSuccess, employee, period, exist
             onClose();
         } catch (error) {
             console.error('Error saving payroll entry:', error);
-            showError('เกิดข้อผิดพลาดในการบันทึกข้อมูลเงินเดือน');
+            // ต้องโชว์ข้อความจริงจากฐานข้อมูล ไม่งั้นปัญหาอย่าง "ไม่มีคอลัมน์นี้"
+            // จะถูกกลบจนหาสาเหตุไม่เจอ
+            showError(`เกิดข้อผิดพลาดในการบันทึกข้อมูลเงินเดือน: ${error.message || error.code || 'ไม่ทราบสาเหตุ'}`);
         } finally {
             setIsSaving(false);
         }
@@ -235,19 +247,39 @@ const PayrollEntryModal = ({ isOpen, onClose, onSuccess, employee, period, exist
                                 ข้อมูลหลัก
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="form-group">
-                                    <label className={labelClass}>ค่าแรงรายวัน (บาท)</label>
-                                    <input type="number" name="daily_wage" value={formData.daily_wage} onChange={handleChange} min="0" step="0.01" className={inputClass} required />
-                                </div>
+                                {isMonthly ? (
+                                    <div className="form-group">
+                                        <label className={labelClass}>เงินเดือน (บาท/เดือน)</label>
+                                        <input type="number" name="monthly_salary" value={formData.monthly_salary} onChange={handleChange} min="0" step="0.01" className={inputClass} required />
+                                        <p className="m-0 mt-1 text-xs text-textMuted">
+                                            อัตราต่อวัน ฿{money(totals.dailyRate)} (เงินเดือน ÷ {DAYS_PER_MONTH}) ใช้คิด OT
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="form-group">
+                                        <label className={labelClass}>ค่าแรงรายวัน (บาท)</label>
+                                        <input type="number" name="daily_wage" value={formData.daily_wage} onChange={handleChange} min="0" step="0.01" className={inputClass} required />
+                                    </div>
+                                )}
                                 <div className="form-group">
                                     <label className={labelClass}>วันทำงานจริง (วัน)</label>
                                     <input type="number" name="actual_working_days" value={formData.actual_working_days} onChange={handleChange} min="0" step="0.5" className={inputClass} required />
+                                    {isMonthly && (
+                                        <p className="m-0 mt-1 text-xs text-textMuted">
+                                            บันทึกไว้เป็นข้อมูลเท่านั้น ไม่มีผลต่อยอดเงิน
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="form-group">
-                                    <label className={labelClass}>ค่าแรงรวม</label>
+                                    <label className={labelClass}>{isMonthly ? 'เงินเดือนงวดนี้' : 'ค่าแรงรวม'}</label>
                                     <div className="p-2 rounded-lg bg-black/5 border border-border font-semibold">
                                         ฿{money(totals.basePay)}
                                     </div>
+                                    <p className="m-0 mt-1 text-xs text-textMuted">
+                                        {isMonthly
+                                            ? `เงินเดือน ÷ ${PAY_PERIODS_PER_MONTH} (จ่ายเต็มครึ่งเดือน)`
+                                            : 'ค่าแรงรายวัน × วันทำงานจริง'}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -394,10 +426,6 @@ const PayrollEntryModal = ({ isOpen, onClose, onSuccess, employee, period, exist
                                 </h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="form-group">
-                                        <label className={labelClass}>เงินกู้ยืมบริษัท</label>
-                                        <input type="number" name="company_loan" value={formData.company_loan} onChange={handleChange} step="0.01" className={inputClass} />
-                                    </div>
-                                    <div className="form-group">
                                         <label className={labelClass}>ประกันสังคม</label>
                                         <input
                                             type="number"
@@ -414,8 +442,18 @@ const PayrollEntryModal = ({ isOpen, onClose, onSuccess, employee, period, exist
                                                 onChange={(e) => setSsoAuto(e.target.checked)}
                                                 className="cursor-pointer"
                                             />
-                                            คำนวณอัตโนมัติ 5% (สูงสุด 750)
+                                            คำนวณอัตโนมัติ 5% ของรายรับรวม
                                         </label>
+                                        {ssoAuto && (
+                                            <p className="m-0 mt-1 text-xs text-textMuted">
+                                                5% ของรายรับรวม ฿{money(totals.totalIncome)}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="form-group">
+                                        <label className={labelClass}>เงินกู้ยืมบริษัท</label>
+                                        <input type="number" name="company_loan" value={formData.company_loan} onChange={handleChange} step="0.01" className={inputClass} />
+                                        <p className="m-0 mt-1 text-xs text-textMuted">หักหลังประกันสังคม</p>
                                     </div>
                                 </div>
                                 {totals.customDeductionTotal > 0 && (

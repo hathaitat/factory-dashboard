@@ -99,6 +99,7 @@ export const payrollService = {
         // และต้องสร้างที่เดียวเท่านั้น ไม่งั้น insert กับ update จะหลุดไม่ตรงกัน
         const payload = {
             daily_wage: num(entryData.daily_wage),
+            monthly_salary: num(entryData.monthly_salary),
             position_allowance: num(entryData.position_allowance),
             skill_allowance: num(entryData.skill_allowance),
             actual_working_days: num(entryData.actual_working_days),

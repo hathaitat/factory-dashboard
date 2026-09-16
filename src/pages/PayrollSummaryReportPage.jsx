@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Printer, ArrowLeft } from 'lucide-react';
 import { payrollService } from '../services/payrollService';
@@ -11,10 +11,47 @@ const PayrollSummaryReportPage = () => {
     const [period, setPeriod] = useState(null);
     const [entries, setEntries] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const printRef = useRef(null);
+    const [printZoom, setPrintZoom] = useState(1);
 
     useEffect(() => {
         loadData();
     }, [id]);
+
+    // Scale the report so the full table width lands inside one landscape page.
+    // The table is measured with the compact print metrics applied, so the number
+    // below matches exactly what the printer lays out.
+    const fitForPrint = useCallback(() => {
+        const el = printRef.current;
+        if (!el) return 1;
+        const content = el.querySelector('.print-content');
+        if (!content) return 1;
+
+        el.classList.add('print-metrics');
+        const contentWidth = Math.max(content.scrollWidth, Math.ceil(content.getBoundingClientRect().width));
+        el.classList.remove('print-metrics');
+
+        // A4 landscape is 297mm; the @page margin can end up 5mm or 10mm per side
+        // depending on which stylesheet wins, so budget for the narrower case
+        // (297 - 20 = 277mm = ~1047px at 96dpi) and keep a little slack.
+        const PRINTABLE_WIDTH = 1000;
+        if (!contentWidth) return 1;
+        // grow up to 1.4x when the table is narrow, so short reports stay readable
+        const zoom = Math.max(0.2, Math.min(1.4, PRINTABLE_WIDTH / contentWidth));
+        setPrintZoom(Number(zoom.toFixed(4)));
+        return zoom;
+    }, []);
+
+    // Measure once the table is on screen, so the zoom is ready before any print
+    useLayoutEffect(() => {
+        if (!isLoading && entries.length > 0) fitForPrint();
+    }, [isLoading, entries, fitForPrint]);
+
+    // Covers Ctrl/Cmd+P and the browser's own print entry points too
+    useEffect(() => {
+        window.addEventListener('beforeprint', fitForPrint);
+        return () => window.removeEventListener('beforeprint', fitForPrint);
+    }, [fitForPrint]);
 
     const loadData = async () => {
         setIsLoading(true);
@@ -53,7 +90,9 @@ const PayrollSummaryReportPage = () => {
     };
 
     const handlePrint = () => {
-        window.print();
+        fitForPrint();
+        // let React commit the new zoom before the print dialog snapshots the page
+        requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
     };
 
     const calculateRow = (item) => {
@@ -66,7 +105,7 @@ const PayrollSummaryReportPage = () => {
 
         return {
             // ฐานค่าจ้างสำหรับแสดงในคอลัมน์รายเดือน / รายวัน
-            salary1Month: isMonthly ? calc.dailyWage * 30 : 0,
+            salary1Month: isMonthly ? calc.monthlySalary : 0,
             salaryDaily: isMonthly ? 0 : calc.dailyWage,
             workingDays: calc.actualWorkingDays,
             amountBase: calc.basePay,
@@ -95,8 +134,9 @@ const PayrollSummaryReportPage = () => {
             otherDeductions: calc.otherDeductions,
             totalDeductions: calc.totalDeductions,
             netTotal: calc.netPay,
+            // ยอดครึ่งเดือนของพนักงานรายเดือน (พนักงานรายวันคิดตามวันทำงาน จึงไม่มียอดนี้)
+            halfMonth: isMonthly ? calc.basePay : 0,
             // คอลัมน์ตามแบบฟอร์มบริษัทที่ยังไม่มีช่องกรอกข้อมูลในระบบ
-            halfMonth: 0,
             contactWork: 0,
             workingDate: calc.actualWorkingDays,
             fridayDays: 0,
@@ -132,7 +172,96 @@ const PayrollSummaryReportPage = () => {
     }, {});
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-white print-root">
+            <style>
+                {`
+                    /* Compact metrics used when printing. The same block is applied
+                       for a moment while measuring (.print-metrics) so the measured
+                       width equals the printed width.
+                       The .print-wrapper prefix is needed to beat the global
+                       .report-table rules in index.css, which are !important. */
+                    .print-wrapper.print-metrics .report-table,
+                    .print-wrapper.print-metrics .report-table th,
+                    .print-wrapper.print-metrics .report-table td {
+                        font-size: 12px !important;
+                        padding: 1px 3px !important;
+                        line-height: 1.2 !important;
+                        white-space: nowrap !important;
+                        min-width: 0 !important;
+                    }
+
+                    @media print {
+                        @page { size: A4 landscape; margin: 5mm; }
+                        /* the page root is min-h-screen (100vh) on screen; on paper that
+                           would reserve a whole viewport of height for nothing */
+                        .print-root { min-height: 0 !important; }
+                        html, body {
+                            width: auto !important;
+                            height: auto !important;
+                            background: #fff;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        /* zoom (not transform) so the page height shrinks with the
+                           content and the report stays on a single page */
+                        .print-wrapper {
+                            zoom: var(--print-zoom, 1);
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            overflow: visible !important;
+                            /* Fill exactly one page so the notes can sit at its bottom.
+                               Lengths inside a zoomed element are in unzoomed units, so the
+                               page height has to be divided by the zoom factor. min-height
+                               (not height) lets a long staff list still flow onto page 2. */
+                            box-sizing: border-box;
+                            min-height: calc(190mm / var(--print-zoom, 1));
+                            display: flex;
+                            flex-direction: column;
+                        }
+                        /* Nothing may be wider than the page: the zoom above does the
+                           real fitting, and these caps make any leftover overflow wrap
+                           instead of being cut off at the paper edge. */
+                        .print-scroll {
+                            overflow: visible !important;
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            flex: 1 1 auto;
+                            display: flex;
+                            flex-direction: column;
+                            min-height: 0;
+                        }
+                        .print-content {
+                            width: 100% !important;
+                            min-width: 0 !important;
+                            max-width: 100% !important;
+                            flex: 1 1 auto;
+                            display: flex;
+                            flex-direction: column;
+                            min-height: 0;
+                        }
+                        /* 98%, not 100%: sub-pixel rounding across 35 columns used to
+                           push the last cell past the paper edge and cut its last digit */
+                        .print-wrapper .report-table {
+                            width: 98% !important;
+                            max-width: 98% !important;
+                            table-layout: auto !important;
+                        }
+                        .print-wrapper .report-table th,
+                        .print-wrapper .report-table td {
+                            font-size: 12px !important;
+                            padding: 1px 3px !important;
+                            line-height: 1.2 !important;
+                            min-width: 0 !important;
+                            white-space: normal !important;
+                            /* 'anywhere' (unlike break-word) also shrinks the table's
+                               intrinsic width, so numbers can never push past the page */
+                            overflow-wrap: anywhere !important;
+                        }
+                        .notes-section { margin-top: auto !important; max-width: 100% !important; }
+                        .report-table, .notes-section { break-inside: avoid; page-break-inside: avoid; }
+                    }
+                `}
+            </style>
             {/* Action Bar (Hidden in Print) */}
             <div className="print:hidden p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center sticky top-0 z-10">
                 <button 
@@ -152,21 +281,22 @@ const PayrollSummaryReportPage = () => {
             </div>
 
             {/* Print Area */}
-            <div className="p-4 sm:p-8 overflow-x-auto w-full print:p-0 print:overflow-visible">
-                <div className="min-w-max">
-                    <div className="mb-6 print:mb-4">
-                        <h1 className="text-xl font-bold m-0 text-gray-900">รายละเอียดเงินเดือน-ค่าจ้าง</h1>
-                        <h2 className="text-lg font-medium m-0 text-gray-700 mt-1">ประจำเดือน {period.name}</h2>
-                        <h3 className="text-sm font-medium m-0 text-gray-500 mt-1">
-                            รอบวันที่ {new Date(period.start_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} ถึง {new Date(period.end_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
-                        </h3>
-                    </div>
+            <div ref={printRef} style={{ '--print-zoom': printZoom }} className="p-4 sm:p-4 w-full print:p-0 print-wrapper">
+                <div className="mb-4 print:mb-2">
+                    <h1 className="text-xl font-bold m-0 text-gray-900">รายละเอียดเงินเดือน-ค่าจ้าง</h1>
+                    <h2 className="text-lg font-medium m-0 text-gray-700 mt-1">ประจำเดือน {period.name}</h2>
+                    <h3 className="text-sm font-medium m-0 text-gray-500 mt-1">
+                        รอบวันที่ {new Date(period.start_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} ถึง {new Date(period.end_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </h3>
+                </div>
 
-                    <table className="report-table w-full border-collapse border border-gray-400 text-sm text-gray-800 font-sans">
-                        <thead>
-                            <tr className="bg-gray-100 text-center font-bold">
-                                <th rowSpan="3" className="border border-gray-400 p-1 w-10">ลำดับ</th>
-                                <th rowSpan="3" className="border border-gray-400 p-1 min-w-[150px]">ชื่อ-สกุล</th>
+                <div className="print-scroll overflow-x-auto w-full print:overflow-visible shadow-sm border border-gray-200 print:shadow-none print:border-none">
+                    <div className="print-content min-w-max">
+                        <table className="report-table w-full border-collapse border border-gray-400 text-xs text-gray-800 font-sans bg-white">
+                            <thead>
+                                <tr className="bg-gray-100 text-center font-bold">
+                                    <th rowSpan="3" className="border border-gray-400 p-1 w-10">ลำดับ</th>
+                                    <th rowSpan="3" className="border border-gray-400 p-1 min-w-[150px] print:min-w-0">ชื่อ-สกุล</th>
                                 <th colSpan="4" className="border border-gray-400 p-1">เงินเดือน</th>
                                 <th rowSpan="3" className="border border-gray-400 p-1 w-16">วันทำงานจริง</th>
                                 <th rowSpan="3" className="border border-gray-400 p-1 w-16">วันที่ทำงาน</th>
@@ -310,7 +440,7 @@ const PayrollSummaryReportPage = () => {
                         </tbody>
                     </table>
 
-                    <div className="mt-8 flex justify-between items-end print:mt-12 text-sm">
+                    <div className="mt-4 flex justify-between items-end text-sm notes-section">
                         <div className="border border-green-500 p-2 text-xs w-1/2 rounded text-left bg-green-50/30">
                             <div className="font-bold mb-1 text-green-700">หมายเหตุ</div>
                             <ol className="m-0 pl-4 space-y-1 text-gray-700">
@@ -333,6 +463,7 @@ const PayrollSummaryReportPage = () => {
                                 <div>ผู้อนุมัติ</div>
                             </div>
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>

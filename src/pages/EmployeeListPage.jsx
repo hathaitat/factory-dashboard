@@ -13,36 +13,7 @@ const EmployeeListPage = () => {
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
     const { showConfirm, showAlert } = useDialog();
-    const [employees, setEmployees] = useState([]);
-    const [filteredEmployees, setFilteredEmployees] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-
-    useEffect(() => {
-        loadEmployees();
-    }, []);
-
-    useEffect(() => {
-        if (!searchTerm) {
-            setFilteredEmployees(employees);
-        } else {
-            const lowerTerm = searchTerm.toLowerCase();
-            const filtered = employees.filter(emp =>
-                emp.full_name.toLowerCase().includes(lowerTerm) ||
-                emp.code.toLowerCase().includes(lowerTerm) ||
-                (emp.phone && emp.phone.includes(searchTerm))
-            );
-            setFilteredEmployees(filtered);
-        }
-    }, [searchTerm, employees]);
-
-    const loadEmployees = async () => {
-        setIsLoading(true);
-        const data = await employeeService.getEmployees();
-        setEmployees(data);
-        setFilteredEmployees(data);
-        setIsLoading(false);
-    };
 
     const {
         data: paginatedEmployees,
@@ -54,7 +25,9 @@ const EmployeeListPage = () => {
         setItemsPerPage,
         updateFilters,
         startItem,
-        endItem
+        endItem,
+        isLoading,
+        refresh
     } = useServerPagination(employeeService.getEmployeesPaginated, { searchTerm: '' }, 50);
 
     // Debounce search term
@@ -74,6 +47,7 @@ const EmployeeListPage = () => {
                 'ตำแหน่ง': emp.position,
                 'ประเภทการจ้าง': emp.employment_type,
                 'เบอร์โทร': emp.phone,
+                'เงินเดือน': emp.monthly_salary,
                 'ค่าแรงรายวัน': emp.daily_wage,
                 'เบี้ยขยัน': emp.diligence_allowance,
                 'สถานะ': emp.status === 'Active' ? 'ปกติ' : 'ระงับ'
@@ -94,7 +68,11 @@ const EmployeeListPage = () => {
         const confirmed = await showConfirm('คุณแน่ใจว่าต้องการลบข้อมูลพนักงานนี้?');
         if (confirmed) {
             const success = await employeeService.deleteEmployee(id);
-            if (success) loadEmployees();
+            if (success) {
+                refresh();
+            } else {
+                await showAlert('ไม่สามารถลบข้อมูลพนักงานได้ อาจมีการใช้งานข้อมูลนี้อยู่');
+            }
         }
     };
 

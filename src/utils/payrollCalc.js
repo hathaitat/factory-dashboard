@@ -6,9 +6,14 @@
 export const HOURS_PER_DAY = 8;
 export const OT_MULTIPLIERS = { ot15: 1.5, ot16: 1.6, ot20: 2.0 };
 
-// ประกันสังคม: หัก 5% ของค่าจ้าง เพดานสูงสุด 750 บาท/เดือน
+// บริษัทจ่ายเงินเดือนเดือนละ 2 งวด (ครึ่งเดือน) พนักงานรายเดือนจึงได้ เงินเดือน ÷ 2 ต่องวด
+// เท่ากันทุกงวด ไม่ผูกกับจำนวนวันในงวดหรือจำนวนวันทำงานจริง
+export const PAY_PERIODS_PER_MONTH = 2;
+// ฐาน 30 วัน/เดือน ตามมาตรฐานค่าจ้างไทย ใช้แปลงเงินเดือนเป็นอัตราต่อวัน/ต่อชั่วโมงสำหรับคิด OT
+export const DAYS_PER_MONTH = 30;
+
+// ประกันสังคม: หัก 5% ของรายรับรวมทั้งงวด (รวม OT และเบี้ยเลี้ยงทุกตัว) ไม่มีเพดาน
 export const SSO_RATE = 0.05;
-export const SSO_MAX_CONTRIBUTION = 750;
 
 export const BIRTHDAY_ALLOWANCE_DEFAULT = 500;
 
@@ -19,9 +24,10 @@ export const parseNum = (val) => {
 
 export const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
-export const calculateSocialSecurity = (basePay) => {
-    if (basePay <= 0) return 0;
-    return round2(Math.min(basePay * SSO_RATE, SSO_MAX_CONTRIBUTION));
+/** @param {number} totalIncome รายรับรวมทั้งงวดก่อนหักอะไรทั้งสิ้น */
+export const calculateSocialSecurity = (totalIncome) => {
+    if (totalIncome <= 0) return 0;
+    return round2(totalIncome * SSO_RATE);
 };
 
 export const isMonthlyEmployee = (employee) =>
@@ -74,6 +80,29 @@ const sumByKeyword = (items, keywords) =>
     );
 
 /**
+ * ฐานค่าจ้างของ 1 รายการ แยกตามประเภทการจ้าง
+ * - รายเดือน: ได้ เงินเดือน ÷ 2 เต็มงวด ไม่หักตามวันทำงานจริง (วันขาดจัดการด้วยลาป่วย/ลากิจแยกต่างหาก)
+ * - รายวัน/ฝึกงาน: ค่าแรงรายวัน × วันทำงานจริง
+ * ดูประเภทจากข้อมูลพนักงานก่อน ถ้าไม่ได้ส่ง employee มาให้ดูจาก monthly_salary ที่บันทึกไว้ในแถวนั้น
+ * เพื่อให้สลิปและรายงานคิดยอดได้ตรงกับโมดัลเสมอ
+ */
+export const calculateBasePay = (entry, employee = null) => {
+    const e = entry || {};
+    const monthlySalary = parseNum(e.monthly_salary);
+    const dailyWage = parseNum(e.daily_wage);
+    const actualWorkingDays = parseNum(e.actual_working_days);
+    const isMonthly = employee ? isMonthlyEmployee(employee) : monthlySalary > 0;
+
+    // อัตราต่อวันที่ใช้คิด OT: รายเดือนแปลงจากเงินเดือนด้วยฐาน 30 วัน
+    const dailyRate = isMonthly ? round2(monthlySalary / DAYS_PER_MONTH) : dailyWage;
+    const basePay = isMonthly
+        ? round2(monthlySalary / PAY_PERIODS_PER_MONTH)
+        : round2(dailyWage * actualWorkingDays);
+
+    return { isMonthly, monthlySalary, dailyWage, dailyRate, actualWorkingDays, basePay };
+};
+
+/**
  * คำนวณเงินเดือนของ 1 รายการ
  * @param {object} entry แถวจากตาราง payroll_entries
  * @param {object} [employee] ใช้เฉพาะข้อมูลประกอบรายงาน (ไม่กระทบยอดเงิน)
@@ -81,10 +110,9 @@ const sumByKeyword = (items, keywords) =>
 export const calculatePayroll = (entry, employee = null) => {
     const e = entry || {};
 
-    const dailyWage = parseNum(e.daily_wage);
-    const hourlyRate = dailyWage / HOURS_PER_DAY;
-    const actualWorkingDays = parseNum(e.actual_working_days);
-    const basePay = round2(dailyWage * actualWorkingDays);
+    const { isMonthly, monthlySalary, dailyWage, dailyRate, actualWorkingDays, basePay } =
+        calculateBasePay(e, employee);
+    const hourlyRate = dailyRate / HOURS_PER_DAY;
 
     const ot15Hours = parseNum(e.ot_1_5_hours);
     const ot16Hours = parseNum(e.ot_1_6_hours);
@@ -119,12 +147,14 @@ export const calculatePayroll = (entry, employee = null) => {
             custom.incomeTotal
     );
 
-    // แถวเก่าที่ยังไม่เคยบันทึกค่าประกันสังคม ให้ใช้ค่าคำนวณมาตรฐาน 5% เพื่อไม่ให้ยอดเดิมเพี้ยน
+    // ประกันสังคมหักก่อนเป็นรายการแรก คิด 5% จากรายรับรวม
+    // แถวที่ไม่ได้ระบุยอดไว้ (null/undefined) ให้คิดจากสูตรอัตโนมัติ
     const socialSecurity =
         e.social_security === null || e.social_security === undefined
-            ? calculateSocialSecurity(basePay)
+            ? calculateSocialSecurity(totalIncome)
             : parseNum(e.social_security);
 
+    // เงินกู้ยืมบริษัทหักหลังประกันสังคม
     const companyLoan = parseNum(e.company_loan);
 
     const fundDeduction = sumByKeyword(custom.deductions, ['กองทุน', 'fund']);
@@ -138,6 +168,9 @@ export const calculatePayroll = (entry, employee = null) => {
 
     return {
         dailyWage,
+        monthlySalary,
+        // อัตราต่อวันที่ใช้จริงในการคิด OT (รายเดือน = เงินเดือน ÷ 30)
+        dailyRate,
         hourlyRate,
         actualWorkingDays,
         basePay,
@@ -169,7 +202,7 @@ export const calculatePayroll = (entry, employee = null) => {
         otherDeductions,
         totalDeductions,
         netPay,
-        isMonthly: isMonthlyEmployee(employee),
+        isMonthly,
     };
 };
 

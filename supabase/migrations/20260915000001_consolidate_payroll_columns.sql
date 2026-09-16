@@ -3,6 +3,23 @@
 -- back_pay / company_loan ที่มีอยู่แล้ว ทำให้โค้ดเขียนลงคอลัมน์หนึ่งแต่อ่านอีกคอลัมน์
 -- จึงรวมข้อมูลมาไว้ที่ชื่อเดิมจาก CREATE TABLE แล้วลบคอลัมน์ที่ซ้ำทิ้ง
 
+-- 0) ฐานข้อมูลบางตัว (เช่น dev) ถูกสร้าง payroll_entries ด้วย migration 20260914000010
+--    ซึ่งเติมเฉพาะคอลัมน์ชื่อเก่า (backpay / company_loan_deduction) ส่วน CREATE TABLE ใน
+--    20260914000005 เป็น IF NOT EXISTS จึงไม่ได้เติมคอลัมน์ที่เหลือให้ตารางที่มีอยู่แล้ว
+--    ผลคือคอลัมน์ที่โค้ดเขียนลงไปหายไปหลายตัว ทำให้บันทึกเงินเดือนไม่ผ่าน (HTTP 400)
+--    ต้องเติมให้ครบก่อน ไม่งั้นขั้นตอนย้ายข้อมูลข้างล่างจะล้มเพราะไม่มีคอลัมน์ปลายทาง
+ALTER TABLE public.payroll_entries
+    ADD COLUMN IF NOT EXISTS back_pay NUMERIC DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS company_loan NUMERIC DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS diligence_allowance NUMERIC DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS ot_1_6_hours NUMERIC DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS birthday_allowance NUMERIC DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS custom_allowances JSONB DEFAULT '[]'::jsonb;
+
+-- เบี้ยขยันฝั่งพนักงานก็หายด้วยเหตุเดียวกัน (หน้าส่งออก Excel อ่านคอลัมน์นี้)
+ALTER TABLE public.employees
+    ADD COLUMN IF NOT EXISTS diligence_allowance NUMERIC DEFAULT 0;
+
 -- 1) ย้ายข้อมูลที่ค้างอยู่ในคอลัมน์ซ้ำกลับมาที่คอลัมน์หลัก (เลือกค่าที่ไม่ใช่ 0/NULL)
 DO $$
 BEGIN

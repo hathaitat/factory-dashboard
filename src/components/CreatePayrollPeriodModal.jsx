@@ -49,7 +49,7 @@ const CreatePayrollPeriodModal = ({ isOpen, onClose, onSuccess }) => {
             setFormData({ name: '', start_date: '', end_date: '', working_days: '' });
         } catch (error) {
             console.error('Error creating payroll period:', error);
-            showError('เกิดข้อผิดพลาดในการสร้างงวดเงินเดือน');
+            showError(`เกิดข้อผิดพลาดในการสร้างงวดเงินเดือน: ${error.message || error.code || 'ไม่ทราบสาเหตุ'}`);
         } finally {
             setIsSaving(false);
         }

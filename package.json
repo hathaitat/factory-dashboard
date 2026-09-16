@@ -12,7 +12,9 @@
     "supa:login": "supabase login",
     "supa:link:dev": "supabase link --project-ref vpiwrwplzyymwovitjwj",
     "supa:link:prod": "supabase link --project-ref ahhosopeejidjzsfxpts",
-    "migrate": "supabase db push"
+    "migrate": "supabase db push && npm run check:schema",
+    "check:schema": "node scripts/check-schema.mjs development",
+    "check:schema:prod": "node scripts/check-schema.mjs production"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",

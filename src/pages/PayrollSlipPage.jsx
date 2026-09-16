@@ -102,12 +102,12 @@ const PayrollSlipPage = () => {
                 .slip-tbl {
                     width: 100%;
                     border-collapse: collapse;
-                    font-size: 12px;
+                    font-size: 13px;
                     color: #1f2937;
                 }
                 .slip-tbl th, .slip-tbl td {
                     border: 1px solid #9ca3af;
-                    padding: 6px 8px;
+                    padding: 10px 8px;
                     text-align: right;
                 }
                 .slip-tbl th {
@@ -181,14 +181,14 @@ const PayrollSlipPage = () => {
                     .slip-tbl {
                         width: 100%;
                         border-collapse: collapse;
-                        font-size: 11px;
+                        font-size: 13px;
                         color: #000;
                     }
                     .slip-tbl th, .slip-tbl td {
                         border: 1px solid #000;
-                        padding: 4px 6px;
+                        padding: 8px 8px;
                         text-align: right;
-                        line-height: 1.4;
+                        line-height: 1.5;
                     }
                     .slip-tbl th {
                         text-align: center;
@@ -243,12 +243,12 @@ const PayrollSlipPage = () => {
                                 <tbody>
                                     {/* Title Row */}
                                     <tr>
-                                        <td colSpan="8" className="hdr bd-0" style={{ fontSize: '14px', padding: '4px 0' }}>
+                                        <td colSpan="8" className="hdr bd-0" style={{ fontSize: '16px', padding: '6px 0' }}>
                                             บริษัท มัลติพลายส์ ออโต้ เวิร์ค จำกัด
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td colSpan="8" className="hdr bd-0" style={{ fontSize: '12px', padding: '2px 0' }}>
+                                        <td colSpan="8" className="hdr bd-0" style={{ fontSize: '14px', padding: '4px 0' }}>
                                             ใบจ่ายเงินเดือนพนักงาน
                                         </td>
                                     </tr>
@@ -318,15 +318,15 @@ const PayrollSlipPage = () => {
 
                                     {/* Deductions Row Headers */}
                                     <tr>
-                                        <th colSpan="2">หักเงินกู้-ยืม</th>
                                         <th colSpan="2">หักค่าประกันสังคม</th>
+                                        <th colSpan="2">หักเงินกู้-ยืม</th>
                                         <th colSpan="2">หักกองทุนสำรองเลี้ยงชีพ</th>
                                         <th colSpan="2">หักอื่นๆ</th>
                                     </tr>
                                     {/* Deductions Row Data */}
                                     <tr>
-                                        <td colSpan="2" className="txt-c">{formatNum(data.calc.companyLoan)}</td>
                                         <td colSpan="2" className="txt-c">{formatNum(data.calc.socialSecurity)}</td>
+                                        <td colSpan="2" className="txt-c">{formatNum(data.calc.companyLoan)}</td>
                                         <td colSpan="2" className="txt-c">{formatNum(data.calc.fundDeduction)}</td>
                                         <td colSpan="2" className="txt-c">
                                             {formatNum(data.calc.taxDeduction + data.calc.repairDeduction + data.calc.otherDeductions)}
@@ -342,7 +342,7 @@ const PayrollSlipPage = () => {
 
                                     {/* Net Pay Summary Row */}
                                     <tr className="bd-t2 bd-b2">
-                                        <td colSpan="6" className="txt-c fw-b" style={{ fontSize: '11px', background: '#f3f4f6' }}>
+                                        <td colSpan="6" className="txt-c fw-b" style={{ fontSize: '13px', background: '#f3f4f6' }}>
                                             {numberToThaiText(data.calc.netPay)}
                                         </td>
                                         <td className="fw-b txt-c" style={{ background: '#f3f4f6' }}>เงินได้สุทธิ :</td>
@@ -351,8 +351,8 @@ const PayrollSlipPage = () => {
 
                                     {/* Signature Row */}
                                     <tr>
-                                        <td colSpan="4" className="bd-0 bd-l2 bd-b2" style={{ height: '30px' }}></td>
-                                        <td colSpan="4" className="bd-0 bd-r2 bd-b2 txt-c" style={{ verticalAlign: 'bottom', paddingBottom: '4px' }}>
+                                        <td colSpan="4" className="bd-0 bd-l2 bd-b2" style={{ height: '40px' }}></td>
+                                        <td colSpan="4" className="bd-0 bd-r2 bd-b2 txt-c" style={{ verticalAlign: 'bottom', paddingBottom: '8px' }}>
                                             ลงชื่อผู้รับเงิน.......................................................................
                                         </td>
                                     </tr>

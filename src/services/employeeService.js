@@ -1,6 +1,11 @@
 import { supabase } from './supabaseClient';
 import { sanitizeSearchTerm } from './sanitize';
 
+// Postgres date/numeric columns reject "" — send null instead
+// undefined is preserved so updateEmployee can still strip untouched fields
+const emptyToNull = (v) => (v === '' ? null : v);
+const numOrNull = (v) => (v === undefined ? undefined : v === '' || v === null ? null : Number(v));
+
 export const employeeService = {
     // Get all employees
     getEmployees: async () => {
@@ -89,15 +94,16 @@ export const employeeService = {
                 phone: employeeData.phone,
                 position: employeeData.position,
                 employment_type: employeeData.employment_type || 'Full-time',
-                daily_wage: employeeData.daily_wage || 0,
-                position_allowance: employeeData.position_allowance || 0,
-                skill_allowance: employeeData.skill_allowance || 0,
-                start_date: employeeData.start_date,
+                daily_wage: numOrNull(employeeData.daily_wage) ?? 0,
+                monthly_salary: numOrNull(employeeData.monthly_salary) ?? 0,
+                position_allowance: numOrNull(employeeData.position_allowance) ?? 0,
+                skill_allowance: numOrNull(employeeData.skill_allowance) ?? 0,
+                start_date: emptyToNull(employeeData.start_date),
                 status: employeeData.status || 'Active',
                 emergency_contact_name: employeeData.emergency_contact_name,
                 emergency_contact_phone: employeeData.emergency_contact_phone,
                 emergency_contact_relation: employeeData.emergency_contact_relation,
-                date_of_birth: employeeData.date_of_birth,
+                date_of_birth: emptyToNull(employeeData.date_of_birth),
                 created_by: employeeData.createdBy || employeeData.created_by || null,
                 updated_by: employeeData.updatedBy || employeeData.updated_by || null
             };
@@ -126,15 +132,16 @@ export const employeeService = {
                 phone: employeeData.phone,
                 position: employeeData.position,
                 employment_type: employeeData.employment_type,
-                daily_wage: employeeData.daily_wage,
-                position_allowance: employeeData.position_allowance,
-                skill_allowance: employeeData.skill_allowance,
-                start_date: employeeData.start_date,
+                daily_wage: numOrNull(employeeData.daily_wage),
+                monthly_salary: numOrNull(employeeData.monthly_salary),
+                position_allowance: numOrNull(employeeData.position_allowance),
+                skill_allowance: numOrNull(employeeData.skill_allowance),
+                start_date: emptyToNull(employeeData.start_date),
                 status: employeeData.status,
                 emergency_contact_name: employeeData.emergency_contact_name,
                 emergency_contact_phone: employeeData.emergency_contact_phone,
                 emergency_contact_relation: employeeData.emergency_contact_relation,
-                date_of_birth: employeeData.date_of_birth,
+                date_of_birth: emptyToNull(employeeData.date_of_birth),
                 updated_at: new Date().toISOString(),
                 updated_by: employeeData.updatedBy || employeeData.updated_by || null
             };

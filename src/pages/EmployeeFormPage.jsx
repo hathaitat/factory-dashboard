@@ -4,6 +4,7 @@ import { Save, ArrowLeft, User, DollarSign, Calendar, MapPin, Phone, Clock, Plus
 import { employeeService } from '../services/employeeService';
 import { userService } from '../services/userService';
 import { getLocalDateString } from '../utils/dateUtils';
+import { isMonthlyEmployee } from '../utils/payrollCalc';
 import { useDialog } from '../contexts/DialogContext';
 import * as XLSX from 'xlsx-js-style';
 import LastUpdated from '../components/LastUpdated';
@@ -25,6 +26,8 @@ const EmployeeFormPage = () => {
         phone: '',
         position: '',
         employment_type: 'รายเดือน',
+        daily_wage: '',
+        monthly_salary: '',
         start_date: getLocalDateString(),
         status: 'Active',
         emergency_contact_name: '',
@@ -34,6 +37,9 @@ const EmployeeFormPage = () => {
 
     const [isLoading, setIsLoading] = useState(isEditMode);
     const [isSaving, setIsSaving] = useState(false);
+
+    // พนักงานรายเดือนกรอก "เงินเดือน" ส่วนรายวัน/ฝึกงานกรอก "ค่าแรงรายวัน" คนละคอลัมน์กัน
+    const isMonthlyType = isMonthlyEmployee(formData);
 
     useEffect(() => {
         if (isEditMode) {
@@ -91,6 +97,9 @@ const EmployeeFormPage = () => {
             const currentUser = user;
             const payload = {
                 ...formData,
+                // ล้างช่องค่าจ้างของอีกประเภททิ้ง ไม่ให้เหลือเลขค้างไว้จนหน้าคำนวณหยิบไปใช้ผิด
+                daily_wage: isMonthlyType ? 0 : formData.daily_wage,
+                monthly_salary: isMonthlyType ? formData.monthly_salary : 0,
                 createdBy: isEditMode ? undefined : (currentUser?.fullName || currentUser?.username || 'Unknown'),
                 updatedBy: currentUser?.fullName || currentUser?.username || 'Unknown'
             };
@@ -346,15 +355,34 @@ const EmployeeFormPage = () => {
 
                         <div className="grid-mobile-stack grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div className="form-group">
-                                <label className="block mb-2 text-textMuted">ค่าแรงรายวัน (บาท)</label>
-                                <input
-                                    type="number"
-                                    name="daily_wage"
-                                    value={formData.daily_wage || ''}
-                                    onChange={handleChange}
-                                    placeholder="เช่น 350"
-                                    className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
-                                />
+                                {isMonthlyType ? (
+                                    <>
+                                        <label className="block mb-2 text-textMuted">เงินเดือน (บาท/เดือน)</label>
+                                        <input
+                                            type="number"
+                                            name="monthly_salary"
+                                            value={formData.monthly_salary || ''}
+                                            onChange={handleChange}
+                                            placeholder="เช่น 20000"
+                                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
+                                        />
+                                        <div className="mt-2 text-sm text-textMuted">
+                                            งวดครึ่งเดือนจะได้ ฿{(parseFloat(formData.monthly_salary || 0) / 2).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <label className="block mb-2 text-textMuted">ค่าแรงรายวัน (บาท)</label>
+                                        <input
+                                            type="number"
+                                            name="daily_wage"
+                                            value={formData.daily_wage || ''}
+                                            onChange={handleChange}
+                                            placeholder="เช่น 350"
+                                            className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
+                                        />
+                                    </>
+                                )}
                             </div>
                             <div className="form-group">
                                 <label className="block mb-2 text-textMuted">ค่าตำแหน่ง (บาท)</label>
@@ -447,11 +475,7 @@ const EmployeeFormPage = () => {
                         </button>
                     </div>
                 </form>
-            )
-            }
-
-
-        </div >
+        </div>
     );
 };
 

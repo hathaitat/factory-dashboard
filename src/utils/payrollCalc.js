@@ -147,12 +147,14 @@ export const calculatePayroll = (entry, employee = null) => {
             custom.incomeTotal
     );
 
-    // ประกันสังคมหักก่อนเป็นรายการแรก คิด 5% จากรายรับรวม
-    // แถวที่ไม่ได้ระบุยอดไว้ (null/undefined) ให้คิดจากสูตรอัตโนมัติ
+    // ประกันสังคมหักก่อนเป็นรายการแรก คิด 5% จากรายรับรวม (หรือใช้ยอด fix จากข้อมูลพนักงาน)
+    // แถวที่ไม่ได้ระบุยอดไว้ (null/undefined) ให้คิดจากสูตรอัตโนมัติหรือยอด fix จากพนักงาน
     const socialSecurity =
-        e.social_security === null || e.social_security === undefined
-            ? calculateSocialSecurity(totalIncome)
-            : parseNum(e.social_security);
+        e.social_security !== null && e.social_security !== undefined
+            ? parseNum(e.social_security)
+            : (employee?.social_security !== null && employee?.social_security !== undefined)
+                ? parseNum(employee.social_security)
+                : calculateSocialSecurity(totalIncome);
 
     // เงินกู้ยืมบริษัทหักหลังประกันสังคม
     const companyLoan = parseNum(e.company_loan);

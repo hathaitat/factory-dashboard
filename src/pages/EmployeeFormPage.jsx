@@ -28,6 +28,7 @@ const EmployeeFormPage = () => {
         employment_type: 'รายเดือน',
         daily_wage: '',
         monthly_salary: '',
+        social_security: '',
         start_date: getLocalDateString(),
         status: 'Active',
         emergency_contact_name: '',
@@ -353,7 +354,7 @@ const EmployeeFormPage = () => {
                             </div>
                         </div>
 
-                        <div className="grid-mobile-stack grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div className="grid-mobile-stack grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                             <div className="form-group">
                                 {isMonthlyType ? (
                                     <>
@@ -406,6 +407,22 @@ const EmployeeFormPage = () => {
                                     className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
                                 />
                             </div>
+                            {isMonthlyType && (
+                                <div className="form-group">
+                                    <label className="block mb-2 text-textMuted">ค่าประกันสังคม (บาท)</label>
+                                    <input
+                                        type="number"
+                                        name="social_security"
+                                        value={formData.social_security || ''}
+                                        onChange={handleChange}
+                                        placeholder="เช่น 750 (ว่าง = 5%)"
+                                        className="glass-input w-full p-3 bg-main border border-border rounded-lg text-main"
+                                    />
+                                    <div className="mt-2 text-sm text-textMuted">
+                                        เว้นว่างไว้เพื่อคำนวณอัตโนมัติ (5%)
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="grid-mobile-stack grid grid-cols-2 gap-6">

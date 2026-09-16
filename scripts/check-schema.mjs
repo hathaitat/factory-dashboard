@@ -23,7 +23,7 @@ const REQUIRED_COLUMNS = {
         'daily_wage', 'monthly_salary', 'position_allowance', 'skill_allowance',
         'diligence_allowance', 'start_date', 'status', 'date_of_birth',
         'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation',
-        'created_at', 'created_by', 'updated_at', 'updated_by'
+        'social_security', 'created_at', 'created_by', 'updated_at', 'updated_by'
     ],
     // payroll_periods ไม่มี updated_at ในฐานข้อมูลจริง (ตารางถูกสร้างโดย migration เก่า
     // ตั้งแต่ก่อน 20260914000004) ตอนนี้ไม่มีโค้ดส่วนไหนเขียนคอลัมน์นี้จึงไม่ใส่ไว้

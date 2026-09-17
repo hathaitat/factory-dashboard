@@ -49,8 +49,19 @@ const PayrollSummaryReportPage = () => {
 
     // Covers Ctrl/Cmd+P and the browser's own print entry points too
     useEffect(() => {
-        window.addEventListener('beforeprint', fitForPrint);
-        return () => window.removeEventListener('beforeprint', fitForPrint);
+        const handleBeforePrint = () => {
+            document.querySelectorAll('.col-wage').forEach(el => el.colSpan = 2);
+            fitForPrint();
+        };
+        const handleAfterPrint = () => {
+            document.querySelectorAll('.col-wage').forEach(el => el.colSpan = 4);
+        };
+        window.addEventListener('beforeprint', handleBeforePrint);
+        window.addEventListener('afterprint', handleAfterPrint);
+        return () => {
+            window.removeEventListener('beforeprint', handleBeforePrint);
+            window.removeEventListener('afterprint', handleAfterPrint);
+        };
     }, [fitForPrint]);
 
     const loadData = async () => {
@@ -70,7 +81,7 @@ const PayrollSummaryReportPage = () => {
             setPeriod(periodData);
 
             // Map employees to entries
-            const fullEntries = employeesData
+            let fullEntries = employeesData
                 .filter(emp => emp.status === 'Active' || entriesData.some(e => e.employee_id === emp.id))
                 .map(emp => {
                     const entry = entriesData.find(e => e.employee_id === emp.id);
@@ -80,6 +91,27 @@ const PayrollSummaryReportPage = () => {
                     };
                 })
                 .filter(item => item.entry); // Only show those who have payroll entries for this period
+
+            fullEntries.sort((a, b) => {
+                const aIsMonthly = isMonthlyEmployee(a.employee);
+                const bIsMonthly = isMonthlyEmployee(b.employee);
+
+                if (aIsMonthly && !bIsMonthly) return -1;
+                if (!aIsMonthly && bIsMonthly) return 1;
+
+                // Sort by tenure (longest first = earliest start_date)
+                const dateA = a.employee.start_date ? new Date(a.employee.start_date).getTime() : Infinity;
+                const dateB = b.employee.start_date ? new Date(b.employee.start_date).getTime() : Infinity;
+                
+                if (dateA !== dateB) {
+                    return dateA - dateB;
+                }
+                
+                // Fallback to name sorting if start_date is the same
+                const nameA = a.employee.full_name || '';
+                const nameB = b.employee.full_name || '';
+                return nameA.localeCompare(nameB, 'th');
+            });
 
             setEntries(fullEntries);
         } catch (error) {
@@ -190,7 +222,12 @@ const PayrollSummaryReportPage = () => {
                         min-width: 0 !important;
                     }
 
+                    .print-wrapper.print-metrics .hide-on-print {
+                        display: none !important;
+                    }
+
                     @media print {
+                        .hide-on-print { display: none !important; }
                         @page { size: A4 landscape; margin: 5mm; }
                         /* the page root is min-h-screen (100vh) on screen; on paper that
                            would reserve a whole viewport of height for nothing */
@@ -299,9 +336,8 @@ const PayrollSummaryReportPage = () => {
                                     <th rowSpan="3" className="border border-gray-400 p-1 min-w-[150px] print:min-w-0">ชื่อ-สกุล</th>
                                 <th colSpan="4" className="border border-gray-400 p-1">เงินเดือน</th>
                                 <th rowSpan="3" className="border border-gray-400 p-1 w-16">วันทำงานจริง</th>
-                                <th rowSpan="3" className="border border-gray-400 p-1 w-16">วันที่ทำงาน</th>
                                 <th rowSpan="3" className="border border-gray-400 p-1 w-20">จำนวนเงิน</th>
-                                <th colSpan="4" className="border border-gray-400 p-1">ค่าจ้าง</th>
+                                <th colSpan="4" className="col-wage border border-gray-400 p-1">ค่าจ้าง</th>
                                 <th rowSpan="3" className="border border-gray-400 p-1">ค่าตำแหน่ง</th>
                                 <th colSpan="3" className="border border-gray-400 p-1">O/T (1.5,1.6)แรง</th>
                                 <th colSpan="2" className="border border-gray-400 p-1">O/T(2.0)</th>
@@ -327,7 +363,7 @@ const PayrollSummaryReportPage = () => {
                                 <th rowSpan="2" className="border border-gray-400 p-1">ครึ่งเดือน</th>
                                 <th rowSpan="2" className="border border-gray-400 p-1">คิดต่อวัน</th>
                                 <th rowSpan="2" className="border border-gray-400 p-1">รายวัน</th>
-                                <th colSpan="2" className="border border-gray-400 p-1">วันศุกร์ 70%.50%</th>
+                                <th colSpan="2" className="border border-gray-400 p-1 hide-on-print">วันศุกร์ 70%.50%</th>
                                 <th colSpan="2" className="border border-gray-400 p-1">วันหยุด(1) และ(2) แรง</th>
                                 <th rowSpan="2" className="border border-gray-400 p-1">จำนวนที่ทำOT</th>
                                 <th rowSpan="2" className="border border-gray-400 p-1">OT/hr.</th>
@@ -336,8 +372,8 @@ const PayrollSummaryReportPage = () => {
                                 <th rowSpan="2" className="border border-gray-400 p-1">จำนวนเงิน</th>
                             </tr>
                             <tr className="bg-gray-100 text-center font-bold">
-                                <th className="border border-gray-400 p-1">วัน</th>
-                                <th className="border border-gray-400 p-1">เป็นเงิน</th>
+                                <th className="border border-gray-400 p-1 hide-on-print">วัน</th>
+                                <th className="border border-gray-400 p-1 hide-on-print">เป็นเงิน</th>
                                 <th className="border border-gray-400 p-1">วัน</th>
                                 <th className="border border-gray-400 p-1">เป็นเงิน</th>
                             </tr>
@@ -354,11 +390,10 @@ const PayrollSummaryReportPage = () => {
                                         <td className="border border-gray-400 p-1 font-bold">{formatNum(row.contactWork)}</td>
                                         <td className="border border-gray-400 p-1 font-bold">{formatNum(row.salaryDaily)}</td>
                                         <td className="border border-gray-400 p-1 font-bold">{formatNum(row.workingDays)}</td>
-                                        <td className="border border-gray-400 p-1 font-bold">{formatNum(row.workingDate)}</td>
                                         <td className="border border-gray-400 p-1 font-bold">{formatNum(row.amountBase)}</td>
                                         
-                                        <td className="border border-gray-400 p-1">{formatNum(row.fridayDays)}</td>
-                                        <td className="border border-gray-400 p-1">{formatNum(row.fridayAmount)}</td>
+                                        <td className="border border-gray-400 p-1 hide-on-print">{formatNum(row.fridayDays)}</td>
+                                        <td className="border border-gray-400 p-1 hide-on-print">{formatNum(row.fridayAmount)}</td>
                                         <td className="border border-gray-400 p-1">{formatNum(row.holidayDays)}</td>
                                         <td className="border border-gray-400 p-1">{formatNum(row.holidayAmount)}</td>
                                         
@@ -401,11 +436,10 @@ const PayrollSummaryReportPage = () => {
                                 <td className="border border-gray-400 p-1">{formatNum(totals.contactWork)}</td>
                                 <td className="border border-gray-400 p-1">{formatNum(totals.salaryDaily)}</td>
                                 <td className="border border-gray-400 p-1 bg-gray-200 border-none"></td>
-                                <td className="border border-gray-400 p-1 bg-gray-200 border-none"></td>
                                 <td className="border border-gray-400 p-1">{formatNum(totals.amountBase)}</td>
                                 
-                                <td className="border border-gray-400 p-1 bg-gray-200 border-none"></td>
-                                <td className="border border-gray-400 p-1">{formatNum(totals.fridayAmount)}</td>
+                                <td className="border border-gray-400 p-1 bg-gray-200 border-none hide-on-print"></td>
+                                <td className="border border-gray-400 p-1 hide-on-print">{formatNum(totals.fridayAmount)}</td>
                                 <td className="border border-gray-400 p-1 bg-gray-200 border-none"></td>
                                 <td className="border border-gray-400 p-1">{formatNum(totals.holidayAmount)}</td>
                                 

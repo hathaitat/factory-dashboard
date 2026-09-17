@@ -216,7 +216,7 @@ const PayrollSummaryReportPage = () => {
                     .print-wrapper.print-metrics .report-table th,
                     .print-wrapper.print-metrics .report-table td {
                         font-size: 12px !important;
-                        padding: 1px 3px !important;
+                        padding: 4px 3px !important;
                         line-height: 1.2 !important;
                         white-space: nowrap !important;
                         min-width: 0 !important;
@@ -286,7 +286,7 @@ const PayrollSummaryReportPage = () => {
                         .print-wrapper .report-table th,
                         .print-wrapper .report-table td {
                             font-size: 12px !important;
-                            padding: 1px 3px !important;
+                            padding: 4px 3px !important;
                             line-height: 1.2 !important;
                             min-width: 0 !important;
                             white-space: normal !important;

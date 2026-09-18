@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Activity, Settings, LogOut, Users, Building, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle, Truck, Package, ChevronDown, ChevronUp, ChevronRight, Bell, ArrowRight, History as HistoryIcon, Target, Edit2, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Activity, Settings, LogOut, Users, Building, Shield, FileText, FileSymlink, DollarSign, Menu, X, Clock, ShoppingCart, HelpCircle, Truck, Package, ChevronDown, ChevronUp, ChevronRight, Bell, ArrowRight, History as HistoryIcon, Target, Edit2, TrendingUp, Calendar as CalendarIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { internalRequisitionService } from '../services/internalRequisitionService';
 import { companyService } from '../services/companyService';
@@ -143,9 +143,15 @@ const DashboardLayout = () => {
                 </div>
 
                 <nav className="sidebar-nav">
-                    {/* 6 Core Menus (Flat Items) */}
-                    {hasPermission('overview', 'view') && (
+                    {hasPermission('purchase_orders', 'view') && (
                         <NavLink to="/dashboard" end onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                            <CalendarIcon size={20} className="text-[#8b5cf6]" />
+                            <span>ปฏิทินงาน</span>
+                        </NavLink>
+                    )}
+
+                    {hasPermission('overview', 'view') && (
+                        <NavLink to="/dashboard/overview" onClick={closeSidebar} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                             <LayoutDashboard size={20} className="text-[#3b82f6]" />
                             <span>ภาพรวม</span>
                         </NavLink>
@@ -387,6 +393,10 @@ const DashboardLayout = () => {
                                     <NavLink to="/dashboard/payroll" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
                                         <DollarSign size={18} className="opacity-70" />
                                         <span>เงินเดือน</span>
+                                    </NavLink>
+                                    <NavLink to="/dashboard/attendance-report" onClick={closeSidebar} className={({ isActive }) => `nav-item sub ${isActive ? 'active' : ''}`}>
+                                        <FileText size={18} className="opacity-70" />
+                                        <span>รายงานเวลาทำงาน</span>
                                     </NavLink>
                                 </div>
                             )}

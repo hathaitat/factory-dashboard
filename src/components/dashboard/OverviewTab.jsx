@@ -139,7 +139,7 @@ const OverviewTab = () => {
                     </div>
                 </div>
 
-                <div className="kpi-card glass-panel cursor-pointer" onClick={() => navigate('/dashboard?tab=warehouse')}>
+                <div className="kpi-card glass-panel cursor-pointer" onClick={() => navigate('/dashboard/overview?tab=warehouse')}>
                     <div className="kpi-icon-wrapper red">
                         <Package size={24} />
                     </div>
@@ -261,7 +261,7 @@ const OverviewTab = () => {
                         <h3 className="m-0 text-[1rem] text-red-500 flex items-center gap-2">
                             <AlertTriangle size={16} /> สินค้าใกล้หมด/ต้องสั่งเพิ่ม
                         </h3>
-                        <button onClick={() => navigate('/dashboard?tab=warehouse')} className="bg-transparent border-none text-textMuted cursor-pointer flex items-center gap-1 text-[0.85rem]">
+                        <button onClick={() => navigate('/dashboard/overview?tab=warehouse')} className="bg-transparent border-none text-textMuted cursor-pointer flex items-center gap-1 text-[0.85rem]">
                             ดูคลังสินค้า <ExternalLink size={14} />
                         </button>
                     </div>

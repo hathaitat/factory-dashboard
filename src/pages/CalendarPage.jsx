@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import {
     ChevronLeft, ChevronRight, Calendar as CalendarIcon, List as ListIcon, ShoppingCart
 } from 'lucide-react';
-import { purchaseOrderService } from '../../services/purchaseOrderService';
-import { supplierPoService } from '../../services/supplierPoService';
+import { purchaseOrderService } from '../services/purchaseOrderService';
+import { supplierPoService } from '../services/supplierPoService';
 import { useNavigate } from 'react-router-dom';
 
-const CalendarTab = () => {
+const CalendarPage = () => {
     const navigate = useNavigate();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [view, setView] = useState('month'); // month, week
@@ -587,4 +587,4 @@ const CalendarTab = () => {
     );
 };
 
-export default CalendarTab;
+export default CalendarPage;

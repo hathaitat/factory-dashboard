@@ -155,5 +155,59 @@ export const payrollService = {
             console.error('Error upserting payroll entry:', error);
             throw error;
         }
+    },
+
+    // ดึงข้อมูลสำหรับรายงาน Attendance Report ตามช่วงวันที่เริ่มต้นและสิ้นสุด
+    getAttendanceReportData: async (startDate, endDate) => {
+        try {
+            // 1. ดึง Periods ในช่วงที่กำหนด
+            let query = supabase
+                .from('payroll_periods')
+                .select('*')
+                .order('start_date', { ascending: true });
+                
+            if (startDate) query = query.gte('start_date', startDate);
+            if (endDate) query = query.lte('start_date', endDate);
+
+            const { data: periods, error: periodError } = await query;
+            if (periodError) throw periodError;
+
+            if (!periods || periods.length === 0) return { periods: [], entries: [] };
+
+            const periodIds = periods.map(p => p.id);
+
+            // 2. ดึง Entries ที่อยู่ใน Periods เหล่านี้ (พร้อม Pagination ถ้าเกิน 1000 แถว)
+            let allEntries = [];
+            let hasMore = true;
+            let from = 0;
+            const BATCH_SIZE = 1000;
+
+            while (hasMore) {
+                const { data: entries, error: entryError } = await supabase
+                    .from('payroll_entries')
+                    .select('*')
+                    .in('period_id', periodIds)
+                    .order('id', { ascending: true })
+                    .range(from, from + BATCH_SIZE - 1);
+
+                if (entryError) throw entryError;
+
+                if (entries && entries.length > 0) {
+                    allEntries = [...allEntries, ...entries];
+                    if (entries.length < BATCH_SIZE) {
+                        hasMore = false;
+                    } else {
+                        from += BATCH_SIZE;
+                    }
+                } else {
+                    hasMore = false;
+                }
+            }
+
+            return { periods, entries: allEntries };
+        } catch (error) {
+            console.error('Error fetching attendance report data:', error);
+            throw error;
+        }
     }
 };

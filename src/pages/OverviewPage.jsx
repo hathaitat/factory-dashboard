@@ -14,7 +14,6 @@ const BillingNoteTab = lazy(() => import('../components/dashboard/BillingNoteTab
 const ReceiptTab = lazy(() => import('../components/dashboard/ReceiptTab'));
 const CustomerTab = lazy(() => import('../components/dashboard/CustomerTab'));
 const EmployeeTab = lazy(() => import('../components/dashboard/EmployeeTab'));
-const CalendarTab = lazy(() => import('../components/dashboard/CalendarTab'));
 const SupplierTab = lazy(() => import('../components/dashboard/SupplierTab'));
 const SupplierPoTab = lazy(() => import('../components/dashboard/SupplierPoTab'));
 const WarehouseTab = lazy(() => import('../components/dashboard/WarehouseTab'));
@@ -30,7 +29,6 @@ const TabLoader = () => (
 
 const TABS = [
     { id: 'overview', label: 'ภาพรวม', icon: LayoutDashboard, module: 'overview', action: 'view' },
-    { id: 'calendar', label: 'ปฏิทินงาน', icon: CalendarIcon, module: 'purchase_orders', action: 'view' },
     { id: 'po', label: 'ใบสั่งซื้อ', icon: ShoppingCart, module: 'purchase_orders', action: 'view' },
     { id: 'quotation', label: 'ใบเสนอราคา', icon: FileText, module: 'quotations', action: 'view' },
     { id: 'invoice', label: 'ใบกำกับภาษี', icon: FileText, module: 'invoices', action: 'view' },

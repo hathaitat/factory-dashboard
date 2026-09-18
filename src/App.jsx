@@ -10,6 +10,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 // Lazy-loaded pages (Code Splitting — reduces initial bundle from ~1.2MB to ~300KB)
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
 const DashboardLayout = React.lazy(() => import('./layouts/DashboardLayout'));
+const CalendarPage = React.lazy(() => import('./pages/CalendarPage'));
 const OverviewPage = React.lazy(() => import('./pages/OverviewPage'));
 const CustomerListPage = React.lazy(() => import('./pages/CustomerListPage'));
 const CustomerCreatePage = React.lazy(() => import('./pages/CustomerCreatePage'));
@@ -41,6 +42,7 @@ const PayrollPeriodListPage = React.lazy(() => import('./pages/PayrollPeriodList
 const PayrollPeriodDetailPage = React.lazy(() => import('./pages/PayrollPeriodDetailPage'));
 const PayrollSummaryReportPage = React.lazy(() => import('./pages/PayrollSummaryReportPage'));
 const PayrollSlipPage = React.lazy(() => import('./pages/PayrollSlipPage'));
+const AttendanceReportPage = React.lazy(() => import('./pages/AttendanceReportPage'));
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const PurchaseOrderListPage = React.lazy(() => import('./pages/PurchaseOrderListPage'));
 const PurchaseOrderFormPage = React.lazy(() => import('./pages/PurchaseOrderFormPage'));
@@ -106,8 +108,11 @@ function App() {
                 {/* Protected Routes */}
                 <Route element={<ProtectedRoute />}>
                   <Route path="/dashboard" element={<DashboardLayout />}>
+                    <Route element={<PermissionRoute module="purchase_orders" action="view" fallbackModule="overview" />}>
+                      <Route index element={<CalendarPage />} />
+                    </Route>
                     <Route element={<PermissionRoute module="overview" action="view" />}>
-                      <Route index element={<OverviewPage />} />
+                      <Route path="overview" element={<OverviewPage />} />
                     </Route>
                     <Route element={<PermissionRoute module="settings" action="view" />}>
                       <Route path="settings" element={<SettingsPage />} />
@@ -276,6 +281,7 @@ function App() {
                       <Route path="payroll/:id" element={<PayrollPeriodDetailPage />} />
                       <Route path="payroll/:id/report" element={<PayrollSummaryReportPage />} />
                       <Route path="payroll/:id/slips" element={<PayrollSlipPage />} />
+                      <Route path="attendance-report" element={<AttendanceReportPage />} />
                     </Route>
                     <Route element={<PermissionRoute module="employees" action="create" />}>
                       <Route path="employees/new" element={<EmployeeFormPage />} />

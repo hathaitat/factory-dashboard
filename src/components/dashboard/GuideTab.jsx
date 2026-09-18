@@ -94,9 +94,9 @@ const GuideTab = () => {
                                     <div className="tab-badge indigo"><LayoutDashboard size={14} /> ภาพรวม (Overview)</div>
                                 </div>
                                 <ul className="info-bullets">
-                                    <li><strong>KPI Cards:</strong> แสดงยอดขายรวมเดือนนี้, จำนวนลูกค้าทั้งหมด, จำนวนใบสั่งซื้อ (PO) ใหม่ และยอดใบเสนอราคา</li>
+                                    <li><strong>KPI Cards:</strong> แสดงยอดขายรวมเดือนนี้, จำนวนลูกค้าทั้งหมด และจำนวนใบสั่งซื้อ (PO) ใหม่</li>
                                     <li><strong>Alert Banner:</strong> แจ้งเตือนด่วนกรณีมี Certificate ของลูกค้าที่กำลังจะหมดอายุใน 30 วัน หรือหมดอายุไปแล้ว</li>
-                                    <li><strong>Main Analytics Chart:</strong> กราฟเส้นเปรียบเทียบยอดขาย (Invoice), ยอดสั่งซื้อ (PO) และยอดเสนอราคา (Quotation)</li>
+                                    <li><strong>Main Analytics Chart:</strong> กราฟเส้นเปรียบเทียบยอดขาย (Invoice) และยอดสั่งซื้อ (PO)</li>
                                     <li><strong>Top 5 สินค้าขายดี:</strong> จัดอันดับสินค้าที่ทำยอดขายสูงสุด พร้อมแสดงจำนวนหน่วยที่ขายได้และมูลค่ารวม</li>
                                     <li><strong>Top 5 ลูกค้ารายใหญ่:</strong> จัดอันดับลูกค้าที่มียอดสั่งซื้อสูงสุด เพื่อการดูแลแบบ VIP</li>
                                 </ul>

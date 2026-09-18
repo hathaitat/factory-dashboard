@@ -8,7 +8,6 @@ import '../styles/OverviewPage.css';
 // Lazy-loaded tab components
 const OverviewTab = lazy(() => import('../components/dashboard/OverviewTab'));
 const POTab = lazy(() => import('../components/dashboard/POTab'));
-const QuotationTab = lazy(() => import('../components/dashboard/QuotationTab'));
 const InvoiceTab = lazy(() => import('../components/dashboard/InvoiceTab'));
 const BillingNoteTab = lazy(() => import('../components/dashboard/BillingNoteTab'));
 const ReceiptTab = lazy(() => import('../components/dashboard/ReceiptTab'));
@@ -30,7 +29,6 @@ const TabLoader = () => (
 const TABS = [
     { id: 'overview', label: 'ภาพรวม', icon: LayoutDashboard, module: 'overview', action: 'view' },
     { id: 'po', label: 'ใบสั่งซื้อ', icon: ShoppingCart, module: 'purchase_orders', action: 'view' },
-    { id: 'quotation', label: 'ใบเสนอราคา', icon: FileText, module: 'quotations', action: 'view' },
     { id: 'invoice', label: 'ใบกำกับภาษี', icon: FileText, module: 'invoices', action: 'view' },
     { id: 'billing', label: 'ใบวางบิล', icon: FileText, module: 'billing', action: 'view' },
     { id: 'receipt', label: 'ใบเสร็จ', icon: Receipt, module: 'billing', action: 'view' },
@@ -62,14 +60,12 @@ const OverviewPage = () => {
         switch (activeTab) {
             case 'overview': return <OverviewTab />;
             case 'po': return <POTab />;
-            case 'quotation': return <QuotationTab />;
             case 'invoice': return <InvoiceTab />;
             case 'billing': return <BillingNoteTab />;
             case 'receipt': return <ReceiptTab />;
             case 'supplier_po': return <SupplierPoTab />;
             case 'customer': return <CustomerTab />;
             case 'supplier': return <SupplierTab />;
-
             case 'warehouse': return <WarehouseTab />;
             case 'production': return <ProductionTab />;
             case 'employee': return <EmployeeTab />;

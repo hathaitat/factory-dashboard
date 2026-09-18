@@ -14,7 +14,7 @@ const PermissionRoute = ({ module, action = 'view', fallbackModule }) => {
         if (location.pathname === '/dashboard') {
             const modules = [
                 'customers', 'invoices', 'billing', 'employees', 'company', 
-                'users', 'production', 'quotations', 'suppliers', 
+                'users', 'production', 'suppliers', 
                 'supplier_pos', 'internal_items', 'internal_requisitions', 
                 'warehouses', 'payroll', 'certificates'
             ];

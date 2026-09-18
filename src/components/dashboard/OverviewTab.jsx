@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, DollarSign, FileText, ShieldAlert, ShoppingCart, ExternalLink, Package, AlertTriangle } from 'lucide-react';
+import { Users, DollarSign, ShieldAlert, ShoppingCart, ExternalLink, Package, AlertTriangle } from 'lucide-react';
 import { warehouseService } from '../../services/warehouseService';
 import { customerService } from '../../services/customerService';
 import { invoiceService } from '../../services/invoiceService';
-import { purchaseOrderService } from '../../services/purchaseOrderService';
-import { quotationService } from '../../services/quotationService';
-import { certificateService } from '../../services/certificateService';
+import { purchaseOrderService } from '../../services/purchaseOrderService';import { certificateService } from '../../services/certificateService';
 import { supplierPoService } from '../../services/supplierPoService';
 import { supplierService } from '../../services/supplierService';
 import CustomLineChart from './CustomLineChart';
@@ -20,8 +18,6 @@ const OverviewTab = () => {
         monthlyInvoiceCount: 0,
         monthlyPOCount: 0,
         monthlyPOAmount: 0,
-        monthlyQuotationCount: 0,
-        monthlyQuotationAmount: 0,
         topProducts: [],
         topCustomers: [],
         expiringCertificates: [],
@@ -29,8 +25,6 @@ const OverviewTab = () => {
         totalInventoryItems: 0,
         rawInvoices: [],
         rawPurchaseOrders: [],
-        rawQuotations: [],
-        rawSupplierPOs: [],
         rawInventoryLogs: [],
         rawSuppliers: [],
         rawCustomers: [],
@@ -41,12 +35,11 @@ const OverviewTab = () => {
         const load = async () => {
             setIsLoading(true);
             try {
-                const [customers, suppliers, invoices, purchaseOrders, quotations, supplierPos, topProducts, topCustomers, expiringCerts, warehouses, inventoryLogs] = await Promise.all([
+                const [customers, suppliers, invoices, purchaseOrders, supplierPos, topProducts, topCustomers, expiringCerts, warehouses, inventoryLogs] = await Promise.all([
                     customerService.getCustomers(),
                     supplierService.getSuppliers(),
                     invoiceService.getInvoices(),
                     purchaseOrderService.getPurchaseOrders(),
-                    quotationService.getQuotations(),
                     supplierPoService.getSupplierPos(),
                     invoiceService.getTopSellingProducts(5),
                     invoiceService.getTopCustomers(5),
@@ -81,21 +74,12 @@ const OverviewTab = () => {
                 const monthlyPOCount = monthlyPOs.length;
                 const monthlyPOAmount = monthlyPOs.reduce((sum, po) => sum + (Number(po.grand_total) || 0), 0);
 
-                const monthlyQuotations = (quotations || []).filter(qt => {
-                    const d = new Date(qt.date || qt.createdAt);
-                    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-                });
-                const monthlyQuotationCount = monthlyQuotations.length;
-                const monthlyQuotationAmount = monthlyQuotations.reduce((sum, qt) => sum + (Number(qt.grandTotal) || 0), 0);
-
                 setData({
                     totalCustomers: (customers || []).length,
                     monthlySales,
                     monthlyInvoiceCount,
                     monthlyPOCount,
                     monthlyPOAmount,
-                    monthlyQuotationCount,
-                    monthlyQuotationAmount,
                     topProducts: topProducts || [],
                     topCustomers: topCustomers || [],
                     expiringCertificates: expiringCerts || [],
@@ -103,8 +87,6 @@ const OverviewTab = () => {
                     totalInventoryItems: flatInventory.length,
                     rawInvoices: invoices || [],
                     rawPurchaseOrders: purchaseOrders || [],
-                    rawQuotations: quotations || [],
-                    rawSupplierPOs: supplierPos || [],
                     rawInventoryLogs: (inventoryLogs || []).map(log => ({
                         ...log,
                         // Make OUT and negative ADJUSTments negative for the chart to show direction
@@ -186,20 +168,7 @@ const OverviewTab = () => {
                     </div>
                 </div>
 
-                <div className="kpi-card glass-panel cursor-pointer" onClick={() => navigate('/dashboard/quotations')}>
-                    <div className="kpi-icon-wrapper yellow">
-                        <FileText size={24} />
-                    </div>
-                    <div className="kpi-content">
-                        <span className="kpi-label">ใบเสนอราคาเดือนนี้</span>
-                        <div className="flex flex-col">
-                            <span className="kpi-value">{data.monthlyQuotationCount.toLocaleString()} <span className="unit">ใบ</span></span>
-                            <span className="kpi-sub-value text-[0.8rem] text-textMuted mt-[0.2rem]">
-                                ยอดรวม ฿{data.monthlyQuotationAmount.toLocaleString()}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+
             </div>
 
             <CustomLineChart
@@ -211,7 +180,7 @@ const OverviewTab = () => {
                     { id: 'stock_movement', label: 'การเคลื่อนไหวสต็อก (Qty)', data: data.rawInventoryLogs, dateField: 'date', valueField: 'qty', color: '#ec4899', yAxisId: 'right', valueSuffix: ' ชิ้น' },
                     { id: 'customer_growth', label: 'ลูกค้าใหม่ (สะสม)', data: data.rawCustomers, dateField: 'createdAt', color: '#f59e0b', yAxisId: 'right', valueSuffix: ' ราย' },
                     { id: 'supplier_growth', label: 'Supplier ใหม่ (สะสม)', data: data.rawSuppliers, dateField: 'createdAt', color: '#14b8a6', yAxisId: 'right', valueSuffix: ' ราย' },
-                    { id: 'quotation_amount', label: 'ยอดเสนอราคา (Quotations)', data: data.rawQuotations, dateField: 'date', valueField: 'grandTotal', color: '#94a3b8', valuePrefix: '฿' }
+
                 ]}
             />
 

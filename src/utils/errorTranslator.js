@@ -12,9 +12,7 @@ export const translateError = (errorMsg) => {
         if (lowerMsg.includes('invoices_invoice_number_key') || lowerMsg.includes('invoice_number')) {
             return 'เลขที่ใบกำกับภาษีนี้มีอยู่ในระบบแล้ว กรุณาใช้เลขที่อื่น';
         }
-        if (lowerMsg.includes('quotations_quotation_number_key')) {
-            return 'เลขที่ใบเสนอราคานี้มีอยู่ในระบบแล้ว กรุณาใช้เลขที่อื่น';
-        }
+
         if (lowerMsg.includes('billing_notes_billing_number_key')) {
             return 'เลขที่ใบวางบิลนี้มีอยู่ในระบบแล้ว กรุณาใช้เลขที่อื่น';
         }

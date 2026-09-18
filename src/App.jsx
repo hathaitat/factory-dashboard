@@ -47,9 +47,6 @@ const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const PurchaseOrderListPage = React.lazy(() => import('./pages/PurchaseOrderListPage'));
 const PurchaseOrderFormPage = React.lazy(() => import('./pages/PurchaseOrderFormPage'));
 const DeliverySchedulePage = React.lazy(() => import('./pages/DeliverySchedulePage'));
-const QuotationListPage = React.lazy(() => import('./pages/QuotationListPage'));
-const QuotationFormPage = React.lazy(() => import('./pages/QuotationFormPage'));
-const QuotationPrintTemplate = React.lazy(() => import('./components/QuotationPrintTemplate'));
 const GuidePage = React.lazy(() => import('./pages/GuidePage'));
 const SupplierListPage = React.lazy(() => import('./pages/SupplierListPage'));
 const SupplierCreatePage = React.lazy(() => import('./pages/SupplierCreatePage'));
@@ -199,20 +196,6 @@ function App() {
                       <Route path="purchase-orders/:id/edit" element={<PurchaseOrderFormPage />} />
                       <Route path="delivery-schedule" element={<DeliverySchedulePage />} />
                     </Route>
-
-                    {/* Quotations Module */}
-                    <Route element={<PermissionRoute module="quotations" action="view" />}>
-                      <Route path="quotations" element={<QuotationListPage />} />
-                      <Route path="quotations/:id" element={<QuotationFormPage />} />
-                    </Route>
-                    <Route element={<PermissionRoute module="quotations" action="create" />}>
-                      <Route path="quotations/new" element={<QuotationFormPage />} />
-                    </Route>
-                    <Route element={<PermissionRoute module="quotations" action="edit" />}>
-                      <Route path="quotations/:id/edit" element={<QuotationFormPage />} />
-                    </Route>
-
-                    {/* Invoices Module */}
                     <Route element={<PermissionRoute module="invoices" action="view" />}>
                       <Route path="invoices" element={<InvoiceListPage />} />
                       <Route path="invoices/:id" element={<InvoiceDetailPage />} />
@@ -317,9 +300,6 @@ function App() {
                   {/* Print Routes (Protected + Permission Check) */}
                   <Route element={<PermissionRoute module="invoices" action="view" />}>
                     <Route path="/dashboard/invoices/:id/print" element={<InvoicePrintTemplate />} />
-                  </Route>
-                  <Route element={<PermissionRoute module="quotations" action="view" />}>
-                    <Route path="/dashboard/quotations/:id/print" element={<QuotationPrintTemplate />} />
                   </Route>
                   <Route element={<PermissionRoute module="billing" action="view" />}>
                     <Route path="/dashboard/billing-notes/:id/print" element={<BillingNotePrintTemplate />} />
